@@ -543,6 +543,13 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 // Bare /health alias for Docker Desktop UI polling (redirects to /health/live)
 app.MapGet("/health", () => Results.Redirect("/health/live"));
 
+// Start Kestrel before the first-run database work. Managed platforms perform a
+// short health probe during a release; migrations and the initial catalogue seed
+// can legitimately take longer than that probe, especially when Neon is waking
+// from idle. Starting the host first keeps /health/live available while setup
+// completes below.
+var appRunTask = app.RunAsync();
+
 // Optional: Auto apply migrations & seed
 using (var scope = app.Services.CreateScope())
 {
@@ -642,7 +649,7 @@ RecurringJob.RemoveIfExists("chat-warm-starters");
 if (app.Configuration.GetValue<bool>("ChatSettings:WarmStarters", true))
     BackgroundJob.Enqueue<ChatService>(service => service.WarmStartersAsync());
 
-    app.Run();
+    await appRunTask;
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {
