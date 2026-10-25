@@ -32,6 +32,43 @@ try
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Hosted platforms commonly import a Docker-style .env file whose keys are
+// intentionally flat (for example CONNECTION_STRING). ASP.NET Core expects
+// hierarchical keys (ConnectionStrings__DefaultConnection). Keep native
+// hierarchical environment variables authoritative, then accept flat aliases
+// as a deployment fallback without copying secrets into source control.
+string? HostedSetting(string configurationKey, string legacyEnvironmentKey)
+{
+    var nativeEnvironmentKey = configurationKey.Replace(":", "__");
+    return Environment.GetEnvironmentVariable(nativeEnvironmentKey)
+        ?? builder.Configuration[legacyEnvironmentKey];
+}
+
+var hostedAliases = new Dictionary<string, string?>
+{
+    ["ConnectionStrings:DefaultConnection"] = HostedSetting("ConnectionStrings:DefaultConnection", "CONNECTION_STRING"),
+    ["Redis:ConnectionString"] = HostedSetting("Redis:ConnectionString", "REDIS_URL")
+        ?? builder.Configuration["UPSTASH_REDIS_URL"],
+    ["AuthSecurity:OtpPepper"] = HostedSetting("AuthSecurity:OtpPepper", "AUTH_OTP_PEPPER"),
+    ["Smtp:Host"] = HostedSetting("Smtp:Host", "SMTP_HOST"),
+    ["Smtp:Port"] = HostedSetting("Smtp:Port", "SMTP_PORT"),
+    ["Smtp:EnableSsl"] = HostedSetting("Smtp:EnableSsl", "SMTP_ENABLE_SSL"),
+    ["Smtp:Username"] = HostedSetting("Smtp:Username", "SMTP_USERNAME"),
+    ["Smtp:Password"] = HostedSetting("Smtp:Password", "SMTP_PASSWORD"),
+    ["Smtp:FromAddress"] = HostedSetting("Smtp:FromAddress", "SMTP_FROM_ADDRESS"),
+    ["Authentication:Google:ClientId"] = HostedSetting("Authentication:Google:ClientId", "GOOGLE_CLIENT_ID"),
+    ["Authentication:Google:ClientSecret"] = HostedSetting("Authentication:Google:ClientSecret", "GOOGLE_CLIENT_SECRET"),
+    ["Cloudinary:CloudName"] = HostedSetting("Cloudinary:CloudName", "CLOUDINARY_CLOUD_NAME"),
+    ["Cloudinary:ApiKey"] = HostedSetting("Cloudinary:ApiKey", "CLOUDINARY_API_KEY"),
+    ["Cloudinary:ApiSecret"] = HostedSetting("Cloudinary:ApiSecret", "CLOUDINARY_API_SECRET"),
+    ["AppSettings:FrontendBaseUrl"] = HostedSetting("AppSettings:FrontendBaseUrl", "FRONTEND_BASE_URL"),
+    ["AllowedHosts"] = Environment.GetEnvironmentVariable("AllowedHosts")
+        ?? builder.Configuration["ALLOWED_HOSTS"],
+};
+builder.Configuration.AddInMemoryCollection(hostedAliases
+    .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+    .ToDictionary(pair => pair.Key, pair => pair.Value));
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     // Keep uploads bounded even before controller-level validation runs.
