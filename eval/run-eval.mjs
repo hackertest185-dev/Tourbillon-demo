@@ -1,0 +1,794 @@
+// Smart Search evaluation harness — scores the retrieval pipeline against a labelled query set.
+// Runs each query through two arms (keyword baseline and the full Smart Search pipeline), scores
+// both with the same metrics, and reports the delta with a paired bootstrap interval so the
+// difference can be quoted as a measurement rather than an impression.
+//
+// Usage:
+//   node eval/run-eval.mjs --inspect            # what the catalogue actually contains
+//   node eval/run-eval.mjs --validate           # label health, no API calls to the search arms
+//   node eval/run-eval.mjs                      # full run, both arms
+//   node eval/run-eval.mjs --arms=bm25,keyword,vector,hybrid,smart  # first arm is the baseline for every delta
+//   node eval/run-eval.mjs --scope=spec          # only the facet queries the parser owns
+//   node eval/run-eval.mjs --scope=semantic --arms=keyword,concierge   # only open-ended briefs
+//   node eval/run-eval.mjs --from=eval/results/eval-<stamp>.json   # re-print a saved run, no API calls
+//   BASE_URL=http://localhost:5248 node eval/run-eval.mjs
+//
+// Requires: backend running, WatchFinderSettings:DisableLimitInDev=true (otherwise the daily
+// quota rejects the run after 5 queries).
+
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { loadCatalogue, summariseFacets } from './catalogue.mjs';
+import { buildGenerated, validateQueries, scopeOf } from './labels.mjs';
+import { HANDWRITTEN, REALISTIC, FORMER_TEST } from './dev-set.mjs';
+import { TEST } from './test-set.mjs';
+import { buildCatalogueIndex, scoreActions, summariseActions } from './actions.mjs';
+import { scoreSlots, summariseSlots } from './slots.mjs';
+import { parseServerTiming, summariseStages } from './timing.mjs';
+import {
+  recallAtK, precisionAtK, reciprocalRank, ndcgAtK, hitAtK,
+  mean, percentile, bootstrapCI, pairedBootstrap, recallCeiling, significance,
+  gainAtK, ndcgAtKGraded, usefulHitAtK, violationRateAtK,
+} from './metrics.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+const RESET = '\x1b[0m', BOLD = '\x1b[1m', DIM = '\x1b[2m';
+const CYAN = '\x1b[36m', GREEN = '\x1b[32m', YELLOW = '\x1b[33m', RED = '\x1b[31m';
+
+const args = parseArgs(process.argv.slice(2));
+const BASE_URL = args['base-url'] ?? process.env.BASE_URL ?? 'http://localhost:5248';
+const K = Number(args.k ?? 10);
+const PRECISION_K = Number(args.pk ?? 5);
+const ARMS = String(args.arms ?? 'keyword,smart').split(',').map(s => s.trim()).filter(Boolean);
+// Which half of the golden set to score: spec (facet queries the deterministic parser owns),
+// semantic (open-ended briefs the concierge owns), or all. Scoring an arm on the queries the
+// other subsystem now serves measures a scope decision, not retrieval quality.
+const SCOPE = String(args.scope ?? 'all').trim();
+const LIMIT = args.limit ? Number(args.limit) : null;
+// The briefs a fix was written for. Re-running all 36 to see whether one of them still breaks is
+// twenty minutes on a local model; naming them is one.
+const ONLY = args.only ? new Set(args.only.split(',').map(id => id.trim()).filter(Boolean)) : null;
+const PASSES = Number(args.passes ?? 1);
+const DELAY_MS = Number(args.delay ?? 0);
+// Largest share of the catalogue a label may match before it stops discriminating between
+// arms. Exposed as a flag because the right ceiling depends on how the catalogue is skewed.
+const MAX_SHARE = Number(args['max-share'] ?? 0.25);
+// Which set to run. `dev` is everything a tuning decision may be made against, so a number from it
+// says how well the system fits those briefs. `test` is the sealed set: run to report, never to
+// decide, which is the only way the reported number generalises.
+const SET = String(args.set ?? 'dev').trim();
+// One or more dev groups instead of the whole dev set: `legacy` reproduces the published development
+// numbers, the others make an iteration cheaper. Comma-separated.
+const DEV_GROUPS = ['legacy', 'realistic', 'former-test'];
+// Whether results may be printed brief by brief. The sealed set shows totals only, because reading
+// which briefs or categories failed is exactly what turns a test set into a dev set. --unseal lifts
+// it, and is meant for after the final numbers are recorded. Set by main, reprint and rescore.
+let SEALED = false;
+const GROUPS = args.group ? String(args.group).split(',').map(g => g.trim()).filter(Boolean) : DEV_GROUPS;
+
+// -- Arms ---------------------------------------------------------------------
+// Each arm turns a query string into a ranked list of watch ids plus whatever diagnostics
+// that endpoint exposes. Nothing else in the harness knows which arm it is scoring.
+
+const ARM_IMPLS = {
+  // The site's own search bar: substring matching with a hand-built score. Kept as the
+  // "what the site shipped" number; bm25 is the standard lexical baseline to compare against.
+  keyword: async query => {
+    const res = await fetch(`${BASE_URL}/api/search?q=${encodeURIComponent(query)}`,
+      { signal: AbortSignal.timeout(60_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return { ids: (body.watches ?? []).map(w => w.id), meta: {} };
+  },
+
+  // The concierge keeps the model stages Smart Search dropped (classifier, LLM parse),
+  // so scoring its cards on the same labels shows what those stages buy over the model-free path.
+  // One fresh session per query, because the golden set is single-turn and shared session
+  // state would let one query's context leak into the next.
+  concierge: async query => {
+    const sessionId = `eval-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    try {
+      const res = await fetch(`${BASE_URL}/api/chat/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message: query }),
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (res.status === 429) throw new Error('429 quota — set ChatSettings:DisableLimitInDev=true');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      return {
+        ids: (body.watchCards ?? []).map(c => c.id),
+        meta: {
+          stages: parseServerTiming(res.headers.get('server-timing')),
+          // The pool retrieval ranked before the card cut, when the backend is set to expose it.
+          // Without it the concierge can only be scored on what it showed, which hides whether a
+          // miss was retrieval failing to find the watch or the shortlist failing to pick it.
+          candidateIds: body.candidateWatchIds ?? null,
+          // The prose, kept so a judge can grade offline whether the reply answers the brief and
+          // whether every claim in it is supported by the cards it names. Storing it costs nothing
+          // at run time and saves paying for the run twice.
+          reply: body.message ?? null,
+          // What the parse made of the brief, when the backend is set to expose it. A brief can
+          // fail on the parse or on retrieval, and the cards alone do not say which.
+          parsedIntent: body.parsedIntent ?? null,
+          searchPath: body.finderPath ?? body.routingPath ?? 'concierge',
+          routingPath: body.routingPath ?? null,
+          actions: (body.actions ?? []).map(a => ({
+            type: a.type, label: a.label, slugs: a.slugs ?? null, query: a.query ?? null, href: a.href ?? null,
+          })),
+        },
+      };
+    } finally {
+      await fetch(`${BASE_URL}/api/chat/session/${sessionId}`, {
+        method: 'DELETE', signal: AbortSignal.timeout(10_000),
+      }).catch(() => {});
+    }
+  },
+
+  // Smart Search as shipped: deterministic parse and SQL, then BM25F inside the parsed filters,
+  // with no model call anywhere. searchPath says which of the two answered.
+  smart: async query => {
+    const res = await fetch(`${BASE_URL}/api/watch/find`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(180_000),
+    });
+    if (res.status === 429) throw new Error('429 quota — set WatchFinderSettings:DisableLimitInDev=true');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const body = await res.json();
+    return {
+      ids: rankedIds(body),
+      meta: {
+        searchPath: body.searchPath ?? 'unknown',
+        rerankSource: body.rerankSource ?? 'unknown',
+        queryIntent: body.queryIntent ?? null,
+      },
+    };
+  },
+
+  // The three retrieval designs below run with no parser, no rerank and no cache, so each is
+  // measured on its own terms rather than through whatever the full pipeline routed it to.
+
+  // BM25F over brand, collection, reference, description and spec values: the standard lexical
+  // baseline, as opposed to the site's substring search in the keyword arm.
+  bm25: query => findWithMode(query, 'bm25'),
+
+  // Cosine similarity over watch embeddings: what the vector index is worth alone.
+  vector: query => findWithMode(query, 'vector'),
+
+  // BM25F and vector rankings fused by reciprocal rank in the backend. Only positions are
+  // combined, because a BM25 score and a cosine distance share no scale.
+  hybrid: query => findWithMode(query, 'hybrid'),
+};
+
+/// Calls the finder with a retrieval mode. The backend refuses an unknown mode, so a typo here
+/// fails loudly instead of quietly scoring the full pipeline under the wrong name.
+async function findWithMode(query, mode) {
+  const res = await fetch(`${BASE_URL}/api/watch/find`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, mode }),
+    signal: AbortSignal.timeout(180_000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  return { ids: rankedIds(body), meta: { searchPath: body.searchPath ?? mode } };
+}
+
+/// Shown results first, then the rest of the ranked pool. Metrics read the first k, so this only
+/// matters when --k asks for more than the fifteen a results page shows.
+function rankedIds(body) {
+  return [...(body.watches ?? []), ...(body.otherCandidates ?? [])].map(w => w.id);
+}
+
+// -- Main ---------------------------------------------------------------------
+
+/// The dev set, or the named groups of it. Generated queries are built from the live catalogue, so
+/// they belong to the legacy group they were always run with.
+function devGroups(catalogue, groups) {
+  const byGroup = {
+    legacy: () => [...HANDWRITTEN, ...buildGenerated(catalogue)],
+    realistic: () => REALISTIC,
+    'former-test': () => FORMER_TEST,
+  };
+  return groups.flatMap(group => byGroup[group]());
+}
+
+async function main() {
+  if (args.from) return reprint(String(args.from));
+  if (args.rescore) return rescore(String(args.rescore));
+  console.log(`${BOLD}Smart Search evaluation${RESET} ${DIM}${BASE_URL}${RESET}`);
+  console.log(`${DIM}scope ${SCOPE}   arms ${ARMS.join(', ')}${RESET}\n`);
+
+  const catalogue = await loadCatalogue(BASE_URL).catch(err => {
+    console.error(`${RED}Could not load catalogue: ${err.message}${RESET}`);
+    console.error(`${DIM}Is the backend up? Try: make up${RESET}`);
+    process.exit(1);
+  });
+
+  if (args.inspect) return printFacets(catalogue);
+
+  if (SET === 'realistic') {
+    console.error(`${RED}--set=realistic is now a dev group: use --set=dev --group=realistic.${RESET}`);
+    process.exit(1);
+  }
+  if (!['dev', 'test'].includes(SET)) {
+    console.error(`${RED}Unknown set "${SET}". Valid sets: dev, test.${RESET}`);
+    process.exit(1);
+  }
+  const unknownGroups = GROUPS.filter(g => !DEV_GROUPS.includes(g));
+  if (unknownGroups.length > 0 || (args.group && SET !== 'dev')) {
+    console.error(`${RED}--group takes ${DEV_GROUPS.join(', ')}, and only with --set=dev.${RESET}`);
+    process.exit(1);
+  }
+  const all = SET === 'test' ? TEST : devGroups(catalogue, GROUPS);
+  console.log(`${DIM}set ${SET}${SET === 'dev' ? `   groups ${GROUPS.join(', ')}` : ''}${RESET}`);
+  SEALED = SET === 'test' && !args.unseal;
+  if (SET === 'test') console.log(`${YELLOW}sealed test set${RESET} ${DIM}run to report, never to tune${RESET}`);
+  if (SEALED && ONLY) {
+    console.error(`${RED}--only reads the sealed set brief by brief. Use --unseal, and only after the numbers are recorded.${RESET}`);
+    process.exit(1);
+  }
+  if (SET === 'test' && gitState().dirty) {
+    console.log(`${RED}uncommitted changes in the tree: this run cannot be reproduced from a commit.${RESET}`);
+  }
+  const validated = validateQueries(catalogue, all, { maxShare: MAX_SHARE });
+  const usable = validated.filter(q => q.status === 'ok');
+  const inScope = SCOPE === 'all' ? usable : usable.filter(q => scopeOf(q) === SCOPE);
+  const selected = ONLY ? inScope.filter(q => ONLY.has(q.id)) : inScope;
+  if (ONLY && selected.length === 0) throw new Error(`--only matched no brief in the ${SET} set: ${[...ONLY].join(', ')}`);
+  if (ONLY) console.log(`${YELLOW}only${RESET} ${DIM}${selected.map(q => q.id).join(', ')} — a spot check, not a score${RESET}`);
+  const scored = LIMIT ? selected.slice(0, LIMIT) : selected;
+
+  printLabelReport(validated, catalogue);
+  if (args.validate) return;
+
+  if (scored.length === 0) {
+    console.error(`${RED}No usable queries in scope "${SCOPE}". Valid scopes: all, spec, semantic.${RESET}`);
+    console.error(`${DIM}If the scope is right, fix the labels flagged above before running the arms.${RESET}`);
+    process.exit(1);
+  }
+
+  const results = {};
+  const index = buildCatalogueIndex(catalogue);
+  for (const arm of ARMS) {
+    if (!ARM_IMPLS[arm]) { console.error(`${RED}Unknown arm: ${arm}${RESET}`); process.exit(1); }
+    results[arm] = await runArm(arm, scored, catalogue, index);
+  }
+
+  for (const half of splitByScope(results, scored)) {
+    printScores(half.results, half.queries, half.scope);
+    printComparison(half.results, half.queries, half.scope);
+  }
+  printRetrievalSplit(results);
+  printPaths(results);
+  printStages(results);
+  printSlots(results);
+  printActions(results);
+  writeReport(results, scored, catalogue);
+}
+
+/// Retrieval and shortlist, scored apart. The pool answers "was it found at all", the first three
+/// cards answer "was it picked" — a low pool recall is fixed in the index, a good pool with a weak
+/// shortlist is fixed in selection, and the two were indistinguishable while only cards were scored.
+function scoreSplit(q, ids, candidateIds, error) {
+  if (error || !q.grades || !Array.isArray(candidateIds) || candidateIds.length === 0) return {};
+  return {
+    poolSize: candidateIds.length,
+    poolRecall: recallAtK(candidateIds, q.ideal, 50),
+    poolNdcg: ndcgAtKGraded(candidateIds, q.grades, 50),
+    shownGain: gainAtK(ids, q.grades, 3),
+    shownNdcg: ndcgAtKGraded(ids, q.grades, 3),
+  };
+}
+
+/// Scores a saved run against the labels as they stand now. Changing a label used to mean paying
+/// to run the model-backed arms again; with the ranked ids stored, the same run can answer the new
+/// question for free. Only the metrics move — the ids, the timings and the actions are the run's.
+async function rescore(file) {
+  const saved = JSON.parse(readFileSync(file, 'utf8'));
+  SEALED = saved.set === 'test' && !args.unseal;
+  const catalogue = await loadCatalogue(BASE_URL);
+  // Both sets, because a saved run may be from either and the ids do not overlap.
+  const validated = validateQueries(catalogue, [...devGroups(catalogue, DEV_GROUPS), ...TEST], { maxShare: MAX_SHARE });
+  const byId = new Map(validated.map(q => [q.id, q]));
+
+  const results = {};
+  const skipped = new Set();
+  for (const [arm, rows] of Object.entries(saved.rows)) {
+    results[arm] = rows.map(row => {
+      const q = byId.get(row.queryId);
+      if (!q || !Array.isArray(row.rankedIds)) { skipped.add(row.queryId); return row; }
+      return { ...row, relevantCount: q.relevantCount, ...scoreIds(q, row.rankedIds, row.error) };
+    });
+  }
+
+  const first = Object.values(results)[0] ?? [];
+  const queries = first.map(row => byId.get(row.queryId)).filter(Boolean);
+  console.log(`${BOLD}Smart Search evaluation${RESET} ${DIM}rescoring ${file} against the current labels${RESET}`);
+  console.log(`${DIM}run at ${saved.runAt}   scope ${saved.scope ?? 'all'}   arms ${Object.keys(results).join(', ')}${RESET}`);
+  if (skipped.size > 0) {
+    console.log(`${YELLOW}  ${skipped.size} rows kept as saved${RESET} ${DIM}no stored ids or no label under that id: ${[...skipped].slice(0, 6).join(', ')}${RESET}`);
+    console.log(`${DIM}  runs recorded before ranked ids were stored cannot be rescored.${RESET}`);
+  }
+  for (const half of splitByScope(results, queries)) {
+    printScores(half.results, half.queries, half.scope);
+    printComparison(half.results, half.queries, half.scope);
+  }
+  printActions(results);
+}
+
+/// Every metric for one result list. A graded label (the open-ended half) is scored on grades:
+/// recall against the ideal set the ceiling is read from, gain in place of precision, a hit only
+/// when something at grade 2 or better made the cut, and violations of a stated constraint counted
+/// on their own. A binary label (the facet half) is scored exactly as before.
+function scoreIds(q, ids, error = null) {
+  if (error) {
+    return { ceiling: recallCeiling(q.relevantCount, K), recall: null, precision: null,
+             mrr: null, ndcg: null, hit: null, violation: null };
+  }
+  if (!q.grades) {
+    return {
+      ceiling: recallCeiling(q.relevantCount, K),
+      recall: recallAtK(ids, q.relevant, K),
+      precision: precisionAtK(ids, q.relevant, PRECISION_K),
+      mrr: reciprocalRank(ids, q.relevant, K),
+      ndcg: ndcgAtK(ids, q.relevant, K),
+      hit: hitAtK(ids, q.relevant, K),
+      violation: null,
+    };
+  }
+  return {
+    ceiling: recallCeiling(q.ideal.size, K),
+    recall: recallAtK(ids, q.ideal, K),
+    precision: gainAtK(ids, q.grades, PRECISION_K),
+    mrr: reciprocalRank(ids, q.relevant, K),
+    ndcg: ndcgAtKGraded(ids, q.grades, K),
+    hit: usefulHitAtK(ids, q.grades, K),
+    violation: violationRateAtK(ids, q.violating, K),
+  };
+}
+
+/// Re-prints the report from a saved run, so a fix to the reporting never means paying for the
+/// model-backed arms again. Only the stored rows are needed; the catalogue is not reloaded.
+function reprint(file) {
+  const saved = JSON.parse(readFileSync(file, 'utf8'));
+  SEALED = saved.set === 'test' && !args.unseal;
+  const results = saved.rows;
+  const first = Object.values(results)[0] ?? [];
+  const queries = [...new Map(first.map(r => [r.queryId, { id: r.queryId, category: r.category, query: r.query }])).values()];
+  console.log(`${BOLD}Smart Search evaluation${RESET} ${DIM}replaying ${file}${RESET}`);
+  console.log(`${DIM}run at ${saved.runAt}   scope ${saved.scope ?? 'all'}   arms ${Object.keys(results).join(', ')}${RESET}`);
+  for (const half of splitByScope(results, queries)) {
+    printScores(half.results, half.queries, half.scope);
+    printComparison(half.results, half.queries, half.scope);
+  }
+  printPaths(results);
+  printStages(results);
+  printSlots(results);
+  printActions(results);
+}
+
+/// Runs one arm over the whole set sequentially. Sequential on purpose: the point of the
+/// latency column is what a single user waits, not what the service does under load.
+async function runArm(arm, queries, catalogue, index) {
+  console.log(`\n${BOLD}${CYAN}arm: ${arm}${RESET} ${DIM}${queries.length} queries x ${PASSES} pass(es)${RESET}`);
+  const rows = [];
+
+  for (let pass = 1; pass <= PASSES; pass++) {
+    for (const [i, q] of queries.entries()) {
+      const started = performance.now();
+      let ids = [], meta = {}, error = null;
+      try {
+        ({ ids, meta } = await ARM_IMPLS[arm](q.query));
+      } catch (err) {
+        error = err.message;
+      }
+      const latencyMs = performance.now() - started;
+
+      const row = {
+        pass, queryId: q.id, category: q.category, query: q.query,
+        replyChecks: q.replyChecks ?? [],
+        relevantCount: q.relevantCount, returned: ids.length, latencyMs, error, ...meta,
+        // The ids are kept so a later change to the labels can be scored against this run instead
+        // of paying to run the model-backed arms again.
+        rankedIds: ids.slice(0, 50),
+        ...scoreIds(q, ids, error),
+        ...scoreSplit(q, ids, meta.candidateIds, error),
+      };
+      // Structured filter accuracy applies where a label reduces to facets, which is the spec half.
+      if (!error && meta.queryIntent !== undefined && scopeOf(q) === 'spec') {
+        row.slots = scoreSlots(q.truth, meta.queryIntent, catalogue);
+        row.queryIntent = meta.queryIntent;
+      }
+      // Actions are scored against the same labels as the cards; a hand-off search is run through
+      // Smart Search, which is where the concierge sends it.
+      if (!error && meta.actions) {
+        row.actionScores = await scoreActions(meta.actions, {
+          index, relevant: q.relevant, search: async text => (await ARM_IMPLS.smart(text)).ids,
+        });
+      }
+      rows.push(row);
+      process.stdout.write(`\r${DIM}  pass ${pass}  ${i + 1}/${queries.length}  ${q.id.padEnd(24).slice(0, 24)}${RESET}`);
+      if (DELAY_MS) await sleep(DELAY_MS);
+    }
+  }
+  process.stdout.write('\r' + ' '.repeat(70) + '\r');
+
+  const failures = rows.filter(r => r.error);
+  if (failures.length) {
+    console.log(`  ${YELLOW}${failures.length} request(s) failed${RESET} ${DIM}${failures[0].error}${RESET}`);
+  }
+  return rows;
+}
+
+// -- Reporting ----------------------------------------------------------------
+
+function printFacets(catalogue) {
+  const f = summariseFacets(catalogue);
+  console.log(`${BOLD}Catalogue${RESET}`);
+  console.log(`  watches ${f.watches}   price-on-request ${f.priceOnRequest}`);
+  console.log(`  price   ${money(f.priceMin)} .. ${money(f.priceMedian)} (median) .. ${money(f.priceMax)}`);
+  console.log(`  case    ${f.diameterMin}mm .. ${f.diameterMax}mm`);
+  for (const [label, entries] of [
+    ['brands', f.brands], ['styles', f.styles], ['materials', f.materials],
+    ['movements', f.movements], ['dials', f.dials], ['functions', f.functions],
+  ]) {
+    console.log(`\n${BOLD}${label}${RESET} ${DIM}(${entries.length} distinct)${RESET}`);
+    for (const [name, count] of entries.slice(0, 14)) {
+      console.log(`  ${String(count).padStart(4)}  ${name}`);
+    }
+  }
+}
+
+function printLabelReport(validated, catalogue) {
+  const byStatus = groupBy(validated, q => q.status);
+  const ok = byStatus.ok ?? [];
+  console.log(`${BOLD}Golden set${RESET} ${DIM}${catalogue.records.length} watches in catalogue${RESET}`);
+  console.log(`  usable      ${GREEN}${ok.length}${RESET} / ${validated.length}`);
+  console.log(`  median relevant per query  ${median(ok.map(q => q.relevantCount)) ?? '-'}`);
+  const graded = ok.filter(q => q.grades);
+  if (graded.length) {
+    const tier = grade => median(graded.map(q => [...q.grades.values()].filter(g => g === grade).length));
+    console.log(`  graded labels  ${graded.length}   ${DIM}median per query: grade 3 ${tier(3)}, grade 2 ${tier(2)}, grade 1 ${tier(1)}${RESET}`);
+  }
+
+  for (const status of ['invalid_key', 'must_empty', 'empty', 'too_broad', 'thin', 'tier_dead']) {
+    const rows = byStatus[status] ?? [];
+    if (!rows.length) continue;
+    const why = { invalid_key: 'truth uses a key the matcher ignores — label wider than written',
+                  must_empty: 'no watch satisfies the stated constraint — every answer counts as a violation',
+                  empty: 'no catalogue match — label wrong or data missing',
+                  too_broad: `matches >${(MAX_SHARE * 100).toFixed(0)}% of catalogue — not discriminative`,
+                  thin: 'fewer than 2 matches — recall is unstable',
+                  tier_dead: 'a grade tier matches no watch at all — a spelling or a facet that is not there' }[status];
+    console.log(`  ${YELLOW}${status.padEnd(11)}${RESET}${rows.length}  ${DIM}${why}${RESET}`);
+    for (const q of rows.slice(0, 6)) {
+      console.log(`      ${DIM}${q.id.padEnd(22)} ${String(q.relevantCount).padStart(4)}  "${q.query.slice(0, 46)}"${RESET}`);
+    }
+  }
+  console.log(`\n  ${DIM}by category: ${Object.entries(groupBy(ok, q => q.category))
+    .map(([c, r]) => `${c} ${r.length}`).join('  ')}${RESET}`);
+}
+
+/// Splits a run into one group per scope. The two halves are scored with different definitions -
+/// precision is precision@k on the facet half and mean grade on the graded half, nDCG and hit
+/// likewise - so a set spanning both would average two meanings into one column and report a
+/// number that stands for nothing. A run of a single scope still gets that scope named.
+function splitByScope(results, queries) {
+  const scopes = [...new Set(queries.map(scopeOf))].sort();
+  return scopes.map(scope => {
+    const ids = new Set(queries.filter(q => scopeOf(q) === scope).map(q => q.id));
+    return {
+      scope,
+      queries: queries.filter(q => ids.has(q.id)),
+      results: Object.fromEntries(Object.entries(results)
+        .map(([arm, rows]) => [arm, rows.filter(r => ids.has(r.queryId))])),
+    };
+  });
+}
+
+function printScores(results, queries, scope) {
+  console.log(`\n${BOLD}Retrieval quality - ${scope}${RESET} ${DIM}n=${queries.length}, k=${K}, precision@${PRECISION_K}${RESET}`);
+  // "prec" is precision@k on the facet half and mean grade on the graded half, which is why each
+  // scope gets its own table; "viol" is the share of the top k that breaks a constraint the brief
+  // stated, printed separately because an average grade can look respectable while a third of the
+  // list is over budget.
+  console.log(`  ${'arm'.padEnd(10)}${'recall'.padStart(16)}${'prec'.padStart(8)}${'MRR'.padStart(8)}${'nDCG'.padStart(8)}${'hit'.padStart(8)}${'viol'.padStart(8)}${'p50 ms'.padStart(9)}${'p95 ms'.padStart(9)}`);
+  for (const [arm, rows] of Object.entries(results)) {
+    const recall = mean(rows.map(r => r.recall));
+    const ci = bootstrapCI(rows.map(r => r.recall));
+    const lat = rows.map(r => r.latencyMs);
+    const recallCell = ci
+      ? `${fmt(recall)} ${DIM}±${((ci.hi - ci.lo) / 2).toFixed(2)}${RESET}`
+      : fmt(recall);
+    console.log(`  ${arm.padEnd(10)}${recallCell.padStart(16 + (ci ? DIM.length + RESET.length : 0))}` +
+      `${fmt(mean(rows.map(r => r.precision))).padStart(8)}` +
+      `${fmt(mean(rows.map(r => r.mrr))).padStart(8)}` +
+      `${fmt(mean(rows.map(r => r.ndcg))).padStart(8)}` +
+      `${fmt(mean(rows.map(r => r.hit))).padStart(8)}` +
+      `${fmt(mean(rows.map(r => r.violation))).padStart(8)}` +
+      `${Math.round(percentile(lat, 50)).toString().padStart(9)}` +
+      `${Math.round(percentile(lat, 95)).toString().padStart(9)}`);
+  }
+
+  // Recall is shown against its own ceiling. A label matching more watches than k caps the
+  // score however good the ranking is, so the raw number conflates label breadth with system
+  // quality: 0.13 against a 76-watch label is a perfect result, 0.13 against a 20-watch label
+  // is a poor one. The share of ceiling is what says whether a category actually works.
+  const categories = SEALED ? [] : [...new Set(queries.map(q => q.category))].sort();
+  const arms = Object.keys(results);
+  if (SEALED) console.log(`\n  ${DIM}per-query and per-category results hidden: sealed set (--unseal once the numbers are recorded)${RESET}`);
+  else console.log(`
+${BOLD}Recall@${K} by category${RESET} ${DIM}(share of ceiling in brackets)${RESET}`);
+  if (!SEALED) console.log(`  ${'category'.padEnd(14)}${'n'.padStart(4)}${'ceiling'.padStart(9)}` +
+    arms.map(a => a.padStart(17)).join(''));
+  for (const cat of categories) {
+    const inCat = rows => rows.filter(r => r.category === cat);
+    const ceiling = mean(inCat(results[arms[0]]).map(r => r.ceiling));
+    const cells = arms.map(arm => {
+      const recall = mean(inCat(results[arm]).map(r => r.recall));
+      const share = recall != null && ceiling ? `${((recall / ceiling) * 100).toFixed(0)}%` : '-';
+      return `${fmt(recall)} (${share})`.padStart(17);
+    }).join('');
+    console.log(`  ${cat.padEnd(14)}${String(inCat(results[arms[0]]).length).padStart(4)}${fmt(ceiling).padStart(9)}${cells}`);
+  }
+
+  const overallCeiling = mean(results[arms[0]].map(r => r.ceiling));
+  console.log(`
+  ${DIM}A perfect ranker scores ${fmt(overallCeiling)} on this set, not 1.000.${RESET}`);
+  for (const arm of arms) {
+    const recall = mean(results[arm].map(r => r.recall));
+    console.log(`  ${DIM}${arm.padEnd(11)}${fmt(recall)} = ${((recall / overallCeiling) * 100).toFixed(0)}% of achievable${RESET}`);
+  }
+}
+
+/// Which internal path served each query. This is the number behind any claim about
+/// keeping queries off the LLM: it is measured per request, not assumed from the code.
+/// Only printed for an arm that exposed its pool, which today is the concierge with
+/// ChatSettings:ExposeCandidates on.
+function printRetrievalSplit(results) {
+  const arms = Object.entries(results).filter(([, rows]) => rows.some(r => r.poolSize != null));
+  if (arms.length === 0) return;
+
+  console.log(`
+${BOLD}Retrieval, then shortlist${RESET} ${DIM}the pool before the card cut, and the first three cards${RESET}`);
+  console.log(`  ${'arm'.padEnd(12)}${'pool'.padStart(7)}${'recall@50'.padStart(11)}${'nDCG@50'.padStart(9)}${'gain@3'.padStart(9)}${'nDCG@3'.padStart(9)}`);
+  for (const [arm, rows] of arms) {
+    const scored = rows.filter(r => r.poolSize != null);
+    console.log(`  ${arm.padEnd(12)}${Math.round(mean(scored.map(r => r.poolSize))).toString().padStart(7)}` +
+      `${fmt(mean(scored.map(r => r.poolRecall))).padStart(11)}` +
+      `${fmt(mean(scored.map(r => r.poolNdcg))).padStart(9)}` +
+      `${fmt(mean(scored.map(r => r.shownGain))).padStart(9)}` +
+      `${fmt(mean(scored.map(r => r.shownNdcg))).padStart(9)}`);
+  }
+  console.log(`  ${DIM}a weak pool is a retrieval problem; a good pool with a weak shortlist is a selection problem${RESET}`);
+}
+
+function printPaths(results) {
+  // Smart Search and the concierge are the arms with stages worth attributing; without either,
+  // hybrid still reports when one retriever contributed nothing.
+  const arms = ['smart', 'concierge'].filter(arm => results[arm]);
+  if (!arms.length && (results.hybrid ?? results.vector)) arms.push(results.hybrid ? 'hybrid' : 'vector');
+  for (const arm of arms) printPathsFor(arm, results[arm]);
+}
+
+/// Where the concierge's time goes, per stage, from the Server-Timing header on each reply.
+function printStages(results) {
+  const rows = results.concierge;
+  if (!rows) return;
+  const { requests, stages } = summariseStages(rows);
+  if (!requests) return;
+  console.log(`
+${BOLD}Stage timing${RESET} ${DIM}concierge, ${requests} replies; chat and planner run in parallel${RESET}`);
+  console.log(`  ${'stage'.padEnd(12)}${'ran on'.padStart(9)}${'calls'.padStart(7)}${'p50 ms'.padStart(9)}${'p95 ms'.padStart(9)}`);
+  for (const s of stages) {
+    console.log(`  ${s.name.padEnd(12)}${`${s.ran}/${requests}`.padStart(9)}${s.callsPerRequest.toFixed(1).padStart(7)}` +
+      `${Math.round(s.p50).toString().padStart(9)}${Math.round(s.p95).toString().padStart(9)}`);
+  }
+}
+
+function printPathsFor(arm, rows) {
+  const paths = groupBy(rows.filter(r => r.searchPath), r => r.searchPath);
+  const total = Object.values(paths).reduce((a, r) => a + r.length, 0);
+  if (!total) return;
+
+  // Recall is scored per path, not just per arm, because the architectural question is not
+  // "is Smart Search better" but "which of its stages earns its cost". A path that is slow and
+  // no more accurate than the cheap SQL path is a candidate for deletion, and this is the
+  // table that says so. Paths are chosen by the router, so these are observational groups
+  // over different queries, not a controlled comparison - read them as a signal to dig into.
+  console.log(`\n${BOLD}Path distribution${RESET} ${DIM}${arm}${RESET}`);
+  console.log(`  ${'path'.padEnd(34)}${'n'.padStart(4)}${'share'.padStart(7)}${'recall'.padStart(9)}${'p50 ms'.padStart(9)}${'p95 ms'.padStart(9)}`);
+  for (const [path, group] of Object.entries(paths).sort((a, b) => b[1].length - a[1].length)) {
+    const lat = group.map(r => r.latencyMs);
+    console.log(`  ${path.padEnd(34)}${String(group.length).padStart(4)}` +
+      `${((group.length / total) * 100).toFixed(0) + '%'}`.padStart(7) +
+      `${(SEALED ? '-' : fmt(mean(group.map(r => r.recall)))).padStart(9)}` +
+      `${Math.round(percentile(lat, 50)).toString().padStart(9)}` +
+      `${Math.round(percentile(lat, 95)).toString().padStart(9)}`);
+  }
+  // The concierge no longer reranks; runs saved before that still carry the path, and replaying one
+  // with --from should still say how often it ran.
+  const llm = rows.filter(r => (r.searchPath ?? '').includes('rerank')).length;
+  if (llm) console.log(`  ${DIM}LLM rerank invoked on ${llm}/${total} queries (${((llm / total) * 100).toFixed(0)}%)${RESET}`);
+
+  // A query served from the persistent semantic cache replays an answer computed by an earlier
+  // run, possibly under different code. Those rows score the cache, not the pipeline, so the
+  // run is only reproducible once they are gone. Loud rather than silent: a stale cache quietly
+  // flattering (or damning) a category is the easiest way to draw a wrong conclusion here.
+  const cached = rows.filter(r => (r.searchPath ?? '').startsWith('cache_hit'));
+  if (cached.length) {
+    console.log(`\n  ${YELLOW}${cached.length}/${total} queries were served from the semantic cache${RESET}`);
+    console.log(`  ${DIM}Those measure a previous run, not the current pipeline. Clear it for a clean`);
+    console.log(`  comparison: DELETE /api/admin/query-cache (admin auth required).${RESET}`);
+    for (const r of SEALED ? [] : cached.slice(0, 8)) {
+      console.log(`    ${DIM}${fmt(r.recall)}  "${r.query.slice(0, 46)}"${RESET}`);
+    }
+  }
+}
+
+/// Paired bootstrap on the per-query deltas. Two arms scored on the same queries are paired
+/// data, so pairing removes the query-difficulty variance that would otherwise swamp the effect.
+function printComparison(results, queries, scope) {
+  const arms = Object.keys(results);
+  if (arms.length < 2) return;
+  // The first arm listed is the baseline and every other arm is compared against it, so a
+  // four-arm run reports three paired deltas instead of silently testing only the first two.
+  const [baseline, ...challengers] = arms;
+  for (const challenger of challengers) printPair(results, queries, baseline, challenger, scope);
+}
+
+function printPair(results, queries, a, b, scope) {
+  const byId = rows => {
+    const m = new Map();
+    for (const r of rows) if (!m.has(r.queryId)) m.set(r.queryId, r);
+    return m;
+  };
+  const [ma, mb] = [byId(results[a]), byId(results[b])];
+  const ids = queries.map(q => q.id).filter(id => ma.has(id) && mb.has(id));
+
+  console.log(`\n${BOLD}${b} vs ${a} - ${scope}${RESET} ${DIM}paired bootstrap, 2000 resamples${RESET}`);
+  for (const metric of ['recall', 'precision', 'mrr', 'ndcg']) {
+    const stat = pairedBootstrap(ids.map(id => ma.get(id)[metric]), ids.map(id => mb.get(id)[metric]));
+    if (!stat) continue;
+    const verdict = significance(stat.ci);
+    const sig = verdict === 'better' ? `${GREEN}significantly better${RESET}`
+      : verdict === 'worse' ? `${RED}significantly worse${RESET}`
+      : `${YELLOW}not significant${RESET}`;
+    console.log(`  ${metric.padEnd(10)}${(stat.delta >= 0 ? '+' : '')}${stat.delta.toFixed(3)}` +
+      `  ${DIM}95% CI [${stat.ci.lo.toFixed(3)}, ${stat.ci.hi.toFixed(3)}]${RESET}  ${sig}`);
+  }
+
+  const regressions = ids
+    .map(id => ({ id, delta: (mb.get(id).recall ?? 0) - (ma.get(id).recall ?? 0), q: mb.get(id).query }))
+    .filter(r => r.delta < -0.05).sort((x, y) => x.delta - y.delta);
+  if (regressions.length && !SEALED) {
+    console.log(`\n  ${YELLOW}${regressions.length} queries where ${b} is worse${RESET}`);
+    for (const r of regressions.slice(0, 8)) {
+      console.log(`    ${DIM}${r.delta.toFixed(2)}  ${r.id.padEnd(20)} "${r.q.slice(0, 44)}"${RESET}`);
+    }
+  }
+}
+
+/// How well each arm's parser read the constraints in the spec half, slot by slot.
+function printSlots(results) {
+  for (const [arm, rows] of Object.entries(results)) {
+    const scored = rows.map(r => r.slots).filter(Boolean);
+    if (!scored.length) continue;
+    const s = summariseSlots(scored);
+    console.log(`\n${BOLD}Structured filter accuracy${RESET} ${DIM}${arm}, ${s.queries} queries whose label implies a filter${RESET}`);
+    console.log(`  slot recall ${fmt(s.slotRecall)}   slot precision ${fmt(s.slotPrecision)}   F1 ${fmt(s.slotF1)}   read exactly ${pct(s.exactMatch)}`);
+    if (SEALED) continue;
+    console.log(`  ${'slot'.padEnd(22)}${'matched'.padStart(9)}${'wrong'.padStart(7)}${'missed'.padStart(8)}`);
+    for (const [slot, c] of Object.entries(s.perSlot).sort(([a], [b]) => a.localeCompare(b))) {
+      console.log(`  ${slot.padEnd(22)}${String(c.matched).padStart(9)}${String(c.wrong).padStart(7)}${String(c.missed).padStart(8)}`);
+    }
+  }
+}
+
+/// Validity and relevance of the actions an arm attached to its replies.
+function printActions(results) {
+  for (const [arm, rows] of Object.entries(results)) {
+    const withScores = rows.filter(r => r.actionScores);
+    if (!withScores.length) continue;
+    const s = summariseActions(withScores);
+    console.log(`\n${BOLD}Action relevance${RESET} ${DIM}${arm}, ${s.replies} replies${RESET}`);
+    console.log(`  replies with an action ${s.repliesWithActions}/${s.replies}   ` +
+      `with a relevant action ${s.repliesWithRelevantAction}/${s.repliesWithActions}`);
+    console.log(`  ${'type'.padEnd(10)}${'n'.padStart(4)}${'valid'.padStart(8)}${'relevant'.padStart(10)}${'mean score'.padStart(12)}`);
+    for (const [type, t] of Object.entries(s.perType)) {
+      console.log(`  ${type.padEnd(10)}${String(t.count).padStart(4)}${pct(t.validRate).padStart(8)}${pct(t.relevantRate).padStart(10)}${fmt(t.meanScore).padStart(12)}`);
+    }
+  }
+}
+
+/// The commit a run was measured at, and whether the tree held uncommitted changes. A number is
+/// only reproducible from a clean tree. The backend image is built separately and can still differ,
+/// so this is the least a run file should say about where it came from.
+function gitState() {
+  try {
+    const commit = execSync('git rev-parse HEAD', { cwd: HERE, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    const dirty = execSync('git status --porcelain', { cwd: HERE, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() !== '';
+    return { commit, dirty };
+  } catch {
+    return { commit: null, dirty: null };
+  }
+}
+
+function writeReport(results, queries, catalogue) {
+  const dir = join(HERE, 'results');
+  mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const file = join(dir, `eval-${stamp}.json`);
+  writeFileSync(file, JSON.stringify({
+    runAt: new Date().toISOString(),
+    baseUrl: BASE_URL, k: K, precisionK: PRECISION_K, passes: PASSES, scope: SCOPE, set: SET,
+    ...gitState(),
+    catalogueSize: catalogue.records.length,
+    queryCount: queries.length,
+    summary: Object.fromEntries(Object.entries(results).map(([arm, rows]) => [arm, {
+      recall: mean(rows.map(r => r.recall)),
+      precision: mean(rows.map(r => r.precision)),
+      mrr: mean(rows.map(r => r.mrr)),
+      ndcg: mean(rows.map(r => r.ndcg)),
+      hitRate: mean(rows.map(r => r.hit)),
+      latencyP50: percentile(rows.map(r => r.latencyMs), 50),
+      latencyP95: percentile(rows.map(r => r.latencyMs), 95),
+      errors: rows.filter(r => r.error).length,
+      ...(rows.some(r => r.slots) ? { slots: summariseSlots(rows.map(r => r.slots).filter(Boolean)) } : {}),
+      ...(rows.some(r => r.actionScores) ? { actions: summariseActions(rows.filter(r => r.actionScores)) } : {}),
+    }])),
+    rows: results,
+  }, null, 2));
+  console.log(`\n${DIM}wrote ${file}${RESET}`);
+}
+
+// -- Helpers ------------------------------------------------------------------
+
+function parseArgs(argv) {
+  const out = {};
+  for (const arg of argv) {
+    const m = arg.match(/^--([^=]+)(?:=(.*))?$/);
+    if (m) out[m[1]] = m[2] ?? true;
+  }
+  return out;
+}
+
+/// Progress is carriage-return redraw, which only makes sense on a terminal. When the run is
+/// piped to a file or CI log the per-query lines are dropped rather than smeared into one line.
+function progress(text) {
+  if (process.stdout.isTTY) process.stdout.write(`\r${DIM}${text}${RESET}`);
+}
+
+function clearProgress() {
+  if (process.stdout.isTTY) process.stdout.write('\r' + ' '.repeat(70) + '\r');
+}
+
+const fmt = v => (v == null ? '-' : v.toFixed(3));
+const pct = v => (v == null ? '-' : `${Math.round(v * 100)}%`);
+const money = v => (v == null ? '-' : `$${Math.round(v).toLocaleString('en-AU')}`);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function groupBy(rows, pick) {
+  const out = {};
+  for (const r of rows) (out[pick(r)] ??= []).push(r);
+  return out;
+}
+
+function median(values) {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+
+main().catch(err => {
+  console.error(`${RED}${err.stack ?? err.message}${RESET}`);
+  process.exit(1);
+});

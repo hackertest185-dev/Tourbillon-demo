@@ -1,0 +1,180 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tourbillon
+      POSTGRES_USER: ${POSTGRES_USER:-tourbillon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      # Bound to loopback only: the DB should not be reachable from the LAN.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tourbillon}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      # Bound to loopback only.
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025/api/v1/info"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: unless-stopped
+    ports:
+      # Loopback only — API consumers (frontend dev server, browser) are local.
+      - "127.0.0.1:5248:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: ${CONNECTION_STRING}
+      Cloudinary__CloudName: ${CLOUDINARY_CLOUD_NAME:-}
+      Cloudinary__ApiKey: ${CLOUDINARY_API_KEY:-}
+      Cloudinary__ApiSecret: ${CLOUDINARY_API_SECRET:-}
+      Smtp__Host: ${SMTP_HOST:-smtp.gmail.com}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-true}
+      Smtp__Username: ${SMTP_USERNAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      AllowedHosts: ${ALLOWED_HOSTS:-localhost;127.0.0.1}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      Redis__ConnectionString: redis:6379
+      AuthSecurity__OtpPepper: ${AUTH_OTP_PEPPER:?Set AUTH_OTP_PEPPER in .env}
+      AiService__BaseUrl: http://ai-service:5000
+      # AI is optional during ordinary catalogue/frontend work. Start ai-service explicitly
+      # when testing concierge or embedding features.
+      AiService__Enabled: ${AI_SERVICE_ENABLED:-false}
+      # The stack runs with ASPNETCORE_ENVIRONMENT=Production, so appsettings.Development.json
+      # is never loaded and the daily AI quotas would apply to local work after 5 searches.
+      # Railway sets these to false; here they default open so evaluation runs are not truncated.
+      WatchFinderSettings__DisableLimitInDev: ${WATCH_FINDER_DISABLE_LIMIT:-true}
+      # Set to false to answer from the vector pool alone, for an ablation run.
+      WatchFinderSettings__FuseLexicalCandidates: ${FUSE_LEXICAL_CANDIDATES:-true}
+      # Set to false to answer constrained concierge briefs from the old catalogue path, for a before/after run.
+      WatchFinderSettings__ConciergeFilterFirst: ${CONCIERGE_FILTER_FIRST:-true}
+      # Lets eval/tune-bm25f.mjs score a request with its own BM25F parameters. Off in production.
+      WatchFinderSettings__AllowEvalOverrides: ${WATCH_FINDER_EVAL_OVERRIDES:-true}
+      ChatSettings__DisableLimitInDev: ${CHAT_DISABLE_LIMIT:-true}
+      # Off locally: each warm-up is 7 paid concierge turns and there is no visitor to serve.
+      ChatSettings__WarmStarters: ${CHAT_WARM_STARTERS:-false}
+      # Starts the finder's LLM parse beside the intent classifier instead of after it. On by default in
+      # the app; off here because Ollama serves one request at a time (OLLAMA_NUM_PARALLEL=1), so the
+      # two calls would queue rather than overlap. Set true when .env points LLM_BASE_URL at Anthropic.
+      ChatSettings__PrefetchParse: ${CHAT_PREFETCH_PARSE:-false}
+      # Evaluation hook: the retrieval pool behind the cards, so the eval can score what was
+      # found apart from what was shown. Local only; production leaves it unset.
+      ChatSettings__ExposeCandidates: ${CHAT_EXPOSE_CANDIDATES:-true}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      AWS__AccessKeyId: ${AWS_ACCESS_KEY_ID:-}
+      AWS__SecretAccessKey: ${AWS_SECRET_ACCESS_KEY:-}
+      # Local image storage keeps catalogue editing usable without AWS credentials.
+      Storage__Provider: ${STORAGE_PROVIDER:-Local}
+      LocalStorage__PublicBaseUrl: ${LOCAL_STORAGE_PUBLIC_BASE_URL:-http://localhost:5248}
+      # Frontend base URL for reset/setup email links and CORS defaults.
+      AppSettings__FrontendBaseUrl: ${FRONTEND_BASE_URL:-http://localhost:3000}
+      # Email of an existing account to grant the Admin role on boot (no password seeding).
+      AdminSettings__SeedAdminEmail: ${ADMIN_EMAIL:-}
+      AdminSettings__AllowFirstAdminSetup: ${ALLOW_FIRST_ADMIN_SETUP:-false}
+      AdminSecurity__RequireMfaForWrites: ${ADMIN_REQUIRE_MFA_FOR_WRITES:-false}
+    volumes:
+      # Keep the checked-in local catalogue and uploaded development assets visible
+      # inside the container. A named volume here hides backend/Images entirely.
+      - ./backend/Images:/app/Images
+      # Persist Identity's signing keys so normal container restarts do not
+      # invalidate every session. Password changes still rotate security stamps.
+      - dataprotection_keys:/root/.aspnet/DataProtection-Keys
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/brand"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  ai-service:
+    build: ./ai-service
+    container_name: qwen2.5-7b
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      FLASK_ENV: production
+      # Generation defaults to the local model; set LLM_BASE_URL/LLM_MODEL/LLM_API_KEY in .env
+      # to run against Anthropic instead.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://localhost:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      BASE_LLM_MODEL: ${BASE_LLM_MODEL:-qwen2.5:7b}
+      LLM_API_KEY: ${LLM_API_KEY:-ollama}
+      # Hard cap in USD on paid model calls since the process started; unset means no cap.
+      # GET /usage reports the running total, priced from each response's token usage.
+      LLM_BUDGET_USD: ${LLM_BUDGET_USD:-}
+      # Embeddings run inside the ai-service process, the same as production — a dev setup on
+      # a different embedding model would measure a pipeline production never runs. Set
+      # EMBED_BASE_URL to point at a hosted embeddings service instead.
+      EMBED_BASE_URL: ${EMBED_BASE_URL:-}
+      LOCAL_EMBED_MODEL: ${LOCAL_EMBED_MODEL:-sentence-transformers/all-mpnet-base-v2}
+      OLLAMA_FLASH_ATTENTION: 1
+      OLLAMA_KEEP_ALIVE: -1
+      # A concierge chat call carries 5-6k tokens of catalogue context; Ollama's default 4096
+      # window would silently drop the start of it. 8k of KV cache is ~0.5 GB for a 7B model.
+      OLLAMA_CONTEXT_LENGTH: ${OLLAMA_CONTEXT_LENGTH:-8192}
+      # Was raised from 1 when generation and nomic-embed-text both ran here and a single search
+      # alternated between them, evicting and reloading each time. Embeddings have since moved
+      # in-process, so ollama only serves generation and this headroom is spare — entrypoint.sh
+      # still pulls and warms nomic-embed-text, and dropping that is the remaining cleanup.
+      OLLAMA_MAX_LOADED_MODELS: ${OLLAMA_MAX_LOADED_MODELS:-2}
+    healthcheck:
+      # Sentinel file written by entrypoint.sh only after both LLM and embed models are warm.
+      # Backend depends on this — it will not start serving traffic until AI is ready.
+      test: ["CMD", "test", "-f", "/tmp/ai_ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30        # 30 × 10s = 5-minute window for cold model pull + warmup
+      start_period: 120s # grace period before first check (model pull can take time)
+
+volumes:
+  pgdata:
+  redis_data:
+  backend-images:
+  dataprotection_keys:
+  ollama_data:

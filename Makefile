@@ -1,0 +1,144 @@
+COMPOSE := docker compose
+
+.PHONY: up down reset back dev logs frontend \
+        up-cpu up-nvidia detect-gpu gpu-detect seed-editorial help
+
+# ---- Auto-detect GPU and start the right stack ----
+
+up:
+	@GPU=$$($(MAKE) -s detect-gpu); \
+	echo "==> Detected GPU: $$GPU"; \
+	if [ "$$GPU" = "nvidia" ]; then \
+		$(MAKE) up-nvidia; \
+	else \
+		$(MAKE) up-cpu; \
+	fi
+
+up-cpu:
+	@echo "==> Starting stack (CPU only)..."
+	$(COMPOSE) up -d --build
+
+up-nvidia:
+	@echo "==> Starting stack with NVIDIA GPU support..."
+	$(COMPOSE) -f docker-compose.yml -f docker-compose.nvidia.yml up -d --build
+
+down:
+	$(COMPOSE) down
+
+# Tear down, rebuild, bring up docker stack, then start frontend dev server.
+reset:
+	$(MAKE) back
+	cd frontend && npm run dev
+
+# Tear down, rebuild, and leave the backend Docker stack running.
+back:
+	$(COMPOSE) down
+	@GPU=$$($(MAKE) -s detect-gpu); \
+	echo "==> Detected GPU: $$GPU"; \
+	if [ "$$GPU" = "nvidia" ]; then \
+		$(COMPOSE) -f docker-compose.yml -f docker-compose.nvidia.yml up --build -d; \
+	else \
+		$(COMPOSE) up --build -d; \
+	fi
+
+# Rebuild the backend only, leaving the model container up. `docker compose up -d --build backend`
+# without the override file silently recreates ai-service from the base config and it loses the GPU,
+# which turns a 20-second concierge turn into three minutes.
+back-fast:
+	@GPU=$$($(MAKE) -s detect-gpu); 	if [ "$$GPU" = "nvidia" ]; then 		$(COMPOSE) -f docker-compose.yml -f docker-compose.nvidia.yml up -d --build backend; 	else 		$(COMPOSE) up -d --build backend; 	fi
+	@until curl -sf --max-time 5 http://localhost:5248/api/brand >/dev/null 2>&1; do sleep 2; done
+	@echo "==> backend ready"
+
+# ---- Evaluation ----
+
+# Both caches serve the previous run's answers, so a measurement taken without this reads the code
+# as it was, not as it is. Run before every before/after comparison.
+eval-reset:
+	@docker exec redis redis-cli INCR chat:resp:ver > /dev/null && echo "==> reply cache retired"
+	@docker exec postgresql psql -U $${POSTGRES_USER:-tourbillon} -d tourbillon 		-c 'DELETE FROM "QueryCaches";' > /dev/null && echo "==> semantic cache cleared"
+
+# What a slow run usually means: the model fell back to the CPU, or the laptop GPU is throttling.
+eval-health:
+	@docker logs qwen2.5-7b 2>&1 | grep -E "offloaded [0-9]+/" | tail -1 || echo "no offload line yet"
+	@nvidia-smi --query-gpu=utilization.gpu,memory.used,temperature.gpu,clocks.sm --format=csv 2>/dev/null 		|| echo "no nvidia-smi"
+
+# ---- Combo: start docker stack + frontend together ----
+
+dev:
+	@GPU=$$($(MAKE) -s detect-gpu); \
+	if [ "$$GPU" = "nvidia" ]; then \
+		$(COMPOSE) -f docker-compose.yml -f docker-compose.nvidia.yml up -d; \
+	else \
+		$(COMPOSE) up -d; \
+	fi
+	cd frontend && npm run dev
+
+# ---- GPU detection ----
+
+detect-gpu:
+	@if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then \
+		echo "nvidia"; \
+	else \
+		echo "cpu"; \
+	fi
+
+# Verbose GPU verification — shows driver, CUDA version, VRAM, and Docker runtime status
+gpu-detect:
+	@echo "=== Host GPU ==="
+	@if command -v nvidia-smi >/dev/null 2>&1; then \
+		nvidia-smi --query-gpu=name,driver_version,memory.total,utilization.gpu --format=csv,noheader; \
+		echo ""; \
+		echo "=== CUDA Version ==="; \
+		nvidia-smi | grep "CUDA Version" || echo "CUDA info not available"; \
+	else \
+		echo "nvidia-smi not found — NVIDIA drivers not installed or not in PATH"; \
+	fi
+	@echo ""
+	@echo "=== Docker NVIDIA Runtime ==="
+	@if docker info 2>/dev/null | grep -i nvidia >/dev/null 2>&1; then \
+		echo "NVIDIA runtime: available"; \
+		docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi -L 2>/dev/null || echo "GPU passthrough test failed — check NVIDIA Container Toolkit"; \
+	else \
+		echo "NVIDIA runtime: not found in Docker (install NVIDIA Container Toolkit)"; \
+	fi
+	@echo ""
+	@echo "=== Ollama GPU Usage (if running) ==="
+	@if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "ai-service\|qwen2.5-7b\|gemma2-9b"; then \
+		docker exec qwen2.5-7b ollama ps 2>/dev/null || echo "Ollama not responding"; \
+	else \
+		echo "ai-service container not running"; \
+	fi
+
+# ---- Editorial seeding ----
+
+# Stop qwen, start gemma2:9b (GPU), seed editorial content, restore qwen.
+# Run once before deploy. Stack (db + backend) must be up first.
+seed-editorial:
+	@echo "==> Starting editorial seed (gemma2:9b)..."
+	bash scripts/seed_editorial.sh
+
+# ---- Other helpers ----
+
+# Follow logs for all services. Pass service= to filter, e.g.:  make logs service=backend
+logs:
+	$(COMPOSE) logs -f $(service)
+
+frontend:
+	cd frontend && npm run dev
+
+# ---- Help ----
+
+help:
+	@echo ""
+	@echo "  make up          Auto-detect GPU and start docker stack"
+	@echo "  make up-nvidia   Start stack with NVIDIA GPU (explicit)"
+	@echo "  make up-cpu      Start stack CPU-only (explicit)"
+	@echo "  make down        Stop docker stack"
+	@echo "  make back        Rebuild docker stack only; no frontend"
+	@echo "  make reset       Rebuild docker stack + start frontend"
+	@echo "  make dev         Start docker stack then frontend (same terminal)"
+	@echo "  make gpu-detect  Verbose GPU check (driver, CUDA, Docker runtime, Ollama)"
+	@echo "  make logs        Follow all logs  (service=backend to filter)"
+	@echo "  make frontend    Start Next.js dev server only"
+	@echo "  make seed-editorial  Swap to gemma2:9b, seed story content, restore qwen"
+	@echo ""

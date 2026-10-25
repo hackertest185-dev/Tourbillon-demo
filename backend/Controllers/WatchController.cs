@@ -1,0 +1,396 @@
+// Manages individual watch products (specific models customers can buy).
+
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using backend.Database;
+using backend.Extensions;
+using backend.Models;
+using backend.Services;
+using Microsoft.EntityFrameworkCore;
+
+namespace backend.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class WatchController : ControllerBase
+{
+    private readonly TourbillonContext _context;
+    private readonly WatchFinderService _watchFinderService;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IStorageService _storage;
+    private readonly IConfiguration _config;
+    private readonly CatalogueOrderingService _ordering;
+    private readonly ITasteProfileService _tasteService;
+
+    public WatchController(
+        TourbillonContext context,
+        WatchFinderService watchFinderService,
+        IHttpClientFactory httpClientFactory,
+        IStorageService storageService,
+        IConfiguration config,
+        CatalogueOrderingService ordering,
+        ITasteProfileService tasteService)
+    {
+        _context = context;
+        _watchFinderService = watchFinderService;
+        _httpClientFactory = httpClientFactory;
+        _storage = storageService;
+        _config = config;
+        _ordering = ordering;
+        _tasteService = tasteService;
+    }
+
+    [HttpPost("find")]
+    public async Task<IActionResult> FindWatches(
+        [FromBody] WatchFinderRequest request,
+        [FromServices] HybridWatchRetrievalService retrieval)
+    {
+        if (string.IsNullOrWhiteSpace(request.Query))
+            return BadRequest(new { error = "Query is required" });
+
+        // Tuning parameters are for the evaluation harness only. Anywhere else they are refused, so a
+        // caller cannot change how the live search ranks.
+        if (request.Bm25 != null && !_config.GetValue<bool>("WatchFinderSettings:AllowEvalOverrides"))
+            return BadRequest(new { error = "BM25 overrides are not enabled" });
+        using var tuning = request.Bm25 != null ? Bm25Overrides.Use(request.Bm25.ToParameters()) : null;
+
+        // A mode runs one retrieval design on its own, which is how an evaluation run separates what
+        // each contributes. An unknown mode is refused rather than falling through to the default
+        // path, where a typo would silently measure something else.
+        switch (request.Mode?.Trim().ToLowerInvariant())
+        {
+            case null or "":
+                break;
+            case "vector":
+                return Ok(await _watchFinderService.FindWatchesVectorOnlyAsync(request.Query));
+            case "bm25":
+                return Ok(await retrieval.SearchLexicalAsync(request.Query));
+            case "hybrid":
+                return Ok(await retrieval.SearchHybridAsync(request.Query));
+            default:
+                return BadRequest(new { error = $"Unknown mode '{request.Mode}'. Use vector, bm25 or hybrid." });
+        }
+
+        // Smart Search never calls a model: no classifier, LLM parse or rerank, and so no AI quota
+        // to charge. Open-ended briefs are the concierge's job.
+        return Ok(await _watchFinderService.SearchCatalogueAsync(request.Query));
+    }
+
+    // Returns distinct spec values from the full catalog — used to populate Smart Search filter dropdowns
+    [HttpGet("filter-options")]
+    public IActionResult GetFilterOptions()
+    {
+        var watches = _context.Watches.AsNoTracking().ToList();
+        var specsList = watches
+            .Select(w => DeserialiseSpecs(w.Specs))
+            .Where(s => s != null)
+            .Select(s => s!)
+            .ToList();
+
+        static IEnumerable<string> Distinct(IEnumerable<string?> vals) =>
+            vals.Where(v => !string.IsNullOrWhiteSpace(v))
+                .Select(v => v!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v);
+
+        static string? DiameterLabel(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var match = System.Text.RegularExpressions.Regex.Match(raw, @"(\d+(?:\.\d+)?)");
+            if (!match.Success) return null;
+            return double.TryParse(
+                match.Groups[1].Value,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var mm)
+                ? $"{Math.Floor(mm)}mm"
+                : null;
+        }
+
+        var options = new
+        {
+            caseMaterials    = Distinct(specsList.Select(s => s.Case?.Material)).ToList(),
+            movementTypes    = Distinct(specsList.Select(s => s.Movement?.Type)).ToList(),
+            diameters        = Distinct(specsList.Select(s => DiameterLabel(s.Case?.Diameter))).ToList(),
+            dialColors       = Distinct(specsList.Select(s => s.Dial?.Color)).ToList(),
+            waterResistance  = Distinct(specsList.Select(s => s.Case?.WaterResistance)).ToList(),
+            powerReserve     = Distinct(specsList.Select(s => s.Movement?.PowerReserve)).ToList(),
+            complications    = specsList
+                .SelectMany(s => s.Movement?.Functions ?? [])
+                .Where(f => !string.IsNullOrWhiteSpace(f))
+                .Select(f => f!.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(f => f)
+                .ToList(),
+        };
+        return Ok(options);
+    }
+
+    private static WatchSpecs? DeserialiseSpecs(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return System.Text.Json.JsonSerializer.Deserialize<WatchSpecs>(json); }
+        catch { return null; }
+    }
+
+    // Prefer the iconic collections, then fill from the available catalogue, one watch per collection.
+    [HttpGet("featured")]
+    public async Task<IActionResult> GetFeaturedWatches()
+    {
+        var featuredCollectionNames = new[] { "Nautilus", "Overseas", "Royal Oak", "Reverso", "Lange 1", "Tourbillon Souverain" };
+
+        // One catalogue query; identities are based on collection names rather than database IDs.
+        var candidates = await _context.Watches
+            .AsNoTracking()
+            .Include(w => w.Brand)
+            .Include(w => w.Collection)
+            .Include(w => w.EditorialLink)
+                .ThenInclude(l => l!.EditorialContent)
+            .OrderBy(w => w.Id)
+            .ToListAsync();
+
+        var watches = featuredCollectionNames
+            .Select(name => candidates.FirstOrDefault(w => string.Equals(w.Collection?.Name, name, StringComparison.OrdinalIgnoreCase)))
+            .Where(w => w != null)
+            .Select(w => w!)
+            .ToList();
+
+        // A newly populated catalogue has different database IDs and may feature other maisons.
+        foreach (var candidate in candidates)
+        {
+            if (watches.Count >= 6) break;
+            if (watches.Any(w => w.Id == candidate.Id ||
+                (candidate.CollectionId.HasValue && w.CollectionId == candidate.CollectionId))) continue;
+            watches.Add(candidate);
+        }
+
+        var dtos = watches.Select(w => WatchDto.FromWatch(w, _storage, editorial: w.EditorialLink?.EditorialContent)).ToList();
+        return Ok(dtos);
+    }
+
+    [HttpGet]
+    public IActionResult GetAllWatches()
+    {
+        var watches = _context.Watches
+            .AsNoTracking()
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .ToList();
+
+        // List endpoint: drop the large Description field (used only on detail
+        // pages and admin views). Specs stays because WatchOrderingService
+        // reads it for personalized scoring.
+        var watchDtos = watches.Select(w =>
+        {
+            var dto = WatchDto.FromWatch(w, _storage);
+            dto.Description = null;
+            return dto;
+        }).ToList();
+        return Ok(watchDtos);
+    }
+
+    // Full catalogue in stable merchandising order. Filtering/pagination stay client-side.
+    [HttpGet("ordered")]
+    public async Task<IActionResult> GetCatalogueOrder()
+    {
+        var (dtos, brands, collections) = await LoadCatalogueForOrderingAsync();
+        return Ok(_ordering.BuildFeaturedOrder(dtos, brands, collections));
+    }
+
+    // Catalogue order re-ranked by the signed-in user's Watch DNA. Falls back to the
+    // merchandising order when the profile has no usable preferences.
+    [HttpGet("ordered/personalized")]
+    [Authorize]
+    public async Task<IActionResult> GetPersonalizedCatalogueOrder()
+    {
+        var userId = User.GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var (dtos, brands, collections) = await LoadCatalogueForOrderingAsync();
+        var featured = _ordering.BuildFeaturedOrder(dtos, brands, collections);
+        var profile = await _tasteService.GetProfileAsync(userId.Value);
+        return Ok(_ordering.BuildPersonalizedOrder(featured, profile));
+    }
+
+    // Loads the catalogue as list DTOs (Description dropped) plus the brand/collection
+    // metadata the ordering service needs for merchandising rules.
+    private async Task<(List<WatchDto> Dtos, List<Brand> Brands, List<Collection> Collections)> LoadCatalogueForOrderingAsync()
+    {
+        var watches = await _context.Watches
+            .AsNoTracking()
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .ToListAsync();
+
+        var dtos = watches.Select(w =>
+        {
+            var dto = WatchDto.FromWatch(w, _storage);
+            dto.Description = null;
+            return dto;
+        }).ToList();
+
+        var brands = await _context.Brands.AsNoTracking().ToListAsync();
+        var collections = await _context.Collections.AsNoTracking().ToListAsync();
+        return (dtos, brands, collections);
+    }
+
+    // Slug-based detail — primary public endpoint
+    [HttpGet("by-slug/{slug}")]
+    public async Task<IActionResult> GetWatchBySlug(string slug)
+    {
+        var watch = await _context.Watches
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .Include(w => w.EditorialLink)
+                .ThenInclude(l => l!.EditorialContent)
+            .FirstOrDefaultAsync(w => w.Slug == slug);
+
+        if (watch == null) return NotFound();
+
+        var watchDto = WatchDto.FromWatch(watch, _storage, editorial: watch.EditorialLink?.EditorialContent);
+        return Ok(watchDto);
+    }
+
+    // Numeric ID detail — kept for admin/internal use
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetWatch(int id)
+    {
+        var watch = await _context.Watches
+            .Include(w => w.EditorialLink)
+                .ThenInclude(l => l!.EditorialContent)
+            .FirstOrDefaultAsync(w => w.Id == id);
+
+        if (watch == null) return NotFound();
+
+        var watchDto = WatchDto.FromWatch(watch, _storage, editorial: watch.EditorialLink?.EditorialContent);
+        return Ok(watchDto);
+    }
+
+    // Slug-based collection filter — primary public endpoint
+    [HttpGet("collection/by-slug/{slug}")]
+    public IActionResult GetByCollectionSlug(string slug)
+    {
+        var collection = _context.Collections.FirstOrDefault(c => c.Slug == slug);
+        if (collection == null) return NotFound();
+
+        var watches = _context.Watches
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .Where(w => w.CollectionId == collection.Id).ToList();
+        var watchDtos = watches.Select(w => WatchDto.FromWatch(w, _storage)).ToList();
+        return Ok(watchDtos);
+    }
+
+    [HttpGet("collection/{collectionId:int}")]
+    public IActionResult GetByCollection(int collectionId)
+    {
+        var watches = _context.Watches
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .Where(w => w.CollectionId == collectionId).ToList();
+        var watchDtos = watches.Select(w => WatchDto.FromWatch(w, _storage)).ToList();
+        return Ok(watchDtos);
+    }
+
+    // Slug-based brand filter — primary public endpoint
+    [HttpGet("brand/by-slug/{slug}")]
+    public IActionResult GetByBrandSlug(string slug)
+    {
+        var brand = _context.Brands.FirstOrDefault(b => b.Slug == slug);
+        if (brand == null) return NotFound();
+
+        var watches = _context.Watches
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .Where(w => w.BrandId == brand.Id).ToList();
+        var watchDtos = watches.Select(w => WatchDto.FromWatch(w, _storage)).ToList();
+        return Ok(watchDtos);
+    }
+
+    [HttpGet("brand/{brandId:int}")]
+    public IActionResult GetByBrand(int brandId)
+    {
+        var watches = _context.Watches
+            .Include(w => w.Brand).Include(w => w.Collection)
+            .Where(w => w.BrandId == brandId).ToList();
+        var watchDtos = watches.Select(w => WatchDto.FromWatch(w, _storage)).ToList();
+        return Ok(watchDtos);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<IActionResult> CreateWatch([FromBody] Watch watch) // Creates a new watch in the database.
+    {
+        _context.Watches.Add(watch);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetWatch), new { id = watch.Id }, watch);
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateWatch(int id, [FromBody] Watch updatedWatch) // Updates an existing watch in the database.
+    {
+        var watch = _context.Watches.Find(id);
+        if (watch == null)
+        {
+            return NotFound();
+        }
+
+        watch.Name = updatedWatch.Name;
+        watch.Description = updatedWatch.Description;
+        watch.Image = updatedWatch.Image;
+        watch.CurrentPrice = updatedWatch.CurrentPrice;
+        watch.BrandId = updatedWatch.BrandId;
+        watch.CollectionId = updatedWatch.CollectionId;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteWatch(int id) // Deletes a watch from the database.
+    {
+        var watch = _context.Watches.Find(id);
+        if (watch == null)
+        {
+            return NotFound();
+        }
+
+        _context.Watches.Remove(watch);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("brand/{brandId}/scrape-test")]
+    public async Task<IActionResult> DeleteWatchesByBrandForScrapingAsync(int brandId)
+    {
+        try
+        {
+            // Showcase watch IDs to preserve (9 Holy Trinity watches)
+            var showcaseWatchIds = new HashSet<int> { 1, 2, 3, 32, 33, 34, 57, 58, 59 };
+
+            // Get watches for the brand (excluding showcase watches)
+            var watchesToDelete = await _context.Watches
+                .Where(w => w.BrandId == brandId && !showcaseWatchIds.Contains(w.Id))
+                .ToListAsync();
+
+            int deletedCount = watchesToDelete.Count;
+
+            if (deletedCount == 0)
+            {
+                return Ok(new { message = "No watches to delete for this brand.", deletedCount = 0 });
+            }
+
+            _context.Watches.RemoveRange(watchesToDelete);
+            await _context.SaveChangesAsync();
+
+            return Ok(new {
+                message = $"Successfully deleted {deletedCount} watches for brand ID {brandId}. Ready to rescrape.",
+                deletedCount
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+}

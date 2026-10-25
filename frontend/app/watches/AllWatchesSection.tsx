@@ -1,0 +1,477 @@
+// All watches grid + pagination.
+// Featured keeps a stable catalogue order; personalized is an explicit sort mode.
+'use client';
+
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { useLenis } from 'lenis/react';
+import { toast } from 'sonner';
+import { fetchOrderedWatches, fetchPersonalizedWatches, fetchCollections, fetchFilterOptions, getTasteProfile, Brand } from '@/lib/api';
+import { useScrollRestore } from '@/hooks/useScrollRestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { WatchCard } from '../components/cards/WatchCard';
+import { SortOrder, WatchOrderingService } from './WatchOrderingService';
+import ScrollFade from '../scrollMotion/ScrollFade';
+import {
+  WatchFilterBar,
+  WatchFilters,
+  applyWatchFilters,
+} from '../components/filters/WatchFilterBar';
+
+interface AllWatchesSectionProps {
+  brands: Brand[];
+  brandFilters?: number[];
+  collectionFilters?: number[];
+  onBrandFiltersChange?: (next: number[]) => void;
+  onCollectionFiltersChange?: (next: number[]) => void;
+}
+
+function SortDropdown({ sortOrder, onSelect }: {
+  sortOrder: SortOrder;
+  onSelect: (value: SortOrder) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleOutside = useCallback((event: MouseEvent) => {
+    if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (open) document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [open, handleOutside]);
+
+  const options: { key: SortOrder; label: string }[] = [
+    { key: 'default', label: 'Featured' },
+    { key: 'personalized', label: 'Personalized for You' },
+    { key: 'price-asc', label: 'Price: Low to High' },
+    { key: 'price-desc', label: 'Price: High to Low' },
+  ];
+
+  const active = options.find(option => option.key === sortOrder)!;
+
+  return (
+    <div ref={ref} className="relative flex justify-end mt-8">
+      <button
+        onClick={() => setOpen(value => !value)}
+        className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase transition-colors duration-200 text-white/40 hover:text-white/70 group"
+      >
+        <span className="text-white/20">Sort</span>
+        <span className="text-[#bfa68a]">{active.label}</span>
+        <svg
+          className={`w-2.5 h-2.5 text-white/20 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
+            className="absolute top-full right-0 mt-2 min-w-[160px] bg-[#0e0e0e] border border-white/10 py-1 z-20"
+          >
+            {options.map(option => (
+              <button
+                key={option.key}
+                onClick={() => { onSelect(option.key); setOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-[10px] tracking-[0.14em] uppercase transition-colors duration-150 flex items-center justify-between ${
+                  sortOrder === option.key
+                    ? 'text-[#bfa68a]'
+                    : 'text-white/35 hover:text-white/70'
+                }`}
+              >
+                {option.label}
+                {sortOrder === option.key && (
+                  <span className="w-1 h-1 rounded-full bg-[#bfa68a] shrink-0" />
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+const AllWatchesSection = ({
+  brands,
+  brandFilters = [],
+  collectionFilters = [],
+  onBrandFiltersChange,
+  onCollectionFiltersChange,
+}: AllWatchesSectionProps) => {
+  const { isAuthenticated } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const lenis = useLenis();
+  const currentPage = Number(searchParams.get('page') ?? '1');
+  const sortOrder = WatchOrderingService.parseSortOrder(searchParams.get('sort'));
+
+  // Filter bar state — brand/collection live on the page (URL-synced for shareable links),
+  // the rest live locally and reset on navigation. Matches smart-search behavior.
+  const [extraFilters, setExtraFilters] = useState<Omit<WatchFilters, 'brandIds' | 'collectionIds'>>({
+    caseMaterials: [],
+    movementTypes: [],
+    waterResistances: [],
+    powerReserves: [],
+    diameterBuckets: [],
+    priceBuckets: [],
+    complications: [],
+  });
+  const [wristFit, setWristFit] = useState('');
+
+  const { data: filterOptions } = useQuery({
+    queryKey: ['watch-filter-options'],
+    queryFn: fetchFilterOptions,
+    staleTime: 60 * 60 * 1000,
+  });
+  const diameterOptions = useMemo(() => filterOptions?.diameters ?? [], [filterOptions]);
+
+  const filters: WatchFilters = useMemo(() => ({
+    ...extraFilters,
+    brandIds: brandFilters,
+    collectionIds: collectionFilters,
+  }), [extraFilters, brandFilters, collectionFilters]);
+
+  const setFilter = useCallback(<K extends keyof WatchFilters>(key: K, value: WatchFilters[K]) => {
+    if (key === 'brandIds') {
+      onBrandFiltersChange?.(value as number[]);
+      return;
+    }
+    if (key === 'collectionIds') {
+      onCollectionFiltersChange?.(value as number[]);
+      return;
+    }
+    setExtraFilters(prev => ({ ...prev, [key]: value }));
+  }, [onBrandFiltersChange, onCollectionFiltersChange]);
+
+  const clearFilters = useCallback(() => {
+    setExtraFilters({
+      caseMaterials: [],
+      movementTypes: [],
+      waterResistances: [],
+      powerReserves: [],
+      diameterBuckets: [],
+      priceBuckets: [],
+      complications: [],
+    });
+    setWristFit('');
+    onBrandFiltersChange?.([]);
+    onCollectionFiltersChange?.([]);
+  }, [onBrandFiltersChange, onCollectionFiltersChange]);
+
+  const hasActiveFilters =
+    brandFilters.length > 0
+    || collectionFilters.length > 0
+    || Object.values(extraFilters).some(v => Array.isArray(v) && v.length > 0)
+    || wristFit !== '';
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (page === 1) {
+      params.delete('page');
+    } else {
+      params.set('page', String(page));
+    }
+    const query = params.toString();
+    const href = query ? `/watches?${query}` : '/watches';
+
+    lenis?.scrollTo(0, { duration: 0.8 });
+    router.push(href, { scroll: false });
+  };
+
+  const [showAllWatches, setShowAllWatches] = useState(false);
+  const watchesPerPage = 20;
+
+  // Featured order is computed server-side (CatalogueOrderingService); filtering, price
+  // sort, and pagination below stay client-side for instant interaction.
+  const { data: featuredWatches = [], isLoading: watchesLoading, isFetching: watchesFetching, isError: watchesError } = useQuery({
+    queryKey: ['watches', 'ordered'],
+    queryFn: fetchOrderedWatches,
+  });
+
+  const { data: collections = [], isError: collectionsError } = useQuery({
+    queryKey: ['collections'],
+    queryFn: fetchCollections,
+  });
+
+  useEffect(() => {
+    if (watchesError) toast.error('Could not load watches. Please refresh the page.');
+  }, [watchesError]);
+
+  useEffect(() => {
+    if (collectionsError) toast.error('Could not load filters. Please refresh the page.');
+  }, [collectionsError]);
+
+  const { data: tasteProfile } = useQuery({
+    queryKey: ['tasteProfile'],
+    queryFn: getTasteProfile,
+    enabled: isAuthenticated,
+    retry: false,
+  });
+
+  const hasPersonalizedTaste = isAuthenticated && WatchOrderingService.hasTastePreferences(tasteProfile);
+
+  // Personalized order is server-computed; only fetched when the user opts into that sort.
+  const { data: personalizedWatches = [] } = useQuery({
+    queryKey: ['watches', 'personalized'],
+    queryFn: fetchPersonalizedWatches,
+    enabled: isAuthenticated && hasPersonalizedTaste && sortOrder === 'personalized',
+    retry: false,
+  });
+
+  const handleSortChange = (nextSortOrder: SortOrder) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextSortOrder === 'default') {
+      params.delete('sort');
+    } else {
+      params.set('sort', nextSortOrder);
+    }
+    params.delete('page');
+
+    const query = params.toString();
+    router.push(query ? `/watches?${query}` : '/watches', { scroll: false });
+  };
+
+  // Fall back to the featured order until the personalized list has loaded.
+  const activeOrder = useMemo(() => {
+    if (sortOrder === 'personalized' && hasPersonalizedTaste) {
+      return personalizedWatches.length > 0 ? personalizedWatches : featuredWatches;
+    }
+    return featuredWatches;
+  }, [sortOrder, hasPersonalizedTaste, personalizedWatches, featuredWatches]);
+
+  // Single filter pass — applyWatchFilters handles brand, collection, AND the spec filters
+  // (case material, diameter, movement, water resistance, power reserve, complications, price)
+  // plus the wrist-fit overlay. Order is preserved.
+  const filteredWatches = useMemo(
+    () => applyWatchFilters(activeOrder, filters, wristFit),
+    [activeOrder, filters, wristFit],
+  );
+
+  const sortedWatches = useMemo(() => {
+    if (sortOrder === 'default' || sortOrder === 'personalized') return filteredWatches;
+    return [...filteredWatches].sort((a, b) => {
+      const aPoR = a.currentPrice === 0;
+      const bPoR = b.currentPrice === 0;
+      if (aPoR && bPoR) return 0;
+      if (aPoR) return 1;
+      if (bPoR) return -1;
+      return sortOrder === 'price-asc'
+        ? a.currentPrice - b.currentPrice
+        : b.currentPrice - a.currentPrice;
+    });
+  }, [filteredWatches, sortOrder]);
+
+  const headingLabel = useMemo(() => {
+    if (collectionFilters.length === 1) return collections.find(item => item.id === collectionFilters[0])?.name ?? 'All Timepieces';
+    if (collectionFilters.length > 1) return `${collectionFilters.length} Collections`;
+    if (brandFilters.length === 1) return brands.find(item => item.id === brandFilters[0])?.name ?? 'All Timepieces';
+    if (brandFilters.length > 1) return `${brandFilters.length} Brands`;
+    return 'All Timepieces';
+  }, [brandFilters, collectionFilters, brands, collections]);
+
+  const showPersonalizedHint = sortOrder === 'personalized' && !hasPersonalizedTaste;
+  const personalizedHintCopy = isAuthenticated
+    ? 'Keep browsing to form your Watch DNA.'
+    : 'Sign in to save your browsing and form your Watch DNA.';
+
+  const isReady = featuredWatches.length > 0 || (!watchesLoading && featuredWatches.length === 0);
+  useScrollRestore(isReady);
+
+
+  const initialWatches = sortedWatches.slice(0, 12);
+  const additionalWatches = sortedWatches.slice(12, 20);
+  const displayedWatches = showAllWatches ? [...initialWatches, ...additionalWatches] : initialWatches;
+
+  const totalPages = Math.ceil(sortedWatches.length / watchesPerPage);
+  const startIndex = (currentPage - 1) * watchesPerPage;
+  const paginatedWatches = sortedWatches.slice(startIndex, startIndex + watchesPerPage);
+
+  return (
+    <section>
+      <ScrollFade>
+        <div className="text-center mb-10">
+          <h2 className="text-5xl font-playfair font-bold text-[#f0e6d2]">
+            {currentPage === 1 ? headingLabel : `${headingLabel} - Page ${currentPage}`}
+          </h2>
+        </div>
+      </ScrollFade>
+
+      {/* Filter bar first — wide, wraps to multiple rows on narrow columns. */}
+      {!watchesLoading && (
+        <ScrollFade>
+          <WatchFilterBar
+            filters={filters}
+            brands={brands}
+            collections={collections}
+            diameterOptions={diameterOptions}
+            wristFit={wristFit}
+            hasActiveFilters={hasActiveFilters}
+            onChange={setFilter}
+            onWristFitChange={setWristFit}
+            onClear={clearFilters}
+          />
+        </ScrollFade>
+      )}
+
+      {/* Sort row sits directly above the grid so its dropdown opens into the
+          watch area below (empty space), not into the filter chips above. */}
+      {!watchesLoading && (
+        <div className="mb-6">
+          <div className="flex items-center justify-end gap-3">
+            {watchesFetching && !watchesLoading && (
+              <div className="w-3 h-3 rounded-full border border-white/30 border-t-transparent animate-spin" />
+            )}
+            <SortDropdown
+              sortOrder={sortOrder}
+              onSelect={handleSortChange}
+            />
+          </div>
+          {showPersonalizedHint && (
+            <div className="mt-2 max-w-md ml-auto text-right">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/32">
+                {personalizedHintCopy}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {watchesLoading ? (
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/40 mx-auto mb-4" />
+          <p className="text-white/60 font-playfair">Loading watches...</p>
+        </div>
+      ) : sortedWatches.length === 0 ? (
+        <div className="text-center py-24">
+          <p className="text-white/40 font-playfair text-xl mb-6">No watches match your current filters.</p>
+          <button
+            onClick={() => router.push('/watches')}
+            className="inline-block text-[10px] tracking-[0.18em] uppercase text-[#bfa68a] border border-[#bfa68a]/30 px-6 py-2.5 hover:border-[#bfa68a]/70 transition-colors duration-200"
+          >
+            Clear filters
+          </button>
+        </div>
+      ) : (
+        <>
+          {currentPage === 1 ? (
+            <div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-8 md:gap-y-20 mb-20">
+                {displayedWatches.map((watch, index) => (
+                  <ScrollFade key={watch.id}>
+                    <WatchCard
+                      watch={watch}
+                      brands={brands}
+                      collections={collections}
+                      isPriority={index < 4}
+                      currentPage={currentPage}
+                    />
+                  </ScrollFade>
+                ))}
+              </div>
+
+              {sortedWatches.length > 16 && (
+                <div className="text-center mt-8">
+                  <button
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setShowAllWatches(value => !value);
+                    }}
+                    className="inline-flex items-center text-[#f0e6d2] hover:text-white transition-colors duration-500 text-xl font-playfair font-medium hover:scale-105"
+                  >
+                    {!showAllWatches ? (
+                      <div className="flex flex-col items-center">
+                        <span>Show More</span>
+                        <div className="flex flex-col mt-0">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          <svg className="w-4 h-4 -mt-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <div className="flex flex-col mb-0">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                          <svg className="w-4 h-4 -mt-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </div>
+                        <span>Show Less</span>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-8 md:gap-y-20 mb-20">
+                {paginatedWatches.map(watch => (
+                  <ScrollFade key={watch.id}>
+                    <WatchCard
+                      watch={watch}
+                      brands={brands}
+                      collections={collections}
+                      currentPage={currentPage}
+                    />
+                  </ScrollFade>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {totalPages > 1 && (showAllWatches || currentPage > 1) && (
+            <div className="text-center mt-16">
+              <div className="flex items-center justify-center gap-4">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      goToPage(page);
+                    }}
+                    className={`px-4 py-2 rounded-lg transition-all duration-300 ${
+                      currentPage === page
+                        ? 'bg-[#f0e6d2] text-black font-semibold'
+                        : 'text-[#f0e6d2] hover:text-white hover:bg-black/20'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                {currentPage < totalPages && (
+                  <button
+                    onClick={(event) => {
+                      event.preventDefault();
+                      goToPage(currentPage + 1);
+                    }}
+                    className="text-[#f0e6d2] hover:text-white transition-colors duration-300 ml-4"
+                  >
+                    &gt;&gt;
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+};
+
+export default AllWatchesSection;

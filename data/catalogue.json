@@ -1,0 +1,596 @@
+{
+  "currency": "USD",
+  "priceType": "Official US retail, excluding any additional taxes or shipping",
+  "checkedAt": "2026-10-25",
+  "brands": [
+    {
+      "name": "Tissot",
+      "slug": "tissot",
+      "summary": "Swiss mechanical and quartz watches, from integrated bracelets to diving instruments.",
+      "description": "Tissot combines Swiss watchmaking with everyday practicality. Explore the angular PRX, the versatile Gentleman and the water-ready Seastar."
+    },
+    {
+      "name": "Grand Seiko",
+      "slug": "grand-seiko",
+      "summary": "Japanese precision, textured dials and carefully finished cases.",
+      "description": "Grand Seiko brings together mechanical and Spring Drive watchmaking. Its Heritage and Elegance collections pair distinctive dial textures with restrained proportions."
+    },
+    {
+      "name": "Seiko",
+      "slug": "seiko",
+      "summary": "Accessible Japanese watchmaking for everyday wear, travel and diving.",
+      "description": "Discover Seiko through the dress-focused Presage, robust Prospex divers and versatile Seiko 5 Sports collection."
+    }
+  ],
+  "collections": [
+    {
+      "brand": "tissot",
+      "name": "PRX",
+      "slug": "tissot-prx",
+      "styles": [
+        "sport"
+      ],
+      "description": "An integrated bracelet and an angular case define this everyday collection."
+    },
+    {
+      "brand": "tissot",
+      "name": "Gentleman",
+      "slug": "tissot-gentleman",
+      "styles": [
+        "dress"
+      ],
+      "description": "A versatile round watch with a restrained dial and automatic movement."
+    },
+    {
+      "brand": "tissot",
+      "name": "Seastar 1000",
+      "slug": "tissot-seastar-1000",
+      "styles": [
+        "sport",
+        "diver"
+      ],
+      "description": "Water-ready watches with rotating bezels and strong water resistance."
+    },
+    {
+      "brand": "grand-seiko",
+      "name": "Heritage",
+      "slug": "grand-seiko-heritage",
+      "styles": [
+        "dress",
+        "sport"
+      ],
+      "description": "Textured dials and carefully finished cases inspired by Japanese landscapes."
+    },
+    {
+      "brand": "grand-seiko",
+      "name": "Elegance",
+      "slug": "grand-seiko-elegance",
+      "styles": [
+        "dress"
+      ],
+      "description": "Compact proportions, leather straps and classical dial layouts."
+    },
+    {
+      "brand": "seiko",
+      "name": "Presage",
+      "slug": "seiko-presage",
+      "styles": [
+        "dress"
+      ],
+      "description": "Mechanical dress watches with distinctive dial finishes."
+    },
+    {
+      "brand": "seiko",
+      "name": "Prospex",
+      "slug": "seiko-prospex",
+      "styles": [
+        "sport",
+        "diver"
+      ],
+      "description": "Practical tool watches designed for demanding activities."
+    },
+    {
+      "brand": "seiko",
+      "name": "5 Sports",
+      "slug": "seiko-5-sports",
+      "styles": [
+        "sport"
+      ],
+      "description": "Everyday automatic watches with clear displays and durable construction."
+    }
+  ],
+  "watches": [
+    {
+      "reference": "T1374071104100",
+      "brand": "tissot",
+      "collection": "tissot-prx",
+      "name": "PRX Powermatic 80 Blue",
+      "price": 850,
+      "sourceUrl": "https://www.tissotwatches.com/en-us/T1374071104100.html",
+      "description": "A blue textured dial and integrated steel bracelet, with an automatic movement offering up to 80 hours of power reserve.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "40 mm",
+          "thickness": "10.93 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Automatic",
+          "powerReserve": "80 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "tissot-prx-powermatic-80-blue-t1374071104100",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/t1374071104100.png",
+      "imageSourceUrl": "https://www.tissotwatches.com/on/demandware.static/-/Sites-Tissot-Catalogue/default/dw95c4331d/product-pictures/63f42767-a9f5-4cdd-b952-8ea7b82b7e0c_T137-407-11-041-00_shadow.png"
+    },
+    {
+      "reference": "T1374101104100",
+      "brand": "tissot",
+      "collection": "tissot-prx",
+      "name": "PRX Quartz Blue",
+      "price": 450,
+      "sourceUrl": "https://www.tissotwatches.com/en-us/T1374101104100.html",
+      "description": "The slim quartz PRX combines a blue dial, a date display and an integrated stainless steel bracelet.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "40 mm",
+          "thickness": "10.4 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Quartz",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "tissot-prx-quartz-blue-t1374101104100",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/t1374101104100.png",
+      "imageSourceUrl": "https://www.tissotwatches.com/on/demandware.static/-/Sites-Tissot-Catalogue/default/dw9b840963/product-pictures/739cc440-025b-42e8-a5f9-ae33b31479b2_T137-410-11-041-00_shadow.png"
+    },
+    {
+      "reference": "T1274071104100",
+      "brand": "tissot",
+      "collection": "tissot-gentleman",
+      "name": "Gentleman Powermatic 80 Silicium Blue",
+      "price": 950,
+      "sourceUrl": "https://www.tissotwatches.com/en-us/T1274071104100.html",
+      "description": "A versatile blue-dial automatic with a silicon balance spring, a steel bracelet and an 80-hour power reserve.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "40 mm",
+          "thickness": "11.5 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Automatic",
+          "powerReserve": "80 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "tissot-gentleman-powermatic-80-silicium-blue-t1274071104100",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/t1274071104100.png",
+      "imageSourceUrl": "https://www.tissotwatches.com/on/demandware.static/-/Sites-Tissot-Catalogue/default/dw71cff7f4/product-pictures/778fa7b2-de38-441e-bb28-f179037ebb29_T127-407-11-041-00_shadow.png"
+    },
+    {
+      "reference": "T1204071104103",
+      "brand": "tissot",
+      "collection": "tissot-seastar-1000",
+      "name": "Seastar 1000 Powermatic 80 Blue",
+      "price": 925,
+      "sourceUrl": "https://www.tissotwatches.com/en-us/T1204071104103.html",
+      "description": "A blue-dial diver with a ceramic rotating bezel, screw-down crown and water resistance rated to 300 meters.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "43 mm",
+          "thickness": "12.7 mm",
+          "waterResistance": "300 m / 30 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Automatic",
+          "powerReserve": "80 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "tissot-seastar-1000-powermatic-80-blue-t1204071104103",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/t1204071104103.png",
+      "imageSourceUrl": "https://www.tissotwatches.com/on/demandware.static/-/Sites-Tissot-Catalogue/default/dw4069bb6e/product-pictures/f058c2a6-662d-4797-8a9a-dc7e1c174907_T120-407-11-041-03_shadow.png"
+    },
+    {
+      "reference": "SBGA211",
+      "brand": "grand-seiko",
+      "collection": "grand-seiko-heritage",
+      "name": "Snowflake SBGA211",
+      "price": 6900,
+      "sourceUrl": "https://www.grand-seiko.com/us-en/collections/SBGA211G",
+      "description": "The white Snowflake dial meets a lightweight titanium case and bracelet, powered by the smooth sweep of Spring Drive.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "White"
+        },
+        "case": {
+          "material": "High-Intensity Titanium",
+          "diameter": "41 mm",
+          "thickness": "12.5 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Spring Drive",
+          "caliber": "9R65",
+          "powerReserve": "72 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "Power reserve indicator"
+          ]
+        },
+        "strap": {
+          "material": "Titanium bracelet"
+        }
+      },
+      "slug": "grand-seiko-snowflake-sbga211-sbga211",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/sbga211.png",
+      "imageSourceUrl": "https://www.grand-seiko.com/us-en/-/media/Images/Product--Image/All/GrandSeiko/2022/02/19/21/47/SBGA211G/SBGA211G.png"
+    },
+    {
+      "reference": "SBGA413",
+      "brand": "grand-seiko",
+      "collection": "grand-seiko-heritage",
+      "name": "Shunbun SBGA413",
+      "price": 7200,
+      "sourceUrl": "https://www.grand-seiko.com/us-en/collections/SBGA413G",
+      "description": "A soft pink dial inspired by floating cherry blossoms, in a titanium case with a 72-hour Spring Drive movement.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Pink"
+        },
+        "case": {
+          "material": "High-Intensity Titanium",
+          "diameter": "40 mm",
+          "thickness": "12.8 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Spring Drive",
+          "caliber": "9R65",
+          "powerReserve": "72 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "Power reserve indicator"
+          ]
+        },
+        "strap": {
+          "material": "Titanium bracelet"
+        }
+      },
+      "slug": "grand-seiko-shunbun-sbga413-sbga413",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/sbga413.png",
+      "imageSourceUrl": "https://www.grand-seiko.com/us-en/-/media/Images/Product--Image/All/GrandSeiko/2022/02/19/21/50/SBGA413G/SBGA413G.png"
+    },
+    {
+      "reference": "SBGM221",
+      "brand": "grand-seiko",
+      "collection": "grand-seiko-elegance",
+      "name": "Elegance GMT SBGM221",
+      "price": 5400,
+      "sourceUrl": "https://www.grand-seiko.com/us-en/collections/SBGM221G",
+      "description": "An ivory dial with a contrasting blue GMT hand and a crocodile leather strap, powered by the automatic 9S66 caliber.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Ivory"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "39.5 mm",
+          "thickness": "13.7 mm",
+          "waterResistance": "Splash resistant",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Automatic",
+          "caliber": "9S66",
+          "powerReserve": "72 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "GMT"
+          ]
+        },
+        "strap": {
+          "material": "Crocodile leather"
+        }
+      },
+      "slug": "grand-seiko-elegance-gmt-sbgm221-sbgm221",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/sbgm221.png",
+      "imageSourceUrl": "https://www.grand-seiko.com/us-en/-/media/Images/Product--Image/All/GrandSeiko/2022/02/19/22/10/SBGM221G/SBGM221G.png"
+    },
+    {
+      "reference": "SBGW301",
+      "brand": "grand-seiko",
+      "collection": "grand-seiko-elegance",
+      "name": "Elegance Manual SBGW301",
+      "price": 5000,
+      "sourceUrl": "https://www.grand-seiko.com/us-en/collections/SBGW301G",
+      "description": "A compact hand-wound dress watch with an off-white dial, a crocodile leather strap and a 72-hour power reserve.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Ivory"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "37.3 mm",
+          "thickness": "11.7 mm",
+          "waterResistance": "Splash resistant",
+          "crystal": "Sapphire"
+        },
+        "movement": {
+          "type": "Manual",
+          "caliber": "9S64",
+          "powerReserve": "72 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds"
+          ]
+        },
+        "strap": {
+          "material": "Crocodile leather"
+        }
+      },
+      "slug": "grand-seiko-elegance-manual-sbgw301-sbgw301",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/sbgw301.png",
+      "imageSourceUrl": "https://www.grand-seiko.com/us-en/-/media/Images/Product--Image/All/GrandSeiko/2023/05/16/11/54/SBGW301G/SBGW301G.png"
+    },
+    {
+      "reference": "SRPB41",
+      "brand": "seiko",
+      "collection": "seiko-presage",
+      "name": "Presage Cocktail Time SRPB41",
+      "price": 475,
+      "sourceUrl": "https://seikousa.com/products/srpb41",
+      "description": "A blue pressed-pattern dial under a box-shaped Hardlex crystal, paired with an automatic movement and a steel bracelet.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "40.5 mm",
+          "thickness": "11.8 mm",
+          "waterResistance": "50 m / 5 bar",
+          "crystal": "Box-shaped Hardlex"
+        },
+        "movement": {
+          "type": "Automatic",
+          "caliber": "4R35",
+          "powerReserve": "41 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "seiko-presage-cocktail-time-srpb41-srpb41",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/srpb41.png",
+      "imageSourceUrl": "https://cdn.shopify.com/s/files/1/0019/1184/9012/files/SRPB41_1_6e13a741-2c88-4d31-af3c-f245785a617b.png?v=1786535835"
+    },
+    {
+      "reference": "SRPE93",
+      "brand": "seiko",
+      "collection": "seiko-prospex",
+      "name": "Prospex Turtle Diver SRPE93",
+      "price": 525,
+      "sourceUrl": "https://seikousa.com/products/srpe93",
+      "description": "A black-dial automatic diver with a rotating timing bezel, silicone strap and a 200-meter water-resistance rating.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Black"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "45 mm",
+          "thickness": "13.42 mm",
+          "waterResistance": "200 m / 20 bar",
+          "crystal": "Hardlex"
+        },
+        "movement": {
+          "type": "Automatic",
+          "caliber": "4R36",
+          "powerReserve": "41 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "Day"
+          ]
+        },
+        "strap": {
+          "material": "Silicone"
+        }
+      },
+      "slug": "seiko-prospex-turtle-diver-srpe93-srpe93",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/srpe93.png",
+      "imageSourceUrl": "https://cdn.shopify.com/s/files/1/0019/1184/9012/files/SRPE93_1_cc36718a-b6bb-4ed8-a66b-5346dd475784_f89cbfbf-7dd2-4a13-9cf9-2ae96c276009.png?v=1792710038"
+    },
+    {
+      "reference": "SRPD55",
+      "brand": "seiko",
+      "collection": "seiko-5-sports",
+      "name": "5 Sports Automatic SRPD55",
+      "price": 350,
+      "sourceUrl": "https://seikousa.com/products/srpd55",
+      "description": "A black dial and bezel, luminous markers and a day-date display make this steel automatic a practical everyday choice.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Black"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "42.5 mm",
+          "thickness": "13.4 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Hardlex"
+        },
+        "movement": {
+          "type": "Automatic",
+          "caliber": "4R36",
+          "powerReserve": "41 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "Day"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "seiko-5-sports-automatic-srpd55-srpd55",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/srpd55.png",
+      "imageSourceUrl": "https://cdn.shopify.com/s/files/1/0019/1184/9012/files/SRPD55_1_7d0da364-2778-4b4d-a1e8-be406cb6965b.png?v=1786545460"
+    },
+    {
+      "reference": "SSK003",
+      "brand": "seiko",
+      "collection": "seiko-5-sports",
+      "name": "5 Sports GMT SSK003",
+      "price": 495,
+      "sourceUrl": "https://seikousa.com/products/ssk003",
+      "description": "A travel-ready automatic with a blue dial, a blue-and-black GMT bezel, a magnified date and a five-row steel bracelet.",
+      "specs": {
+        "productionStatus": "Current production",
+        "dial": {
+          "color": "Blue"
+        },
+        "case": {
+          "material": "Stainless steel",
+          "diameter": "42.5 mm",
+          "thickness": "13.6 mm",
+          "waterResistance": "100 m / 10 bar",
+          "crystal": "Hardlex"
+        },
+        "movement": {
+          "type": "Automatic",
+          "caliber": "4R34",
+          "powerReserve": "41 hours",
+          "functions": [
+            "Hours",
+            "Minutes",
+            "Seconds",
+            "Date",
+            "GMT"
+          ]
+        },
+        "strap": {
+          "material": "Stainless steel bracelet"
+        }
+      },
+      "slug": "seiko-5-sports-gmt-ssk003-ssk003",
+      "currency": "USD",
+      "checkedAt": "2026-10-25",
+      "imageKey": "catalogue/ssk003.png",
+      "imageSourceUrl": "https://cdn.shopify.com/s/files/1/0019/1184/9012/files/SSK003_1_9593b54d-372b-4bc7-8983-7172e8fa8645.png?v=1787072116"
+    }
+  ]
+}

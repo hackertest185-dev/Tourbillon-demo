@@ -1,0 +1,109 @@
+// This is the root layout for the entire application.
+// It sets up the global fonts, structure, and the navigation bar.
+import type { Metadata } from "next";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { WatchesPageProvider } from "@/contexts/WatchesPageContext";
+import { NavigationProvider } from "@/contexts/NavigationContext";
+import { CursorProvider } from "@/contexts/CursorContext";
+import { ChatProvider } from "@/contexts/ChatContext";
+import { LenisProvider } from "@/app/providers/LenisProvider";
+import { GSAPProvider } from "@/app/providers/GSAPProvider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import "./globals.css";
+import NavBar from "./components/layout/NavBar";
+import Footer from "./components/layout/Footer";
+import ChromeGate from "./components/layout/ChromeGate";
+import CompareIndicator from "./components/compare/CompareIndicator";
+import ChatWidget from "./components/chat/ChatWidget";
+import CustomCursor from "./components/cursor/CustomCursor";
+import CursorSelector from "./components/cursor/CursorSelector";
+import ScrollArrow from "./components/layout/ScrollArrow";
+import LanguageSwitcher from "./components/layout/LanguageSwitcher";
+
+export const metadata: Metadata = {
+  title: "Tourbillon",
+  description: "A timeless collection of luxury watches",
+  icons: {
+    icon: "/icon.svg",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      {/* Preconnect to CloudFront to reduce DNS+TLS latency on first image request */}
+      <head>
+        <link rel="preconnect" href="https://d2lauyid2w6u9c.cloudfront.net" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://d2lauyid2w6u9c.cloudfront.net" />
+      </head>
+      <body
+        className="antialiased"
+        suppressHydrationWarning={true}
+        style={{ scrollBehavior: 'auto' }}
+      >
+        <LenisProvider>
+          <GSAPProvider>
+          <TooltipProvider>
+            <QueryProvider>
+              <AuthProvider>
+                <WatchesPageProvider>
+                  <NavigationProvider>
+                    <CursorProvider>
+                      <ChatProvider>
+                        {/* ChromeGate hides the site chrome on standalone routes (portfolio case study) */}
+                        <ChromeGate
+                          header={<NavBar />}
+                          footer={<Footer />}
+                          trailing={
+                            <>
+                              <CompareIndicator />
+                              <ScrollArrow />
+                              {process.env.NEXT_PUBLIC_AI_ENABLED !== 'false' && <ChatWidget />}
+                              <CursorSelector />
+                              <CustomCursor />
+                            </>
+                          }
+                        >
+                          {children}
+                        </ChromeGate>
+                        <LanguageSwitcher />
+                        <Toaster
+                          position="bottom-right"
+                          toastOptions={{
+                            style: {
+                              background: '#1a1a1a',
+                              border: '1px solid rgba(255,255,255,0.1)',
+                              color: '#f0e6d2',
+                              fontFamily: 'var(--font-inter)',
+                              fontSize: '13px',
+                            },
+                          }}
+                        />
+                      </ChatProvider>
+                    </CursorProvider>
+                  </NavigationProvider>
+                </WatchesPageProvider>
+              </AuthProvider>
+            </QueryProvider>
+          </TooltipProvider>
+          </GSAPProvider>
+        </LenisProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }`,
+          }}
+        />
+        <Analytics />
+        <SpeedInsights />
+      </body>
+    </html>
+  );
+}

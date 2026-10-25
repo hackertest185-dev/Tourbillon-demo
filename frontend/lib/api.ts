@@ -1,0 +1,1683 @@
+// This file serves as a centralized API layer for the frontend.
+// It contains all the functions responsible for making requests to the backend API,
+// creating a reusable and maintainable way to manage data fetching.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5248/api';
+
+// Global 401 handler — registered by AuthContext to clear session on token expiry.
+let _onUnauthorized: (() => void) | null = null;
+export const setUnauthorizedHandler = (handler: () => void) => { _onUnauthorized = handler; };
+
+let csrfToken: string | null = null;
+let csrfRequest: Promise<string> | null = null;
+const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+const getCsrfToken = async (): Promise<string> => {
+  if (csrfToken) return csrfToken;
+  if (!csrfRequest) {
+    csrfRequest = fetch(`${API_BASE_URL}/authentication/csrf`, { credentials: 'include' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to initialize request security');
+        const data = await response.json() as { token?: string };
+        if (!data.token) throw new Error('Unable to initialize request security');
+        csrfToken = data.token;
+        return data.token;
+      })
+      .finally(() => { csrfRequest = null; });
+  }
+  return csrfRequest;
+};
+
+// Small helper to avoid hanging requests in dev when backend is down.
+// Accepts an optional external AbortSignal so callers can cancel mid-flight.
+const fetchWithTimeout = async (
+  input: RequestInfo | URL,
+  init?: RequestInit & { timeoutMs?: number; externalSignal?: AbortSignal },
+) => {
+  const { timeoutMs = 10000, externalSignal, ...rest } = init || {};
+  const controller = new AbortController();
+  // Abort with a reason, so a caller can tell "this took too long" from "the user cancelled".
+  // Without it both arrive as a bare AbortError and a timed-out chat turn looked like a
+  // deliberate cancel: the panel dropped the request and showed nothing at all.
+  const timeoutId = setTimeout(
+    () => controller.abort(new DOMException(`Timed out after ${timeoutMs} ms`, 'TimeoutError')),
+    timeoutMs);
+  const onExternalAbort = () => controller.abort();
+  externalSignal?.addEventListener('abort', onExternalAbort);
+  try {
+    const method = (rest.method ?? 'GET').toUpperCase();
+    const headers = new Headers(rest.headers);
+    if (unsafeMethods.has(method) && !headers.has('X-XSRF-TOKEN')) {
+      headers.set('X-XSRF-TOKEN', await getCsrfToken());
+    }
+    const response = await fetch(input, { ...rest, headers, signal: controller.signal });
+    // Intercept unexpected 401s (token expired mid-session) — skip public/auth endpoints
+    if (response.status === 401 && _onUnauthorized) {
+      const url = typeof input === 'string' ? input : input.toString();
+      const isAuthEndpoint = url.includes('/authentication') || url.includes('/profile/me');
+      if (!isAuthEndpoint) _onUnauthorized();
+    }
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+    externalSignal?.removeEventListener('abort', onExternalAbort);
+  }
+};
+
+// Data Interfaces
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  summary: string;
+}
+
+export interface Collection {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  brandId: number;
+  style?: string | null;
+}
+
+export interface WatchEditorialContent {
+  whyItMatters: string;
+  collectorAppeal: string;
+  designLanguage: string;
+  bestFor: string;
+}
+
+export interface Watch {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  image: string;
+  imageUrl?: string;
+  imageVersion?: number | null;
+  currentPrice: number;
+  brandId: number;
+  brandSlug?: string;
+  collectionId: number | null;
+  collectionSlug?: string | null;
+  specs: string | null;
+  editorialContent?: WatchEditorialContent | null;
+}
+
+export interface User {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    dateOfBirth?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    roles: string[];
+    hasPassword: boolean;
+    hasGoogle: boolean;
+}
+
+// API Fetch Functions
+export const fetchBrands = async (): Promise<Brand[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/brand`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch brands');
+  }
+  return response.json();
+};
+
+export const fetchBrandById = async (id: number): Promise<Brand> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/brand/${id}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch brand with id: ${id}`);
+  }
+  return response.json();
+};
+
+export const fetchFeaturedWatches = async (): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/featured`, { credentials: 'include' });
+  if (!response.ok) throw new Error('Failed to fetch featured watches');
+  return response.json();
+};
+
+export const fetchWatchById = async (id: number): Promise<Watch> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/${id}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch watch with id: ${id}`);
+  }
+  return response.json();
+};
+
+export const fetchCollections = async (): Promise<Collection[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/collection`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch collections');
+  }
+  return response.json();
+};
+
+export const fetchCollectionById = async (id: number): Promise<Collection> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/collection/${id}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch collection with id: ${id}`);
+  }
+  return response.json();
+};
+
+export const fetchWatches = async (): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch watches');
+  }
+  return response.json();
+};
+
+// Full catalogue in server-computed featured merchandising order.
+export const fetchOrderedWatches = async (): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/ordered`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch ordered watches');
+  }
+  return response.json();
+};
+
+// Catalogue re-ranked by the signed-in user's Watch DNA (requires auth).
+export const fetchPersonalizedWatches = async (): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/ordered/personalized`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch personalized watches');
+  }
+  return response.json();
+};
+
+export const fetchWatchesByBrand = async (brandId: number): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/brand/${brandId}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch watches for brandId: ${brandId}`);
+  }
+  return response.json();
+};
+
+export const fetchWatchesByCollection = async (collectionId: number): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/collection/${collectionId}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch watches for collectionId: ${collectionId}`);
+  }
+  return response.json();
+};
+
+export const fetchCollectionsByBrand = async (brandId: number): Promise<Collection[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/collection/brand/${brandId}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch collections for brandId: ${brandId}`);
+  }
+  return response.json();
+};
+
+// ── Slug-based fetch functions (public-facing pages) ─────────────────────────
+
+export const fetchBrandBySlug = async (slug: string): Promise<Brand> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/brand/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch brand: ${slug}`);
+  return response.json();
+};
+
+export const fetchWatchBySlug = async (slug: string): Promise<Watch> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch watch: ${slug}`);
+  return response.json();
+};
+
+export const fetchCollectionBySlug = async (slug: string): Promise<Collection> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/collection/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch collection: ${slug}`);
+  return response.json();
+};
+
+export const fetchWatchesByBrandSlug = async (slug: string): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/brand/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch watches for brand: ${slug}`);
+  return response.json();
+};
+
+export const fetchWatchesByCollectionSlug = async (slug: string): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/collection/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch watches for collection: ${slug}`);
+  return response.json();
+};
+
+export const fetchCollectionsByBrandSlug = async (slug: string): Promise<Collection[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/collection/brand/by-slug/${slug}`, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch collections for brand: ${slug}`);
+  return response.json();
+};
+
+// --- AI Watch Finder ---
+
+export interface WatchMatchDetail {
+  score: number;
+}
+
+export interface QueryIntent {
+  brandId: number | null;
+  brandIds?: number[];
+  collectionId: number | null;
+  collectionIds?: number[];
+  collectionsDerivedFromStyle?: boolean;
+  maxPrice: number | null;
+  minPrice: number | null;
+  minDiameterMm: number | null;
+  maxDiameterMm: number | null;
+  caseMaterial: string | null;
+  movementType: string | null;
+  waterResistance: string | null;
+  waterResistanceBuckets?: string[];
+  style?: string | null;
+  complications?: string[];
+  powerReserves?: string[];
+}
+
+export interface WatchFinderResult {
+  watches: Watch[];
+  otherCandidates: Watch[];
+  matchDetails: Record<number, WatchMatchDetail>;
+  parsedIntent: Record<string, unknown> | null;
+  queryIntent: QueryIntent | null;
+  searchPath?: string | null;
+}
+
+export interface FilterOptions {
+  caseMaterials: string[];
+  movementTypes: string[];
+  diameters: string[];
+  dialColors: string[];
+  waterResistance: string[];
+  powerReserve: string[];
+  complications: string[];
+}
+
+export const watchFinderSearch = async (query: string): Promise<WatchFinderResult> => {
+  const response = await fetchWithTimeout('/api/watch-finder', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+    timeoutMs: 120000,
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null) as { message?: string; error?: string } | null;
+    throw new Error(data?.message || data?.error || 'Watch finder search failed');
+  }
+  return response.json();
+};
+
+export const fetchFilterOptions = async (): Promise<FilterOptions> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/filter-options`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch filter options');
+  return response.json();
+};
+
+// --- Auth API Functions ---
+
+// Interfaces for Auth data
+interface AuthError {
+    code: string;
+    description: string;
+}
+
+interface RegisterData {
+    email: string;
+    password?: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+}
+
+interface LoginData {
+    email: string;
+    password?: string;
+}
+
+export const getCurrentUser = async (): Promise<User> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/profile/me`, { credentials: 'include' });
+    if (!response.ok) {
+        throw new Error('Not authenticated');
+    }
+    return response.json();
+};
+
+// Checks whether an email is already registered — used by /auth/start to route to login or register.
+export const checkEmailExists = async (email: string): Promise<boolean> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to check email');
+    const data = await response.json();
+    return data.exists as boolean;
+};
+
+export const registerUser = async (data: RegisterData) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        // Handle the new error format from backend
+        const errorMessage = errorData.Message || errorData.message || 'Registration failed';
+        throw new Error(errorMessage);
+    }
+    return response.json();
+};
+
+export const loginUser = async (data: LoginData) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.Message || errorData.message || 'Login failed';
+        throw new Error(errorMessage);
+    }
+    return response.json().catch(() => ({})) as Promise<{ requiresMfa?: boolean }>;
+};
+
+export const verifyMfa = async (code: string) => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/mfa/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid authenticator code');
+    }
+    return response.json();
+};
+
+export const getMfaStatus = async (): Promise<{ enabled: boolean; required: boolean }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/mfa/status`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Unable to read MFA status');
+    return response.json();
+};
+
+export const setupMfa = async (): Promise<{ sharedKey: string; authenticatorUri: string }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/mfa/setup`, {
+        method: 'POST', credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Unable to start MFA setup');
+    return response.json();
+};
+
+export const enableMfa = async (code: string): Promise<{ recoveryCodes: string[] }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/mfa/enable`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }), credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Unable to enable MFA');
+    }
+    return response.json();
+};
+
+export const logoutUser = async () => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/logout`, {
+        method: 'POST',
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.Message || errorData.message || 'Logout failed';
+        throw new Error(errorMessage);
+    }
+};
+
+// Interface for updating user data
+interface UpdateUserData {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    currentPassword?: string; // Required when changing password
+    newPassword?: string;
+}
+
+// Interface for deleting user account
+interface DeleteAccountData {
+    currentPassword: string;
+    confirmPassword: string;
+}
+
+export const updateUser = async (data: UpdateUserData) => {
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/profile/update`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            // Handle both array of errors and single error message
+            if (Array.isArray(errorData)) {
+                const errorMessage = errorData.map((err: AuthError) => err.description).join(', ') || 'Update failed';
+                return { error: errorMessage };
+            } else {
+                // Show the specific error message from backend
+                const errorMessage = errorData.Message || errorData.message || 'Update failed';
+                return { error: errorMessage };
+            }
+        }
+        return response.json();
+    } catch (err) {
+        console.error('Network error:', err);
+        return { error: 'Network error occurred' };
+    }
+};
+
+export const verifyCurrentPassword = async (password: string): Promise<{ valid: boolean }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/profile/verify-current-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+        credentials: 'include',
+    });
+    if (!response.ok) throw new Error('Failed to verify password');
+    return response.json();
+};
+
+export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/profile/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.Message || errorData.message || 'Failed to update password');
+    }
+};
+
+export const requestPasswordSetup = async (): Promise<void> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/profile/setup-password/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send setup code');
+    }
+};
+
+export const confirmPasswordSetup = async (code: string, newPassword: string): Promise<void> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/profile/setup-password/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, newPassword }),
+        credentials: 'include',
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to confirm password setup');
+    }
+};
+
+export const deleteAccount = async (data: DeleteAccountData) => {
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/account/delete`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'include',
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.Message || 'Account deletion failed';
+            return { error: errorMessage };
+        }
+        // Handle empty response for successful deletion
+        const text = await response.text();
+        return text ? JSON.parse(text) : { Message: "Account deleted successfully" };
+    } catch (err) {
+        console.error('Network error:', err);
+        return { error: 'Network error occurred' };
+    }
+};
+
+// Password Reset Interfaces
+interface ForgotPasswordData {
+    email: string;
+}
+
+interface VerifyCodeData {
+    email: string;
+    code: string;
+}
+
+interface ResetPasswordData {
+    email: string;
+    verificationGrant: string;
+    newPassword: string;
+}
+
+// Password Reset API Functions
+export const forgotPassword = async (data: ForgotPasswordData) => {
+    const response = await fetch(`${API_BASE_URL}/authentication/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    
+    // Check if response has content before parsing JSON
+    const text = await response.text();
+    
+    if (!response.ok) {
+        try {
+            const errorData = JSON.parse(text);
+            const errorMessage = errorData.Message || errorData.message || 'Failed to send reset email';
+            throw new Error(errorMessage);
+        } catch {
+            throw new Error(text || 'Failed to send reset email');
+        }
+    }
+    
+    // Return parsed JSON or empty object if response is empty
+    return text ? JSON.parse(text) : { Message: 'Reset email sent successfully' };
+};
+
+export const verifyCode = async (data: VerifyCodeData) => {
+    const response = await fetch(`${API_BASE_URL}/authentication/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    
+    const text = await response.text();
+    
+    if (!response.ok) {
+        try {
+            const errorData = JSON.parse(text);
+            const errorMessage = errorData.Message || errorData.message || 'Invalid verification code';
+            throw new Error(errorMessage);
+        } catch {
+            throw new Error(text || 'Invalid verification code');
+        }
+    }
+    
+    return text ? JSON.parse(text) : { Message: 'Code verified successfully' };
+};
+
+export const resetPassword = async (data: ResetPasswordData) => {
+    const response = await fetch(`${API_BASE_URL}/authentication/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.Message || errorData.message || 'Failed to reset password';
+        throw new Error(errorMessage);
+    }
+    return response.json();
+};
+
+// Admin Watch API Functions
+export const adminFetchWatches = async (): Promise<Watch[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch admin watches');
+  }
+  return response.json();
+};
+
+export const adminFetchWatchById = async (id: number): Promise<Watch> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/${id}`, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch admin watch with id: ${id}`);
+  }
+  return response.json();
+};
+
+export interface UpdateWatchDto {
+  name: string;
+  description: string;
+  currentPrice: number;
+  image: string;
+  collectionId: number | null;
+  specs: string;
+}
+
+export const adminUpdateWatch = async (id: number, data: UpdateWatchDto): Promise<{ success: boolean; message: string; watch?: Watch }> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || errorData.Message || 'Failed to update watch');
+  }
+  return response.json();
+};
+
+export const adminUpdateEditorial = async (watchId: number, data: WatchEditorialContent): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/editorial/${watchId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.Message || 'Failed to update editorial');
+  }
+};
+
+export interface CreateWatchDto {
+  name: string;
+  description: string;
+  currentPrice: number;
+  image: string;
+  brandId: number;
+  collectionId: number | null;
+  specs: string;
+}
+
+export const adminCreateWatch = async (data: CreateWatchDto): Promise<{ success: boolean; message: string; watch?: Watch }> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || errorData.Message || 'Failed to create watch');
+  }
+  return response.json();
+};
+
+export const deleteWatch = async (id: number): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/watch/${id}`, {
+    method: 'DELETE',
+    credentials: 'include'
+  });
+  if (!response.ok && response.status !== 204) {
+    throw new Error(`Failed to delete watch ${id}`);
+  }
+};
+
+// ── Magic Login (passwordless OTP) ───────────────────────────────────────────
+
+export const requestMagicLogin = async (email: string): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/magic-login/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || 'Failed to send code');
+  }
+};
+
+export interface MagicLoginVerifyResult {
+  message: string;
+  isNewAccount: boolean;
+}
+
+export const verifyMagicLogin = async (data: { email: string; code: string }): Promise<MagicLoginVerifyResult> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/magic-login/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || 'Invalid or expired code');
+  }
+  return response.json();
+};
+
+// ── Taste Profile ────────────────────────────────────────────────────────────
+
+export interface TasteProfile {
+  tasteText: string | null;
+  preferredBrandIds: number[];
+  preferredMaterials: string[];
+  preferredDialColors: string[];
+  priceMin: number | null;
+  priceMax: number | null;
+  preferredCaseSize: 'small' | 'medium' | 'large' | null;
+  summary?: string | null;
+  behaviorPreferredBrandIds: number[];
+  behaviorPreferredMaterials: string[];
+  behaviorPreferredDialColors: string[];
+  behaviorPriceMin: number | null;
+  behaviorPriceMax: number | null;
+  behaviorPreferredCaseSize: 'small' | 'medium' | 'large' | null;
+  behaviorSummary?: string | null;
+  behaviorAnalyzedAt: string | null;
+  hasBehaviorAnalysis: boolean;
+  hasEnoughBehaviorData: boolean;
+}
+
+export const getTasteProfile = async (): Promise<TasteProfile> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/taste`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch taste profile');
+  return response.json();
+};
+
+export const saveTasteProfile = async (tasteText: string): Promise<TasteProfile> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/taste`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ tasteText }),
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || 'Failed to save taste profile');
+  }
+  return response.json();
+};
+
+// Trigger AI generation of taste profile from browsing history — returns updated profile.
+export const generateTasteProfile = async (): Promise<TasteProfile> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/taste/generate`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to generate taste profile');
+  return response.json();
+};
+
+// Upload image for an existing watch — backend builds canonical public ID and updates DB.
+export const adminUploadWatchImage = async (watchId: number, file: File): Promise<{ success: boolean; publicId: string; version: number }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  // We intentionally do not use fetchWithTimeout here since uploads can be slow
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/${watchId}/image`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Image upload endpoint not available — rebuild and restart the backend container');
+    }
+    const text = await response.text();
+    let message = `Upload failed (${response.status})`;
+    try { message = JSON.parse(text)?.message || JSON.parse(text)?.Message || message; } catch { /* empty body */ }
+    throw new Error(message);
+  }
+  return response.json();
+};
+
+// Upload image without a watch ID — used when creating a new watch before it has been saved.
+// Returns a temporary public ID; caller should rename after the watch is created.
+export const adminUploadWatchImageTemp = async (file: File, slug: string): Promise<{ success: boolean; publicId: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('slug', slug);
+
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/upload-image`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || errorData.Message || 'Failed to upload image');
+  }
+  return response.json();
+};
+
+// Uploads a raw file to Cloudinary for editing (background removal, resize).
+// Returns the Cloudinary public ID + a direct URL the user can open in Cloudinary Media Library.
+export const adminStageOnCloudinary = async (file: File): Promise<{ success: boolean; cloudinaryPublicId: string; cloudinaryUrl: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/stage-cloudinary`, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = `Cloudinary staging failed (${response.status})`;
+    try { message = JSON.parse(text)?.message || JSON.parse(text)?.Message || message; } catch { /* empty */ }
+    throw new Error(message);
+  }
+  return response.json();
+};
+
+// Downloads the edited Cloudinary image (after background removal / resize in dashboard) and stores it in S3.
+export const adminFinalizeFromCloudinary = async (watchId: number, cloudinaryPublicId: string): Promise<{ success: boolean; publicId: string; version: number }> => {
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/admin/watches/${watchId}/image/from-cloudinary?publicId=${encodeURIComponent(cloudinaryPublicId)}`,
+    { method: 'POST', credentials: 'include' }
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    let message = `Finalize failed (${response.status})`;
+    try { message = JSON.parse(text)?.message || JSON.parse(text)?.Message || message; } catch { /* empty */ }
+    throw new Error(message);
+  }
+  return response.json();
+};
+
+// Downloads an image from any URL (e.g. a Cloudinary URL) and stages it in S3.
+// Used in AddWatchModal to import a processed image before a watch record exists.
+export const adminTempFromUrl = async (imageUrl: string): Promise<{ success: boolean; publicId: string }> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/image-from-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageUrl }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    let message = `Import failed (${response.status})`;
+    try { message = JSON.parse(text)?.message || JSON.parse(text)?.Message || message; } catch { /* empty */ }
+    throw new Error(message);
+  }
+  return response.json();
+};
+
+export const adminRefreshImageCache = async (brandId?: number): Promise<{ updated: number; version: number }> => {
+  const url = brandId
+    ? `${API_BASE_URL}/admin/watches/refresh-image-cache?brandId=${brandId}`
+    : `${API_BASE_URL}/admin/watches/refresh-image-cache`;
+  const response = await fetchWithTimeout(url, { method: 'POST', credentials: 'include' });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.Message || 'Failed to refresh image cache');
+  }
+  return response.json();
+};
+
+export interface CloudinaryOrphansResult {
+  dryRun: boolean;
+  message: string;
+  totalCloudinaryAssets: number;
+  totalDbImages: number;
+  orphanCount: number;
+  orphans: string[];
+}
+
+export const adminMigrateImageUrls = async (dryRun = true): Promise<{ dryRun: boolean; message: string; count: number; changes: { watchId: number; watchName: string; oldImage: string; newImage: string }[] }> =>
+  fetchWithTimeout(`${API_BASE_URL}/admin/migrate-image-urls?dryRun=${dryRun}`, { method: 'POST', credentials: 'include' }).then(r => r.json());
+
+export const adminCleanCloudinaryOrphans = async (dryRun = true): Promise<CloudinaryOrphansResult> =>
+  fetchWithTimeout(`${API_BASE_URL}/admin/cloudinary-orphans?dryRun=${dryRun}`, { method: 'DELETE', credentials: 'include' }).then(r => r.json());
+
+export interface MigrateToS3Result {
+  total?: number;
+  success?: number;
+  errors?: string[];
+  message?: string;
+  jobId?: string;
+}
+
+export const adminMigrateToS3 = async (inline = false): Promise<MigrateToS3Result> =>
+  fetchWithTimeout(`${API_BASE_URL}/admin/migrate-to-s3?inline=${inline}`, { method: 'POST', credentials: 'include' }).then(r => r.json());
+
+export interface NormalizeImageNamesResult {
+  dryRun: boolean;
+  message: string;
+  total: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  changes: { watchId: number; watchName: string; oldImage: string; newImage: string }[];
+  failures: { id: number; name: string; image: string; reason: string }[];
+}
+
+export const adminNormalizeImageNames = async (dryRun = true): Promise<NormalizeImageNamesResult> =>
+  fetchWithTimeout(`${API_BASE_URL}/admin/normalize-image-names?dryRun=${dryRun}`, { method: 'POST', credentials: 'include' }).then(r => r.json());
+
+export const adminRevertImageNames = async (
+  changes: NormalizeImageNamesResult['changes']
+): Promise<{ message: string; reverted: number; cloudinaryFailures: number }> =>
+  fetchWithTimeout(`${API_BASE_URL}/admin/revert-image-names`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(changes)
+  }).then(r => r.json());
+
+
+// --- Contact Advisor ---
+
+export interface CreateContactInquiryRequest {
+  watchId?: number;
+  message: string;
+}
+
+export interface ContactInquiryResponse {
+  id: number;
+  createdAt: string;
+}
+
+export const submitContactInquiry = async (data: CreateContactInquiryRequest): Promise<ContactInquiryResponse> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/contact/inquiry`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: 'Failed to submit inquiry' }));
+    throw new Error(err.message || 'Failed to submit inquiry');
+  }
+  return response.json();
+};
+
+// --- Appointment Booking ---
+
+export interface CreateAppointmentRequest {
+  watchId?: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  phoneRegionCode?: string;
+  notifyByEmail: boolean;
+  notifyBySms: boolean;
+  boutiqueName: string;
+  visitPurpose: string;
+  brandName?: string;
+  appointmentDate: string; // ISO 8601 UTC
+}
+
+export interface AppointmentResponse {
+  id: number;
+  appointmentDate: string;
+  status: string;
+  createdAt: string;
+}
+
+export const submitAppointment = async (data: CreateAppointmentRequest): Promise<AppointmentResponse> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/appointment/book`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: 'Failed to book appointment' }));
+    throw new Error(err.message || 'Failed to book appointment');
+  }
+  return response.json();
+};
+
+// --- Register Your Interest ---
+
+export interface CreateRegisterInterestRequest {
+  salutation: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  phoneRegionCode?: string;
+  message?: string;
+  watchId?: number;
+  brandName?: string;
+  collectionName?: string;
+}
+
+export interface RegisterInterestResponse {
+  id: number;
+  createdAt: string;
+}
+
+export const submitRegisterInterest = async (data: CreateRegisterInterestRequest): Promise<RegisterInterestResponse> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/register-interest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: 'Failed to submit registration' }));
+    throw new Error(err.message || 'Failed to submit registration');
+  }
+  return response.json();
+};
+
+// ── My Inquiries ──────────────────────────────────────────────────────────────
+
+export interface MyContactInquiry {
+  id: number;
+  watchName?: string;
+  watchReference?: string;
+  message: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface MyAppointment {
+  id: number;
+  boutiqueName: string;
+  visitPurpose: string;
+  appointmentDate: string;
+  brandName?: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface MyRegisterInterest {
+  id: number;
+  brandName?: string;
+  brandSlug?: string | null;
+  collectionName?: string;
+  collectionSlug?: string | null;
+  watchDescription?: string;
+  watchReference?: string;
+  watchSlug?: string;
+  watchImage?: string;
+  status: string;
+  createdAt: string;
+}
+
+export const getMyContactInquiries = async (): Promise<MyContactInquiry[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/contact/my-inquiries`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch inquiries');
+  return response.json();
+};
+
+export const getMyAppointments = async (): Promise<MyAppointment[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/appointment/my-appointments`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch appointments');
+  return response.json();
+};
+
+export const getMyRegisterInterests = async (): Promise<MyRegisterInterest[]> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/register-interest/my-submissions`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch submissions');
+  return response.json();
+};
+
+// ── Chat concierge ────────────────────────────────────────────────────────────
+
+export interface ChatWatchCard {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  imageUrl: string | null;
+  currentPrice: number;
+  brandId: number;
+  brandName?: string | null;
+  brandSlug?: string | null;
+  collectionName?: string | null;
+  collectionSlug?: string | null;
+}
+
+export interface ChatAction {
+  type: 'compare' | 'search' | 'set_cursor' | 'navigate' | 'suggest';
+  label: string;
+  slugs?: string[];
+  query?: string;
+  cursor?: 'default' | 'tourbillon' | 'crosshair' | 'lumed' | 'hand' | 'bezel' | 'compass' | 'sapphire' | 'rotor';
+  href?: string;
+}
+
+export interface ChatApiResponse {
+  message: string;
+  watchCards: ChatWatchCard[];
+  actions?: ChatAction[];
+  rateLimited?: boolean;
+  dailyUsed?: number | null;
+  dailyLimit?: number | null;
+}
+
+export const sendChatMessage = async (
+  sessionId: string,
+  message: string,
+  behaviorSummary?: string,
+  preferredLanguage?: string,
+  signal?: AbortSignal,
+): Promise<ChatApiResponse> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/chat/message`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, message, behaviorSummary, preferredLanguage }),
+    credentials: 'include',
+    // A concierge turn is a model call, two on a slow path. Haiku answers in about five seconds,
+    // but a local model on a laptop GPU takes half a minute, and the old 30 s cap cut those off.
+    timeoutMs: 60000,
+    externalSignal: signal,
+  });
+  if (response.status === 429) {
+    const data = await response.json().catch(() => ({}));
+    return {
+      message: 'You have reached your daily concierge quota of 5 messages. Please come back tomorrow.',
+      watchCards: [],
+      ...data,
+      rateLimited: true
+    };
+  }
+  if (!response.ok) {
+    // Return a graceful error response rather than throwing — avoids Next.js error overlay
+    const errText = await response.text().catch(() => '');
+    const backendMsg = (() => { try { return JSON.parse(errText)?.message || JSON.parse(errText)?.error || ''; } catch { return ''; } })();
+    return {
+      message: backendMsg || `I don't quite get that request right now (${response.status}). Please rephrase it with a watch, brand, collection, comparison, size, material, or price range.`,
+      watchCards: [],
+    };
+  }
+  return response.json();
+};
+
+export const clearChatSession = async (sessionId: string): Promise<void> => {
+  await fetchWithTimeout(`${API_BASE_URL}/chat/session/${sessionId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+};
+
+// ── Favourites & Collections ──────────────────────────────────────────────────
+
+export interface UserCollectionSummary {
+  id: number;
+  name: string;
+  watchIds: number[];
+  previewImages: string[]; // Up to 4 Cloudinary public IDs for the card mosaic
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FavouritesState {
+  favouriteWatchIds: number[];
+  collections: UserCollectionSummary[];
+}
+
+export interface FavouriteWatchesResponse {
+  watches: Watch[];
+  watchCollectionMembership: Record<number, number[]>;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export const getFavouritesState = async (): Promise<FavouritesState> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch favourites state');
+  return response.json();
+};
+
+export const addFavourite = async (watchId: number): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/${watchId}`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to add favourite');
+};
+
+export const removeFavourite = async (watchId: number): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/${watchId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to remove favourite');
+};
+
+export const getFavouriteWatches = async (params: {
+  page?: number;
+  pageSize?: number;
+  collectionIds?: number[];
+  sortBy?: string;
+}): Promise<FavouriteWatchesResponse> => {
+  const query = new URLSearchParams();
+  if (params.page) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  if (params.sortBy) query.set('sortBy', params.sortBy);
+  if (params.collectionIds?.length) {
+    params.collectionIds.forEach(id => query.append('collectionIds', String(id)));
+  }
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/watches?${query}`, {
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to fetch favourite watches');
+  return response.json();
+};
+
+export const createCollection = async (name: string): Promise<UserCollectionSummary> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/collections`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: 'Failed to create collection' }));
+    throw new Error(err.message || 'Failed to create collection');
+  }
+  return response.json();
+};
+
+export const deleteCollection = async (id: number): Promise<void> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/collections/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!response.ok) throw new Error('Failed to delete collection');
+};
+
+export const renameCollection = async (id: number, name: string): Promise<UserCollectionSummary> => {
+  const response = await fetchWithTimeout(`${API_BASE_URL}/favourites/collections/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: 'Failed to rename collection' }));
+    throw new Error(err.message || 'Failed to rename collection');
+  }
+  return response.json();
+};
+
+export const addToCollection = async (collectionId: number, watchId: number): Promise<void> => {
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/favourites/collections/${collectionId}/watches/${watchId}`,
+    { method: 'PUT', credentials: 'include' }
+  );
+  if (!response.ok) throw new Error('Failed to add to collection');
+};
+
+export const removeFromCollection = async (collectionId: number, watchId: number): Promise<void> => {
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/favourites/collections/${collectionId}/watches/${watchId}`,
+    { method: 'DELETE', credentials: 'include' }
+  );
+  if (!response.ok) throw new Error('Failed to remove from collection');
+};
+
+// Sends locally buffered browsing events to the backend (anonymous or authenticated).
+export const flushBehaviorEvents = async (events: import('./behaviorTracker').BrowsingEvent[], anonymousId: string): Promise<void> => {
+  try {
+    await fetchWithTimeout(`${API_BASE_URL}/behavior/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        anonymousId,
+        events: events.map(e => ({
+          eventType: e.type,
+          entityId: e.entityId ?? null,
+          entityName: e.entityName,
+          brandId: e.brandId ?? null,
+          timestamp: new Date(e.timestamp).toISOString(),
+        })),
+      }),
+    });
+  } catch {
+    // best-effort — never block login on tracking errors
+  }
+};
+
+// Reassigns anonymous browsing events to the authenticated user after login.
+export const mergeBehaviorEvents = async (anonymousId: string): Promise<void> => {
+  try {
+    await fetchWithTimeout(`${API_BASE_URL}/behavior/merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ anonymousId }),
+    });
+  } catch {
+    // best-effort — never block login on tracking errors
+  }
+};
+
+// ── Media Library ─────────────────────────────────────────────────────────────
+
+export interface MediaAsset {
+  id: number;
+  key: string;
+  fileName: string;
+  mediaType: 'image' | 'video';
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  cloudinaryPublicId?: string | null;
+  cloudinaryUrl?: string | null;
+  url?: string | null;
+}
+
+export const adminFetchMediaAssets = async (): Promise<MediaAsset[]> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/media`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch media assets');
+  return res.json();
+};
+
+export const adminGetVideoPresignedUrl = async (
+  fileName: string,
+  contentType: string
+): Promise<{ presignedUrl: string; key: string }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/media/video-presign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ fileName, contentType }),
+  });
+  if (!res.ok) throw new Error('Failed to get presigned URL');
+  return res.json();
+};
+
+export const adminConfirmVideoUpload = async (
+  key: string,
+  fileName: string,
+  mimeType: string,
+  sizeBytes: number
+): Promise<MediaAsset> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/media/video-confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ key, fileName, mimeType, sizeBytes }),
+  });
+  if (!res.ok) throw new Error('Failed to confirm video upload');
+  return res.json();
+};
+
+export const adminConfirmMediaImageUpload = async (
+  cloudinaryUrl: string,
+  cloudinaryPublicId: string,
+  fileName: string,
+  sizeBytes: number
+): Promise<MediaAsset> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/media/image-confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ cloudinaryUrl, cloudinaryPublicId, fileName, sizeBytes }),
+  });
+  if (!res.ok) throw new Error('Failed to finalize media image');
+  return res.json();
+};
+
+export const adminDeleteMediaAsset = async (id: number): Promise<void> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/media/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to delete media asset');
+};
+
+// ── Admin Brand CRUD ──────────────────────────────────────────────────────────
+
+export const adminCreateBrand = async (data: {
+  name: string; slug?: string; description?: string; summary?: string; image?: string;
+}): Promise<Brand> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/brands`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to create brand');
+  }
+  return res.json();
+};
+
+export const adminUpdateBrand = async (
+  id: number,
+  data: { name?: string; slug?: string; description?: string; summary?: string; image?: string }
+): Promise<Brand> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/brands/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to update brand');
+  }
+  return res.json();
+};
+
+export const adminDeleteBrand = async (id: number): Promise<void> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/brands/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to delete brand');
+  }
+};
+
+// ── Admin Collection CRUD ─────────────────────────────────────────────────────
+
+export const adminCreateCollection = async (data: {
+  name: string; slug?: string; description?: string; brandId: number; styles?: string[]; image?: string;
+}): Promise<Collection> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/collections`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to create collection');
+  }
+  return res.json();
+};
+
+export const adminUpdateCollection = async (
+  id: number,
+  data: { name?: string; slug?: string; description?: string; brandId?: number; styles?: string[]; image?: string }
+): Promise<Collection> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/collections/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to update collection');
+  }
+  return res.json();
+};
+
+export const adminDeleteCollection = async (id: number): Promise<void> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/collections/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.Message || 'Failed to delete collection');
+  }
+};
+
+// ── Admin Editorial ───────────────────────────────────────────────────────────
+
+export interface EditorialStatus {
+  total: number;
+  withEditorial: number;
+  coveragePct: number;
+}
+
+export const adminGetEditorialStatus = async (): Promise<EditorialStatus> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/editorial/status`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch editorial status');
+  return res.json();
+};
+
+export const adminSeedEditorial = async (): Promise<{ message: string }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/editorial/seed`, { method: 'POST', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to enqueue editorial seed');
+  return res.json();
+};
+
+export const adminClearEditorial = async (): Promise<{ deleted: number }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/editorial`, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to clear editorial');
+  return res.json();
+};
+
+// ── Admin Embeddings ──────────────────────────────────────────────────────────
+
+export interface EmbeddingStatus {
+  total: number;
+  embedded: number;
+  coveragePct: number;
+}
+
+export const adminGetEmbeddingStatus = async (): Promise<EmbeddingStatus> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/embeddings/status`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch embedding status');
+  return res.json();
+};
+
+export const adminGenerateEmbeddings = async (): Promise<EmbeddingStatus & { generated: number }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/embeddings/generate`, { method: 'POST', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to generate embeddings');
+  return res.json();
+};
+
+export const adminRegenerateEmbeddings = async (): Promise<EmbeddingStatus & { regenerated: number }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/embeddings/regenerate`, { method: 'POST', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to regenerate embeddings');
+  return res.json();
+};
+
+// ── Admin Query Cache ─────────────────────────────────────────────────────────
+
+export interface QueryCacheStatus {
+  total: number;
+  watch_finder: number;
+  rag_chat: number;
+  message?: string;
+}
+
+export const adminGetQueryCacheStatus = async (): Promise<QueryCacheStatus> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/query-cache/status`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch query cache status');
+  return res.json();
+};
+
+export const adminSeedQueryCache = async (): Promise<{ message: string }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/query-cache/seed`, { method: 'POST', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to seed query cache');
+  return res.json();
+};
+
+export const adminClearQueryCache = async (): Promise<{ message: string }> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/query-cache`, { method: 'DELETE', credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to clear query cache');
+  return res.json();
+};
+
+// ── Admin Scraping ────────────────────────────────────────────────────────────
+
+export interface ScrapeStats {
+  totalBrands: number;
+  totalCollections: number;
+  totalWatches: number;
+  lastScrapedAt?: string | null;
+}
+
+export const adminGetScrapeStats = async (): Promise<ScrapeStats> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/scrape-stats`, { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to fetch scrape stats');
+  return res.json();
+};
+
+export const adminScrapeBrand = async (brand: string, collection: string, maxWatches = 25): Promise<{
+  success: boolean; message: string; watchesScraped: number; watchesAdded: number;
+}> => {
+  const res = await fetchWithTimeout(
+    `${API_BASE_URL}/admin/scrape-brand-official?brand=${encodeURIComponent(brand)}&collection=${encodeURIComponent(collection)}&maxWatches=${maxWatches}`,
+    { method: 'POST', credentials: 'include' }
+  );
+  const data = await res.json();
+  return { success: data.Success ?? res.ok, message: data.Message ?? '', watchesScraped: data.WatchesScraped ?? 0, watchesAdded: data.WatchesAdded ?? 0 };
+};
+
+export const adminScrapeSitemap = async (brand: string, sitemapUrl: string, maxWatches = 25): Promise<{
+  success: boolean; message: string; watchesAdded: number;
+}> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/scrape-sitemap`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ brand, sitemapUrl, maxWatches }),
+  });
+  const data = await res.json();
+  return { success: data.Success ?? res.ok, message: data.Message ?? '', watchesAdded: data.WatchesAdded ?? 0 };
+};
+
+export const adminScrapeListing = async (brand: string, listingUrl: string, maxWatches = 25): Promise<{
+  success: boolean; message: string; watchesAdded: number;
+}> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/scrape-listing`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ brand, listingUrl, maxWatches }),
+  });
+  const data = await res.json();
+  return { success: data.Success ?? res.ok, message: data.Message ?? '', watchesAdded: data.WatchesAdded ?? 0 };
+};
+
+export const adminScrapeUrl = async (url: string, brand: string, collection: string): Promise<{
+  success: boolean; message: string; watchesAdded: number;
+}> => {
+  const res = await fetchWithTimeout(`${API_BASE_URL}/admin/scrape-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ url, brand, collection }),
+  });
+  const data = await res.json();
+  return { success: data.Success ?? res.ok, message: data.Message ?? '', watchesAdded: data.WatchesAdded ?? 0 };
+};
+

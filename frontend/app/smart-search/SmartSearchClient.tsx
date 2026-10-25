@@ -1,0 +1,652 @@
+// Smart Search page — AI watch finder results with a horizontal filter bar and page tabs.
+// Top 20 best-match watches on page 1; remaining candidates on pages 2+ (20 per page).
+// Page number lives in the URL so router.back() from the compare page restores the correct page.
+// All filtering is client-side; no re-fetch after initial load.
+'use client';
+
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  watchFinderSearch,
+  fetchBrands,
+  fetchCollections,
+  fetchFilterOptions,
+  WatchFinderResult,
+  QueryIntent,
+  Brand,
+  Collection,
+  Watch,
+} from '@/lib/api';
+import { trackEvent } from '@/lib/behaviorTracker';
+import { calculateFitScores } from '@/lib/wristfit';
+import WatchCard from '@/app/watches/[slug]/WatchCard';
+import ScrollFade from '@/app/scrollMotion/ScrollFade';
+import {
+  WatchFilters,
+  EMPTY_WATCH_FILTERS,
+  applyWatchFilters,
+  WatchFilterBar,
+  PRICE_BUCKETS,
+  WATER_RESISTANCE_BUCKETS,
+  COMPLICATION_LABELS,
+  POWER_RESERVE_OPTIONS,
+  parseDiameterMm,
+  parseSpecs,
+} from '@/app/components/filters/WatchFilterBar';
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+// Builds the initial filter bar state after AI results arrive.
+// Only explicit QueryIntent fields are pre-checked. Result-set facets remain available in
+// dropdown options, but they are not active filters because that over-narrows broad searches.
+function buildFiltersFromResults(
+  result: WatchFinderResult,
+  intent: QueryIntent | null | undefined,
+  diameterOptions: string[] = []
+): WatchFilters {
+  const f = { ...EMPTY_WATCH_FILTERS };
+
+  // Brand and collection pre-selection: only explicit query intent should become active.
+  // Result-derived brands/collections are options, not filters.
+  if (intent?.brandIds && intent.brandIds.length > 0) {
+    f.brandIds = [...intent.brandIds];
+  } else if (intent?.brandId) {
+    f.brandIds = [intent.brandId];
+  }
+  if (intent?.collectionIds && intent.collectionIds.length > 0) {
+    f.collectionIds = [...intent.collectionIds];
+  } else if (intent?.collectionId) {
+    f.collectionIds = [intent.collectionId];
+  }
+
+  if (intent?.collectionsDerivedFromStyle && f.collectionIds.length > 0) {
+    const returnedCollectionIds = new Set<number>();
+    for (const watch of [...result.watches, ...result.otherCandidates]) {
+      if (watch.collectionId !== null) returnedCollectionIds.add(watch.collectionId);
+    }
+    f.collectionIds = Array.from(new Set([...f.collectionIds, ...returnedCollectionIds])).sort((a, b) => a - b);
+  }
+
+  if (!intent) return f;
+
+  // Spec filters — explicit constraints from the query
+  if (intent.maxPrice || intent.minPrice) {
+    // Always include PoR — backend never excludes PoR from price-filtered searches,
+    // so the client-side filter must match. PoR watches are sorted after priced ones.
+    f.priceBuckets = PRICE_BUCKETS
+      .filter(b => {
+        if (b.label === 'Price on Request') return true;
+        const bucketMin =
+          b.label === 'Under $5k' ? 1 :
+          b.label === '$5k – $10k' ? 5_000 :
+          b.label === '$10k – $25k' ? 10_000 :
+          b.label === '$25k – $50k' ? 25_000 :
+          b.label === '$50k – $100k' ? 50_000 :
+          b.label === 'Over $100k' ? 100_000 :
+          0;
+        const bucketMax =
+          b.label === 'Under $5k' ? 4_999 :
+          b.label === '$5k – $10k' ? 9_999 :
+          b.label === '$10k – $25k' ? 24_999 :
+          b.label === '$25k – $50k' ? 49_999 :
+          b.label === '$50k – $100k' ? 100_000 :
+          b.label === 'Over $100k' ? Number.POSITIVE_INFINITY :
+          0;
+        if (intent.maxPrice && bucketMin >= intent.maxPrice) return false;
+        if (intent.minPrice && bucketMax <= intent.minPrice) return false;
+        return true;
+      })
+      .map(b => b.label);
+  }
+  if (intent.caseMaterial) f.caseMaterials = [intent.caseMaterial];
+  // movementType intentionally not pre-populated — the LLM infers it from complications
+  // (e.g. tourbillon → Manual-winding) causing over-filtering when not explicitly stated.
+  if (intent.waterResistanceBuckets && intent.waterResistanceBuckets.length > 0) {
+    const valid = new Set(WATER_RESISTANCE_BUCKETS.map(b => b.label));
+    f.waterResistances = intent.waterResistanceBuckets.filter(b => valid.has(b));
+  } else if (intent.waterResistance) {
+    const m = parseInt(intent.waterResistance);
+    const bucket = WATER_RESISTANCE_BUCKETS.find(b => b.test(m));
+    if (bucket) f.waterResistances = [bucket.label];
+  }
+  if (intent.complications && intent.complications.length > 0) {
+    const validLabels = new Set(COMPLICATION_LABELS);
+    f.complications = intent.complications.filter(c => validLabels.has(c));
+  }
+  if (intent.powerReserves && intent.powerReserves.length > 0) {
+    const validLabels = new Set(POWER_RESERVE_OPTIONS);
+    f.powerReserves = intent.powerReserves.filter(p => validLabels.has(p));
+  }
+  // Only pre-select diameter when both bounds are present and the range is reasonably tight.
+  // A one-sided bound (e.g. minDiameterMm only) with no max defaults to 200mm, which would
+  // pre-check 100+ options and look broken. Require both, or a max-only constraint ≤ 42mm.
+  if (intent.minDiameterMm !== null && intent.maxDiameterMm !== null) {
+    const min = Math.floor(intent.minDiameterMm);
+    const max = Math.floor(intent.maxDiameterMm);
+    if (max - min <= 10) {
+      const labels: string[] = [];
+      for (let mm = min; mm <= max; mm++) labels.push(`${mm}mm`);
+      f.diameterBuckets = diameterOptions.length > 0
+        ? labels.filter(label => diameterOptions.includes(label))
+        : labels;
+    }
+  } else if (intent.maxDiameterMm !== null && intent.minDiameterMm === null) {
+    // "small wrist" → maxDiameterMm: 38 — pre-check all sizes up to that cap
+    const max = Math.floor(intent.maxDiameterMm);
+    const labels: string[] = [];
+    for (let mm = 30; mm <= max; mm++) labels.push(`${mm}mm`);
+    f.diameterBuckets = diameterOptions.length > 0
+      ? labels.filter(label => diameterOptions.includes(label))
+      : labels;
+  }
+
+  return f;
+}
+
+
+function SkeletonGrid({ count = 20 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 animate-pulse">
+          <div className="w-full aspect-square bg-white/8 rounded-xl mb-4" />
+          <div className="h-2.5 bg-white/8 rounded mb-2 w-1/3" />
+          <div className="h-3 bg-white/8 rounded mb-2 w-2/3" />
+          <div className="h-5 bg-white/8 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
+
+export default function SmartSearchClient() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const query = searchParams.get('q') ?? '';
+
+  // Page lives in the URL — router.back() from /compare returns to the correct page automatically
+  const activePage = Number(searchParams.get('page') ?? '1');
+
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [result, setResult] = useState<WatchFinderResult | null>(null);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [catalogDiameterOptions, setCatalogDiameterOptions] = useState<string[]>([]);
+  const [filters, setFilters] = useState<WatchFilters>(EMPTY_WATCH_FILTERS);
+  const [wristFit, setWristFit] = useState('');
+  const [editQuery, setEditQuery] = useState(query);
+
+  // Keyword search results — arrive fast (<100ms) before AI results (~4s)
+  const [kwBrands, setKwBrands] = useState<Array<{ id: number; name: string; slug?: string }>>([]);
+  const [kwCollections, setKwCollections] = useState<Array<{ id: number; name: string; slug?: string; brand?: { name: string } }>>([]);
+  // Normalized Watch[] so SmartCard can render them during AI loading
+  const [kwWatches, setKwWatches] = useState<Watch[]>([]);
+
+  // Track which query has already had its result filters applied — prevents double-apply.
+  const intentAppliedRef = useRef<string | null>(null);
+
+  // Explicit brands/collections used for Jump To navigation chips. Avoid deriving collection
+  // chips from broad result sets, which makes unrelated collections look intentionally selected.
+  const resultBrands = useMemo(() => {
+    if (!result || brands.length === 0) return [];
+    const explicitBrandIds =
+      result.queryIntent?.brandIds && result.queryIntent.brandIds.length > 0
+        ? result.queryIntent.brandIds
+        : result.queryIntent?.brandId
+          ? [result.queryIntent.brandId]
+          : [];
+    if (explicitBrandIds.length === 0) return [];
+    return explicitBrandIds
+      .map(id => brands.find(b => b.id === id))
+      .filter((b): b is Brand => b !== undefined)
+      .map(b => ({ id: b.id, name: b.name, slug: b.slug }));
+  }, [result, brands]);
+
+  const resultCollections = useMemo(() => {
+    if (!result || collections.length === 0) return [];
+    const explicitCollectionIds =
+      result.queryIntent?.collectionIds && result.queryIntent.collectionIds.length > 0
+        ? result.queryIntent.collectionIds
+        : result.queryIntent?.collectionId
+          ? [result.queryIntent.collectionId]
+          : [];
+    if (explicitCollectionIds.length === 0) return [];
+    return explicitCollectionIds
+      .map(id => collections.find(c => c.id === id))
+      .filter((c): c is Collection => c !== undefined)
+      .map(c => {
+        const brand = brands.find(b => b.id === c.brandId);
+        return { id: c.id, name: c.name, slug: c.slug, brand: brand ? { name: brand.name } : undefined };
+      });
+  }, [result, collections, brands]);
+
+  // Diameter options come from full catalogue metadata, with current-result sizes merged in.
+  // This keeps the dropdown broad even when the query itself constrains the returned watches.
+  const diameterOptions = useMemo(() => {
+    const sizes = new Set<number>();
+
+    for (const label of catalogDiameterOptions) {
+      const mm = parseInt(label, 10);
+      if (!Number.isNaN(mm)) sizes.add(mm);
+    }
+
+    if (result) {
+      for (const w of [...result.watches, ...result.otherCandidates]) {
+        const specs = parseSpecs(w.specs);
+        const mm = parseDiameterMm(specs?.case?.diameter as string | undefined);
+        if (mm !== null) sizes.add(Math.floor(mm));
+      }
+    }
+
+    return Array.from(sizes).sort((a, b) => a - b).map(n => `${n}mm`);
+  }, [catalogDiameterOptions, result]);
+
+  // Apply explicit intent filters once per query.
+  // intentAppliedRef guards against double-apply if one dependency fires twice.
+  useEffect(() => {
+    if (!result) return;
+    if (intentAppliedRef.current === query) return;
+    intentAppliedRef.current = query;
+    setFilters(buildFiltersFromResults(result, result.queryIntent, diameterOptions));
+  }, [result, query, diameterOptions]);
+
+  // Track each unique search query once when results arrive successfully
+  const trackedQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== 'success' || !query || trackedQueryRef.current === query) return;
+    trackedQueryRef.current = query;
+    trackEvent({ type: 'search', entityName: query });
+  }, [status, query]);
+
+  // Load filter metadata immediately (fast DB queries) so the filter bar renders during the AI call.
+  // watchFinderSearch is slow (~4s) and runs separately — filter pills appear right away.
+  useEffect(() => {
+    Promise.all([fetchBrands(), fetchCollections(), fetchFilterOptions()])
+      .then(([br, cols, filterOptions]) => {
+        setBrands(br);
+        setCollections(cols);
+        setCatalogDiameterOptions(filterOptions.diameters ?? []);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Sync editable query header when URL query changes (e.g. browser back/forward)
+  useEffect(() => { setEditQuery(query); }, [query]);
+
+  // Persist wrist fit to sessionStorage so it survives back navigation from product detail page
+  const wristKey = `smartsearch-wrist:${query}`;
+  useEffect(() => {
+    if (!query) return;
+    try {
+      if (wristFit) sessionStorage.setItem(wristKey, wristFit);
+      else sessionStorage.removeItem(wristKey);
+    } catch { /* ignore */ }
+  }, [wristFit, wristKey, query]);
+
+  // AI search — checks sessionStorage first to avoid re-running on back navigation
+  useEffect(() => {
+    if (!query) { setStatus('error'); return; }
+    setStatus('loading');
+    setErrorMessage('');
+    setResult(null);
+    setFilters(EMPTY_WATCH_FILTERS);
+    intentAppliedRef.current = null; // allow intent filters for the new query
+
+    // Restore wrist fit from sessionStorage (back navigation) or reset
+    try {
+      const savedWrist = sessionStorage.getItem(`smartsearch-wrist:${query}`);
+      setWristFit(savedWrist ?? '');
+    } catch { setWristFit(''); }
+
+    const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+    const cacheKey = `smartsearch:v9:${query}`;
+
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const { result: cachedResult, ts } = JSON.parse(cached) as { result: WatchFinderResult; ts: number };
+        if (Date.now() - ts < CACHE_TTL) {
+          setResult(cachedResult);
+          // Intent filters applied reactively by the intentFilters effect below
+          setStatus('success');
+          return;
+        }
+      }
+    } catch {
+      // sessionStorage unavailable (private browsing, storage full) — proceed with fetch
+    }
+
+    // Keyword search runs in parallel — fast (<100ms), populates watch grid immediately + brand/collection pills
+    setKwBrands([]);
+    setKwCollections([]);
+    setKwWatches([]);
+    fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((data: {
+        watches?: Array<{ id: number; name: string; slug?: string; description?: string; currentPrice?: number; image?: string; specs?: string; brand: { id: number; name: string; slug?: string }; collection?: { id: number; name: string; slug?: string } }>;
+        brands?: Array<{ id: number; name: string; slug?: string }>;
+        collections?: Array<{ id: number; name: string; slug?: string; brand?: { name: string } }>;
+      } | null) => {
+        if (data) {
+          // Only surface brands/collections explicitly named in the query — prevents
+          // the full-text search from showing irrelevant collections (e.g. Submariner
+          // when the user typed "Daydate").
+          const queryLower = query.toLowerCase();
+          const relevantBrands = (data.brands ?? [])
+            .filter(b => queryLower.includes(b.name.toLowerCase()))
+            .slice(0, 5);
+          const relevantCollections = (data.collections ?? [])
+            .filter(c => queryLower.includes(c.name.toLowerCase()))
+            .slice(0, 5);
+          setKwBrands(relevantBrands);
+          setKwCollections(relevantCollections);
+          // Normalize to Watch type so SmartCard renders them without changes
+          const normalized: Watch[] = (data.watches ?? []).map(kw => ({
+            id: kw.id,
+            name: kw.name,
+            slug: kw.slug ?? '',
+            description: kw.description ?? '',
+            image: kw.image ?? '',
+            currentPrice: kw.currentPrice ?? 0,
+            brandId: kw.brand.id,
+            brandSlug: kw.brand.slug,
+            collectionId: kw.collection?.id ?? null,
+            collectionSlug: kw.collection?.slug,
+            specs: kw.specs ?? null,
+          }));
+          setKwWatches(normalized);
+        }
+      })
+      .catch(() => {});
+
+    watchFinderSearch(query)
+      .then(res => {
+        setResult(res);
+        // Don't apply intent filters here — collections may not be loaded yet.
+        // The intentFilters effect below re-applies once both are ready.
+        setStatus('success');
+        // Only cache non-empty results — empty results are often transient (threshold tuning, cold start)
+        if (res.watches.length > 0 || res.otherCandidates.length > 0) {
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ result: res, ts: Date.now() }));
+          } catch {
+            // ignore storage errors
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        setErrorMessage(error instanceof Error ? error.message : '');
+        setStatus('error');
+      });
+  }, [query]);
+
+  const setFilter = useCallback(<K extends keyof WatchFilters>(key: K, value: WatchFilters[K]) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearFilters = () => { setFilters(EMPTY_WATCH_FILTERS); setWristFit(''); };
+
+  const hasActiveFilters =
+    Object.values(filters).some(v => Array.isArray(v) && v.length > 0) || wristFit !== '';
+
+  // Client-side filter + split top / others.
+  // Keyword-exclusive watches (exact ref matches like "4063" not found by AI) go first —
+  // if the user typed a reference number, that's what they want. For semantic queries
+  // ("dress watch for wedding"), kwExclusive is typically empty so AI results lead naturally.
+  const { topWatches, otherWatches } = useMemo(() => {
+    if (!result) return { topWatches: [], otherWatches: [] };
+    const topIds = new Set(result.watches.map(w => w.id));
+    const aiIds = new Set([...result.watches, ...result.otherCandidates].map(w => w.id));
+    const kwExclusive = kwWatches.filter(w => !aiIds.has(w.id));
+    const kwExclusiveIds = new Set(kwExclusive.map(w => w.id));
+    // Keyword-exclusive first (exact ref matches), then AI ranked results
+    const all = applyWatchFilters([...kwExclusive, ...result.watches, ...result.otherCandidates], filters, wristFit);
+    return {
+      topWatches: all.filter(w => topIds.has(w.id) || kwExclusiveIds.has(w.id)),
+      otherWatches: all.filter(w => !topIds.has(w.id) && !kwExclusiveIds.has(w.id)),
+    };
+  }, [result, filters, wristFit, kwWatches]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    if (activePage !== 1 && status === 'success') {
+      router.replace(`/smart-search?q=${encodeURIComponent(query)}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, wristFit]);
+
+  const goToPage = (page: number) => {
+    const url = page === 1
+      ? `/smart-search?q=${encodeURIComponent(query)}`
+      : `/smart-search?q=${encodeURIComponent(query)}&page=${page}`;
+    router.replace(url, { scroll: true });
+  };
+
+  const PAGE_SIZE = 20;
+
+  // Flatten into a single ordered list: top matches first, then others.
+  // PoR watches (price = 0) are pushed after priced watches within each group —
+  // priced watches answer the query directly, PoR is supplementary context.
+  // When wrist fit is active, sort by fit score descending (best fit first).
+  const allWatches = useMemo(() => {
+    // Stable sort: priced watches first (preserving AI rank), then PoR (preserving AI rank)
+    const priced = [...topWatches.filter(w => w.currentPrice > 0), ...otherWatches.filter(w => w.currentPrice > 0)];
+    const por    = [...topWatches.filter(w => w.currentPrice === 0), ...otherWatches.filter(w => w.currentPrice === 0)];
+    const combined = [...priced, ...por];
+    const wristCm = wristFit ? parseFloat(wristFit) : null;
+    if (wristCm !== null && !isNaN(wristCm)) {
+      combined.sort((a, b) => {
+        const specsA = parseSpecs(a.specs)?.case as { diameter?: string; thickness?: string } | undefined;
+        const specsB = parseSpecs(b.specs)?.case as { diameter?: string; thickness?: string } | undefined;
+        const fitA = specsA?.diameter ? calculateFitScores(wristCm, specsA) : null;
+        const fitB = specsB?.diameter ? calculateFitScores(wristCm, specsB) : null;
+        return (fitB?.overall ?? 0) - (fitA?.overall ?? 0);
+      });
+    }
+    return combined;
+  }, [topWatches, otherWatches, wristFit]);
+
+  const totalPages = Math.max(1, Math.ceil(allWatches.length / PAGE_SIZE));
+
+  const currentGrid = useMemo(() => {
+    const offset = (activePage - 1) * PAGE_SIZE;
+    return allWatches.slice(offset, offset + PAGE_SIZE);
+  }, [allWatches, activePage]);
+
+  // Show "Timepieces" label when this page starts inside the otherWatches zone
+  const pageStartIndex = (activePage - 1) * PAGE_SIZE;
+  const showOthersLabel = otherWatches.length > 0 && topWatches.length > 0 && pageStartIndex >= topWatches.length;
+
+  if (!query) {
+    return (
+      <div className="px-8 lg:px-16 py-28 text-center">
+        <p className="text-white/50 font-inter">
+          No query provided.{' '}
+          <Link href="/tourbillon" className="text-white/70 underline underline-offset-2">Go back.</Link>
+        </p>
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="px-8 lg:px-16 py-8 pt-28 pb-28 text-white">
+
+      {/* ── Header ── */}
+      <ScrollFade>
+      <div className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-2 text-white/50 hover:text-white/90 transition-colors duration-300 text-sm font-light tracking-wide mb-4"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back
+        </button>
+
+        <div className="flex items-start gap-3 flex-wrap">
+          <input
+            type="text"
+            value={editQuery}
+            onChange={e => setEditQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && editQuery.trim()) {
+                router.replace(`/smart-search?q=${encodeURIComponent(editQuery.trim())}`);
+              }
+            }}
+            className="text-3xl font-playfair font-bold text-[#f0e6d2] bg-transparent border-none outline-none focus:border-b focus:border-[#f0e6d2]/30 min-w-0 flex-1"
+            aria-label="Edit search query"
+          />
+          <span className="mt-1.5 px-2 py-0.5 text-xs font-inter font-medium bg-white/10 border border-white/20 rounded-full text-white/60 uppercase tracking-wider self-start flex-shrink-0">
+            AI
+          </span>
+        </div>
+
+        {status === 'success' && result && (
+          <p className="text-sm font-inter text-white/40 mt-1.5">
+            {topWatches.length + otherWatches.length} Watches found
+            {hasActiveFilters && ' · with filtered'}
+          </p>
+        )}
+      </div>
+      </ScrollFade>
+
+      {/* ── Jump To: result-based brands/collections when AI loads, keyword-based during loading ── */}
+      {(() => {
+        const jumpBrands      = result ? resultBrands      : kwBrands;
+        const jumpCollections = result ? resultCollections  : kwCollections;
+        if (jumpBrands.length === 0 && jumpCollections.length === 0) return null;
+        return (
+          <ScrollFade>
+          <div className="flex items-center gap-2 flex-wrap mb-5">
+            <span className="text-xs font-inter text-white/30 uppercase tracking-widest mr-1 flex-shrink-0">
+              Jump to
+            </span>
+            {jumpBrands.map(b => (
+              <a
+                key={`brand-${b.id}`}
+                href={`/brands/${b.slug || b.id}`}
+                className="px-3 py-1 text-xs font-inter text-white/60 hover:text-white border border-white/15 hover:border-white/35 rounded-full bg-white/5 hover:bg-white/10 transition-all"
+              >
+                <span translate="no" className="notranslate">{b.name}</span>
+              </a>
+            ))}
+            {jumpCollections.map(c => (
+              <a
+                key={`col-${c.id}`}
+                href={`/collections/${c.slug || c.id}`}
+                className="px-3 py-1 text-xs font-inter text-white/50 hover:text-white/80 border border-white/10 hover:border-white/25 rounded-full bg-white/3 hover:bg-white/8 transition-all"
+              >
+                <span translate="no" className="notranslate">{c.brand ? `${c.brand.name} ${c.name}` : c.name}</span>
+              </a>
+            ))}
+          </div>
+          </ScrollFade>
+        );
+      })()}
+
+      {/* ── Filter Bar ── */}
+      <ScrollFade>
+        <WatchFilterBar
+          filters={filters}
+          brands={brands}
+          collections={collections}
+          diameterOptions={diameterOptions}
+          wristFit={wristFit}
+          hasActiveFilters={hasActiveFilters}
+          onChange={setFilter}
+          onWristFitChange={setWristFit}
+          onClear={clearFilters}
+        />
+      </ScrollFade>
+
+      {/* ── Page tabs ── */}
+      {status === 'success' && result && totalPages > 1 && (
+        <div className="flex items-center gap-1 mb-6">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              onClick={() => goToPage(p)}
+              className={`w-8 h-8 rounded-full text-sm font-inter transition-colors ${
+                activePage === p
+                  ? 'bg-[#f0e6d2]/15 text-[#f0e6d2] border border-[#f0e6d2]/30'
+                  : 'text-white/35 hover:text-white/60 border border-transparent'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── "Timepieces you may also be interested in" label on page 2+ ── */}
+      {status === 'success' && showOthersLabel && (
+        <p className="text-xs font-inter text-white/35 uppercase tracking-widest mb-6">
+          Timepieces you may also be interested in
+        </p>
+      )}
+
+      {/* ── Results Grid ── */}
+      {status === 'loading' && (
+        <>
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/55 animate-spin flex-shrink-0" />
+            <span className="text-xs font-inter text-white/35">AI analysis running…</span>
+          </div>
+          <SkeletonGrid count={20} />
+        </>
+      )}
+
+      {status === 'error' && (
+        <div className="text-center py-20">
+          <p className="text-white/40 font-inter text-sm">
+            {errorMessage || (!result
+              ? 'AI service unavailable or still warming up. Please try again in a moment.'
+              : 'Something went wrong.')}
+          </p>
+          <button
+            onClick={() => router.push(`/smart-search?q=${encodeURIComponent(query)}`)}
+            className="mt-4 text-sm text-white/50 hover:text-white underline underline-offset-2 font-inter transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {status === 'success' && result && (
+        <>
+          {currentGrid.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {currentGrid.map(w => (
+                <ScrollFade key={w.id}>
+                  <WatchCard
+                    watch={w}
+                    brandName={brands.find(b => b.id === w.brandId)?.name}
+                    hrefSuffix={wristFit ? `?wristFit=${encodeURIComponent(wristFit)}` : ''}
+                  />
+                </ScrollFade>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 text-center">
+              <p className="text-white/40 font-inter text-sm">No watches match your current filters.</p>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="mt-3 text-sm text-white/50 hover:text-white underline underline-offset-2 font-inter transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

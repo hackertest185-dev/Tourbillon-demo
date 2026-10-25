@@ -1,0 +1,1140 @@
+// Unit tests for WatchFinderService query parsing helpers.
+// These cover deterministic fallback behavior used when AI intent parsing is unavailable.
+using System.Collections.Generic;
+using System.Linq;
+using backend.Database;
+using backend.Services;
+using backend.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
+
+namespace backend.Tests.Services;
+
+public class WatchFinderServiceTests
+{
+    private static readonly IStorageService TestStorage = new TestStorageService();
+
+    private sealed class TestTourbillonContext : TourbillonContext
+    {
+        public TestTourbillonContext(DbContextOptions<TourbillonContext> options) : base(options) { }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Ignore<WatchEmbedding>();
+            modelBuilder.Ignore<QueryCache>();
+        }
+    }
+
+    private static TourbillonContext CreateContext()
+    {
+        var options = new DbContextOptionsBuilder<TourbillonContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        return new TestTourbillonContext(options);
+    }
+
+    private static WatchFinderService CreateService(TourbillonContext context)
+    {
+        var httpFactory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
+        return new WatchFinderService(
+            httpFactory.Object,
+            new DeterministicWatchSearchService(context, NullLogger<DeterministicWatchSearchService>.Instance, TestStorage),
+            context,
+            new WatchFilterMapper(),
+            new QueryCacheService(context, NullLogger<QueryCacheService>.Instance),
+            NullLogger<WatchFinderService>.Instance,
+            TestStorage);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_DirectSqlResult_DoesNotChargeSmartSearchQuota()
+    {
+        using var context = CreateContext();
+        // A constrained brief is embedded to be ranked by meaning before any catalogue path runs; an
+        // embedding is not a charged model call. Every ai-service call fails here, so nothing is ranked.
+        var aiService = new ParseCountingHandler();
+        var httpFactory = new Mock<IHttpClientFactory>();
+        httpFactory.Setup(f => f.CreateClient("ai-service"))
+            .Returns(() => new HttpClient(aiService, disposeHandler: false) { BaseAddress = new Uri("http://ai-service:5000") });
+        var deterministic = new Mock<IDeterministicWatchSearchService>(MockBehavior.Strict);
+        var quota = new Mock<IAiUsageQuotaService>(MockBehavior.Strict);
+        deterministic
+            .Setup(s => s.TryDirectSqlSearchAsync(
+                It.IsAny<string>(),
+                It.IsAny<QueryIntent?>(),
+                "direct_sql_deterministic"))
+            .ReturnsAsync(new WatchFinderResult
+            {
+                SearchPath = "direct_sql_deterministic",
+                Watches = [new WatchDto { Id = 1, Name = "Aquanaut", Slug = "aquanaut" }]
+            });
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["WatchFinderSettings:DisableLimitInDev"] = "false",
+                ["WatchFinderSettings:DailyLimit"] = "5",
+            })
+            .Build();
+        var service = new WatchFinderService(
+            httpFactory.Object,
+            deterministic.Object,
+            context,
+            new WatchFilterMapper(),
+            new QueryCacheService(context, NullLogger<QueryCacheService>.Instance),
+            NullLogger<WatchFinderService>.Instance,
+            TestStorage,
+            config,
+            quota.Object);
+
+        var result = await service.FindWatchesAsync(
+            "sporty watches",
+            new WatchFinderQuotaContext("127.0.0.1", IsAdmin: false));
+
+        Assert.Equal("direct_sql_deterministic", result.SearchPath);
+        quota.VerifyNoOtherCalls();
+        Assert.Equal(0, aiService.ParseCalls);
+    }
+
+    public sealed record FilterCase(
+        string Query,
+        decimal? MinPrice,
+        decimal? MaxPrice,
+        double? MinDiameter,
+        double? MaxDiameter,
+        string? Style,
+        string? CaseMaterial,
+        string? WaterResistance,
+        string[] PriceBuckets,
+        string[] DiameterBuckets,
+        string[] WaterBuckets,
+        string[] Complications,
+        string[] PowerReserves);
+
+    public sealed record FilterComponent(string Text, Action<QueryIntent> Apply);
+
+    public static IEnumerable<object[]> RegexQueryCases()
+    {
+        yield return
+        [
+            "Sport Watches Under 100k",
+            (decimal?)null,
+            100_000m,
+            (double?)null,
+            (double?)null,
+            "sport",
+            new[] { "Price on Request", "Under $5k", "$5k \u2013 $10k", "$10k \u2013 $25k", "$25k \u2013 $50k", "$50k \u2013 $100k" },
+            Array.Empty<string>(),
+            Array.Empty<string>()
+        ];
+        yield return
+        [
+            "sports watches between 50-100k",
+            50_000m,
+            100_000m,
+            (double?)null,
+            (double?)null,
+            "sport",
+            new[] { "Price on Request", "$50k \u2013 $100k" },
+            Array.Empty<string>(),
+            Array.Empty<string>()
+        ];
+        yield return
+        [
+            "Vacheron Dress Watch 39 to 40mm Dial Above 200k",
+            200_000m,
+            (decimal?)null,
+            39d,
+            40d,
+            "dress",
+            new[] { "Price on Request", "Over $100k" },
+            new[] { "39mm", "40mm" },
+            Array.Empty<string>()
+        ];
+        yield return
+        [
+            "diver watch 300m under 20k",
+            (decimal?)null,
+            20_000m,
+            (double?)null,
+            (double?)null,
+            "diver",
+            new[] { "Price on Request", "Under $5k", "$5k \u2013 $10k", "$10k \u2013 $25k" },
+            Array.Empty<string>(),
+            new[] { "150m \u2013 300m", "600m+" }
+        ];
+        yield return
+        [
+            "40mm dress watch under 50k",
+            (decimal?)null,
+            50_000m,
+            40d,
+            40d,
+            "dress",
+            new[] { "Price on Request", "Under $5k", "$5k \u2013 $10k", "$10k \u2013 $25k", "$25k \u2013 $50k" },
+            new[] { "40mm" },
+            Array.Empty<string>()
+        ];
+    }
+
+    public static IEnumerable<object[]> GeneratedFilterCaseMatrix()
+    {
+        var styles = new[]
+        {
+            new FilterComponent("sport watch", i => i.Style = "sport"),
+            new FilterComponent("dress watch", i => i.Style = "dress"),
+            new FilterComponent("diver watch", i => i.Style = "diver"),
+            new FilterComponent("luxury watch", _ => { }),
+        };
+
+        var prices = new[]
+        {
+            new FilterComponent("under 20k", i => i.MaxPrice = 20_000m),
+            new FilterComponent("under 50k", i => i.MaxPrice = 50_000m),
+            new FilterComponent("under 100k", i => i.MaxPrice = 100_000m),
+            new FilterComponent("between 50-100k", i => { i.MinPrice = 50_000m; i.MaxPrice = 100_000m; }),
+        };
+
+        var diameters = new[]
+        {
+            new FilterComponent("", _ => { }),
+            new FilterComponent("36mm", i => { i.MinDiameterMm = 36; i.MaxDiameterMm = 36; }),
+            new FilterComponent("39mm", i => { i.MinDiameterMm = 39; i.MaxDiameterMm = 39; }),
+            new FilterComponent("39 to 40mm", i => { i.MinDiameterMm = 39; i.MaxDiameterMm = 40; }),
+        };
+
+        var waters = new[]
+        {
+            new FilterComponent("", _ => { }),
+            new FilterComponent("good water resistance", i => i.WaterResistanceBuckets.AddRange(["50m – 120m", "150m – 300m", "600m+"])),
+            new FilterComponent("100m water resistance", i =>
+            {
+                i.WaterResistance = "100";
+                i.WaterResistanceBuckets.AddRange(["50m – 120m", "150m – 300m", "600m+"]);
+            }),
+            new FilterComponent("300m water resistance", i =>
+            {
+                i.WaterResistance = "300";
+                i.WaterResistanceBuckets.AddRange(["150m – 300m", "600m+"]);
+            }),
+        };
+
+        var materials = new[]
+        {
+            new FilterComponent("", _ => { }),
+            new FilterComponent("steel", i => i.CaseMaterial = "Steel"),
+        };
+
+        var complications = new[]
+        {
+            new FilterComponent("", _ => { }),
+            new FilterComponent("chronograph", i => i.Complications.Add("Chronograph")),
+        };
+
+        var powerReserves = new[]
+        {
+            new FilterComponent("", _ => { }),
+            new FilterComponent("72h power reserve", i => i.PowerReserves.Add("72h – 100h")),
+        };
+
+        foreach (var style in styles)
+        foreach (var price in prices)
+        foreach (var diameter in diameters)
+        foreach (var water in waters)
+        foreach (var material in materials)
+        foreach (var complication in complications)
+        foreach (var powerReserve in powerReserves)
+        {
+            var parts = new[] { style.Text, material.Text, diameter.Text, water.Text, complication.Text, powerReserve.Text, price.Text }
+                .Where(p => !string.IsNullOrWhiteSpace(p));
+            var query = string.Join(" ", parts);
+
+            var expected = new QueryIntent();
+            style.Apply(expected);
+            price.Apply(expected);
+            diameter.Apply(expected);
+            water.Apply(expected);
+            material.Apply(expected);
+            complication.Apply(expected);
+            powerReserve.Apply(expected);
+            var state = WatchFinderService.BuildFilterStateForDiagnostics(expected);
+
+            yield return
+            [
+                new FilterCase(
+                    query,
+                    expected.MinPrice,
+                    expected.MaxPrice,
+                    expected.MinDiameterMm,
+                    expected.MaxDiameterMm,
+                    expected.Style,
+                    expected.CaseMaterial,
+                    expected.WaterResistance,
+                    state.PriceBuckets.ToArray(),
+                    state.DiameterBuckets.ToArray(),
+                    state.WaterResistances.ToArray(),
+                    state.Complications.ToArray(),
+                    state.PowerReserves.ToArray())
+            ];
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(RegexQueryCases))]
+    public void ApplyRegexFilters_ProducesExpectedFilterBarState(
+        string query,
+        decimal? expectedMinPrice,
+        decimal? expectedMaxPrice,
+        double? expectedMinDiameter,
+        double? expectedMaxDiameter,
+        string? expectedStyle,
+        string[] expectedPriceBuckets,
+        string[] expectedDiameterBuckets,
+        string[] expectedWaterBuckets)
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters(query, intent);
+        var state = WatchFinderService.BuildFilterStateForDiagnostics(intent);
+
+        Assert.Equal(expectedMinPrice, intent.MinPrice);
+        Assert.Equal(expectedMaxPrice, intent.MaxPrice);
+        Assert.Equal(expectedMinDiameter, intent.MinDiameterMm);
+        Assert.Equal(expectedMaxDiameter, intent.MaxDiameterMm);
+        Assert.Equal(expectedStyle, intent.Style);
+        Assert.Equal(expectedPriceBuckets, state.PriceBuckets);
+        Assert.Equal(expectedDiameterBuckets, state.DiameterBuckets);
+        Assert.Equal(expectedWaterBuckets, state.WaterResistances);
+    }
+
+    [Theory]
+    [MemberData(nameof(GeneratedFilterCaseMatrix))]
+    public void ApplyRegexFilters_GeneratedQueryMatrixProducesExpectedState(FilterCase testCase)
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters(testCase.Query, intent);
+        var state = WatchFinderService.BuildFilterStateForDiagnostics(intent);
+
+        Assert.Equal(testCase.MinPrice, intent.MinPrice);
+        Assert.Equal(testCase.MaxPrice, intent.MaxPrice);
+        Assert.Equal(testCase.MinDiameter, intent.MinDiameterMm);
+        Assert.Equal(testCase.MaxDiameter, intent.MaxDiameterMm);
+        Assert.Equal(testCase.Style, intent.Style);
+        Assert.Equal(testCase.CaseMaterial, intent.CaseMaterial);
+        Assert.Equal(testCase.WaterResistance, intent.WaterResistance);
+        Assert.Equal(testCase.PriceBuckets, state.PriceBuckets);
+        Assert.Equal(testCase.DiameterBuckets, state.DiameterBuckets);
+        Assert.Equal(testCase.WaterBuckets, state.WaterResistances);
+        Assert.Equal(testCase.Complications, state.Complications);
+        Assert.Equal(testCase.PowerReserves, state.PowerReserves);
+    }
+
+    [Fact]
+    public void GeneratedFilterCaseMatrix_SeedsAtLeastFiveHundredQueries()
+    {
+        Assert.True(GeneratedFilterCaseMatrix().Count() >= 500);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_RecognisesCompoundSportwatch()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("sportwatch from vc", intent);
+
+        Assert.Equal("sport", intent.Style);
+    }
+
+    [Fact]
+    public async Task ParseQueryIntentForTestsAsync_SportwatchFromVc_DerivesStyleCollections()
+    {
+        using var context = CreateContext();
+        var brand = new Brand { Id = 2, Name = "Vacheron Constantin", Slug = "vacheron-constantin" };
+        var sport = new Collection { Id = 10, BrandId = 2, Brand = brand, Name = "Overseas", Slug = "vacheron-constantin-overseas", Styles = ["sport"] };
+        var dress = new Collection { Id = 20, BrandId = 2, Brand = brand, Name = "Patrimony", Slug = "vacheron-constantin-patrimony", Styles = ["dress"] };
+
+        context.Brands.Add(brand);
+        context.Collections.AddRange(sport, dress);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+
+        var intent = await service.ParseQueryIntentForTestsAsync("sportwatch from vc");
+
+        Assert.NotNull(intent);
+        Assert.Equal(2, intent!.BrandId);
+        Assert.Equal("sport", intent.Style);
+        Assert.True(intent.CollectionsDerivedFromStyle);
+        Assert.Equal(10, intent.CollectionId);
+    }
+
+    [Fact]
+    public async Task ParseQueryIntentForTestsAsync_MultiBrandStyleQuery_DoesNotTreatBrandTokenAsCollection()
+    {
+        using var context = CreateContext();
+        var vc = new Brand { Id = 2, Name = "Vacheron Constantin", Slug = "vacheron-constantin" };
+        var als = new Brand { Id = 5, Name = "A. Lange & Söhne", Slug = "a-lange-sohne" };
+        var overseas = new Collection { Id = 10, BrandId = 2, Brand = vc, Name = "Overseas", Slug = "vacheron-constantin-overseas", Styles = ["sport"] };
+        var lange1 = new Collection { Id = 17, BrandId = 5, Brand = als, Name = "Lange 1", Slug = "a-lange-sohne-lange-1", Styles = ["dress"] };
+
+        context.Brands.AddRange(vc, als);
+        context.Collections.AddRange(overseas, lange1);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+
+        var intent = await service.ParseQueryIntentForTestsAsync("i want some sport watch from A. Lange & Söhne and Vacheron Constantin");
+
+        Assert.NotNull(intent);
+        Assert.Null(intent!.BrandId);
+        Assert.Equal([2, 5], intent.BrandIds.OrderBy(id => id).ToArray());
+        Assert.Equal("sport", intent.Style);
+        Assert.True(intent.CollectionsDerivedFromStyle);
+        Assert.Equal(10, intent.CollectionId);
+        Assert.Empty(intent.CollectionIds);
+    }
+
+    [Fact]
+    public async Task TryDirectSqlSearchForTestsAsync_MultiBrandSportQuery_PrefersSportBrandCoverage()
+    {
+        using var context = CreateContext();
+        var vc = new Brand { Id = 2, Name = "Vacheron Constantin", Slug = "vacheron-constantin" };
+        var als = new Brand { Id = 5, Name = "A. Lange & Söhne", Slug = "a-lange-sohne" };
+        var overseas = new Collection { Id = 10, BrandId = 2, Brand = vc, Name = "Overseas", Slug = "vacheron-constantin-overseas", Styles = ["sport"] };
+        var lange1 = new Collection { Id = 17, BrandId = 5, Brand = als, Name = "Lange 1", Slug = "a-lange-sohne-lange-1", Styles = ["dress"] };
+
+        var vcWatch = new Watch
+        {
+            Id = 100,
+            BrandId = 2,
+            Brand = vc,
+            CollectionId = 10,
+            Collection = overseas,
+            Name = "4520V/210R-B967",
+            Slug = "vacheron-constantin-overseas-4520v-210r-b967",
+            CurrentPrice = 111000m,
+            Description = "Overseas sport watch"
+        };
+        var alsWatch = new Watch
+        {
+            Id = 200,
+            BrandId = 5,
+            Brand = als,
+            CollectionId = 17,
+            Collection = lange1,
+            Name = "191.039",
+            Slug = "a-lange-sohne-lange-1-191-039",
+            CurrentPrice = 80000m,
+            Description = "Lange 1 dress watch"
+        };
+
+        context.Brands.AddRange(vc, als);
+        context.Collections.AddRange(overseas, lange1);
+        context.Watches.AddRange(vcWatch, alsWatch);
+        await context.SaveChangesAsync();
+
+        var service = CreateService(context);
+        var intent = await service.ParseQueryIntentForTestsAsync("i want some sport watch from A. Lange & Söhne and Vacheron Constantin");
+
+        var result = await service.TryDirectSqlSearchForTestsAsync(
+            "i want some sport watch from A. Lange & Söhne and Vacheron Constantin",
+            intent,
+            "test_direct");
+
+        Assert.NotNull(result);
+        Assert.NotEmpty(result!.Watches);
+        Assert.Equal("vacheron-constantin-overseas-4520v-210r-b967", result.Watches[0].Slug);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ParsesToDiameterRangeAndMinPrice()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters(
+            "Vacheron Dress Watch 39 to 40mm Dial Above 200k",
+            intent);
+
+        Assert.Equal("dress", intent.Style);
+        Assert.Equal(39d, intent.MinDiameterMm);
+        Assert.Equal(40d, intent.MaxDiameterMm);
+        Assert.Equal(200_000m, intent.MinPrice);
+        Assert.Null(intent.MaxPrice);
+        Assert.Empty(intent.WaterResistanceBuckets);
+        Assert.Null(intent.WaterResistance);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ParsesHyphenDiameterRange()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("dress watch 36-38mm under 50k", intent);
+
+        Assert.Equal("dress", intent.Style);
+        Assert.Equal(36d, intent.MinDiameterMm);
+        Assert.Equal(38d, intent.MaxDiameterMm);
+        Assert.Equal(50_000m, intent.MaxPrice);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_Under100KIsPriceOnly()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("Sport Watches Under 100k", intent);
+
+        Assert.Equal("sport", intent.Style);
+        Assert.Equal(100_000m, intent.MaxPrice);
+        Assert.Null(intent.MinPrice);
+        Assert.Empty(intent.WaterResistanceBuckets);
+        Assert.Null(intent.WaterResistance);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ParsesApproximateTargetPriceBand()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("something for daily wear around 40k", intent);
+
+        Assert.Equal(30_000m, intent.MinPrice);
+        Assert.Equal(50_000m, intent.MaxPrice);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ParsesBudgetCap()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("sport watch budget 40k", intent);
+
+        Assert.Null(intent.MinPrice);
+        Assert.Equal(40_000m, intent.MaxPrice);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_DoesNotTreatMillimetresAsWaterResistance()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("40mm dress watch", intent);
+
+        Assert.Equal(40d, intent.MinDiameterMm);
+        Assert.Equal(40d, intent.MaxDiameterMm);
+        Assert.Empty(intent.WaterResistanceBuckets);
+        Assert.Null(intent.WaterResistance);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ParsesExplicitWaterResistance()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("100m water resistance", intent);
+
+        Assert.Equal("100", intent.WaterResistance);
+        Assert.Equal(["50m \u2013 120m", "150m \u2013 300m", "600m+"], intent.WaterResistanceBuckets);
+    }
+
+    [Fact]
+    public void IsLikelyReferenceQuery_MatchesDottedReference()
+    {
+        Assert.True(WatchFinderService.IsLikelyReferenceQuery("434.20.40.20.02.001"));
+    }
+
+    [Fact]
+    public void IsLikelyReferenceQuery_MatchesRolexStyleReference()
+    {
+        Assert.True(WatchFinderService.IsLikelyReferenceQuery("M126710BLRO-0001"));
+    }
+
+    [Fact]
+    public void IsLikelyReferenceQuery_RejectsDiscoveryQueriesThatOnlyContainBudgetDigits()
+    {
+        Assert.False(WatchFinderService.IsLikelyReferenceQuery("a ceramic moonphase reverso under 2k"));
+    }
+
+    [Theory]
+    [InlineData("710BL")]
+    [InlineData("BLRO")]
+    [InlineData("126710")]
+    public void IsLikelyReferenceFragment_MatchesShortReferenceFamilyTokens(string query)
+    {
+        Assert.True(WatchFinderService.IsLikelyReferenceFragment(query));
+        Assert.True(WatchFinderService.HasWatchDomainSignal(query));
+    }
+
+    [Theory]
+    [InlineData("breakfast")]
+    [InlineData("sandwich")]
+    [InlineData("wedding")]
+    public void IsLikelyReferenceFragment_RejectsPlainWords(string query)
+    {
+        Assert.False(WatchFinderService.IsLikelyReferenceFragment(query));
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_DoesNotTreatDottedReferenceAsSpecs()
+    {
+        var intent = new QueryIntent();
+
+        WatchFinderService.ApplyRegexFilters("434.20.40.20.02.001", intent);
+
+        Assert.Null(intent.MinPrice);
+        Assert.Null(intent.MaxPrice);
+        Assert.Null(intent.MinDiameterMm);
+        Assert.Null(intent.MaxDiameterMm);
+        Assert.Null(intent.WaterResistance);
+    }
+
+    [Fact]
+    public void HasWatchDomainSignal_ReturnsFalseForBreakfast()
+    {
+        Assert.False(WatchFinderService.HasWatchDomainSignal("what's for breakfast?"));
+    }
+
+    [Fact]
+    public void HasWatchDomainSignal_ReturnsTrueForQualitativeBudgetShoppingPhrase()
+    {
+        Assert.True(WatchFinderService.HasWatchDomainSignal("something affordable for a student"));
+    }
+
+    [Fact]
+    public void HasWatchDomainSignal_ReturnsTrueForDigitalWatchBrief()
+    {
+        Assert.True(WatchFinderService.HasWatchDomainSignal("purple Casio digital from the 80s"));
+    }
+
+    // Queries with no word from the domain allowlist: the regex alone would refuse all four,
+    // so what separates them is the classifier verdict the gate now defers to.
+    private static WatchFinderService CreateServiceWithClassifier(
+        TourbillonContext context,
+        IIntentClassifier? classifier)
+    {
+        var httpFactory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
+        httpFactory.Setup(f => f.CreateClient("ai-service"))
+            .Returns(() => new HttpClient(new ParseCountingHandler()) { BaseAddress = new Uri("http://ai-service:5000") });
+        var deterministic = new Mock<IDeterministicWatchSearchService>(MockBehavior.Loose);
+        deterministic
+            .Setup(s => s.TryDirectSqlSearchAsync(It.IsAny<string>(), It.IsAny<QueryIntent?>(), It.IsAny<string>()))
+            .ReturnsAsync(new WatchFinderResult { SearchPath = "direct_sql_deterministic" });
+
+        return new WatchFinderService(
+            httpFactory.Object,
+            deterministic.Object,
+            context,
+            new WatchFilterMapper(),
+            new QueryCacheService(context, NullLogger<QueryCacheService>.Instance),
+            NullLogger<WatchFinderService>.Instance,
+            TestStorage,
+            config: null,
+            quotaService: null,
+            classifier: classifier);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_NoDomainVocabularyButClassifiedAsWatchQuery_IsNotRefused()
+    {
+        using var context = CreateContext();
+        var service = CreateServiceWithClassifier(context, new FakeClassifier("discovery", 1.0));
+
+        var result = await service.FindWatchesAsync("something my father would like");
+
+        Assert.NotEqual("non_watch", result.SearchPath);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ClassifiedAsNonWatchWithConfidence_IsRefused()
+    {
+        using var context = CreateContext();
+        var service = CreateServiceWithClassifier(context, new FakeClassifier("non_watch", 0.95));
+
+        var result = await service.FindWatchesAsync("how do I cook pasta");
+
+        Assert.Equal("non_watch", result.SearchPath);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ClassifierUnreachable_KeepsRegexRefusal()
+    {
+        using var context = CreateContext();
+        // A failed /classify call surfaces as unclear at zero confidence, which is not a verdict.
+        var service = CreateServiceWithClassifier(context, new FakeClassifier("unclear", 0.0));
+
+        var result = await service.FindWatchesAsync("something my father would like");
+
+        Assert.Equal("non_watch", result.SearchPath);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_NoClassifierWired_KeepsRegexRefusal()
+    {
+        using var context = CreateContext();
+        var service = CreateServiceWithClassifier(context, classifier: null);
+
+        var result = await service.FindWatchesAsync("something my father would like");
+
+        Assert.Equal("non_watch", result.SearchPath);
+    }
+
+    // The concierge classifies a message and then, on a discovery turn, hands the same message to the
+    // finder. These pin that the finder reuses that verdict and only for that exact message.
+    [Fact]
+    public async Task FindWatchesAsync_SharedClassification_IsReusedInsteadOfClassifyingAgain()
+    {
+        using var context = CreateContext();
+        var calls = 0;
+        var service = CreateServiceWithClassifier(context, new FakeClassifier(_ =>
+        {
+            calls++;
+            return new IntentClassification("non_watch", 0.95);
+        }));
+        service.ShareClassification("something my father would like", new IntentClassification("discovery", 0.9));
+
+        var result = await service.FindWatchesAsync("something my father would like");
+
+        Assert.NotEqual("non_watch", result.SearchPath);
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_SharedNonWatchVerdict_StillRefuses()
+    {
+        using var context = CreateContext();
+        var service = CreateServiceWithClassifier(context, classifier: null);
+        service.ShareClassification("how do I cook pasta", new IntentClassification("non_watch", 0.95));
+
+        var result = await service.FindWatchesAsync("how do I cook pasta");
+
+        Assert.Equal("non_watch", result.SearchPath);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ClassificationOfAnotherMessage_IsNotReused()
+    {
+        using var context = CreateContext();
+        var calls = 0;
+        var service = CreateServiceWithClassifier(context, new FakeClassifier(_ =>
+        {
+            calls++;
+            return new IntentClassification("discovery", 1.0);
+        }));
+        service.ShareClassification("how do I cook pasta", new IntentClassification("non_watch", 0.95));
+
+        var result = await service.FindWatchesAsync("something my father would like");
+
+        Assert.NotEqual("non_watch", result.SearchPath);
+        Assert.Equal(1, calls);
+    }
+
+    // Counts /watch-finder/parse calls; every other ai-service call fails, which leaves embeddings off
+    // so the finder reaches the LLM parse without a pgvector database behind it.
+    private sealed class ParseCountingHandler : HttpMessageHandler
+    {
+        public object Intent { get; init; } = new { };
+        private int _parseCalls;
+        public int ParseCalls => Volatile.Read(ref _parseCalls);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri?.AbsolutePath == "/watch-finder/parse")
+            {
+                Interlocked.Increment(ref _parseCalls);
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = System.Net.Http.Json.JsonContent.Create(new { intent = Intent }),
+                });
+            }
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable));
+        }
+    }
+
+    private static WatchFinderService CreateServiceForParse(TourbillonContext context, ParseCountingHandler handler)
+    {
+        var httpFactory = new Mock<IHttpClientFactory>();
+        httpFactory.Setup(f => f.CreateClient("ai-service"))
+            .Returns(() => new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://ai-service:5000") });
+        // Nothing answers before the parse; the merged SQL pass right after it ends the search.
+        var deterministic = new Mock<IDeterministicWatchSearchService>(MockBehavior.Loose);
+        deterministic
+            .Setup(s => s.TryDirectSqlSearchAsync(It.IsAny<string>(), It.IsAny<QueryIntent?>(), "direct_sql_deterministic"))
+            .Returns((string query, QueryIntent? intent, string path) => Task.FromResult<WatchFinderResult?>(
+                intent?.RetrievalQuery == null ? null : new WatchFinderResult { QueryIntent = intent, SearchPath = path }));
+        deterministic
+            .Setup(s => s.TryDirectSqlSearchAsync(It.IsAny<string>(), It.IsAny<QueryIntent?>(), "direct_sql_merged"))
+            .ReturnsAsync(new WatchFinderResult { SearchPath = "direct_sql_merged" });
+
+        return new WatchFinderService(
+            httpFactory.Object,
+            deterministic.Object,
+            context,
+            new WatchFilterMapper(),
+            new QueryCacheService(context, NullLogger<QueryCacheService>.Instance),
+            NullLogger<WatchFinderService>.Instance,
+            TestStorage);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_PrefetchedParse_IsUsedInsteadOfASecondCall()
+    {
+        using var context = CreateContext();
+        var handler = new ParseCountingHandler();
+        var service = CreateServiceForParse(context, handler);
+        const string query = "an elegant dress watch for a dinner party";
+
+        service.PrefetchIntent(query);
+        var result = await service.FindWatchesAsync(query);
+
+        Assert.Equal("direct_sql_merged", result.SearchPath);
+        Assert.Equal(1, handler.ParseCalls);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ConciergeInterpretsOwnedWatchesBeforeSql()
+    {
+        using var context = CreateContext();
+        context.Brands.Add(new Brand { Id = 1, Name = "Omega" });
+        context.Collections.Add(new Collection { Id = 1, Name = "Speedmaster", BrandId = 1, Styles = ["sport"] });
+        await context.SaveChangesAsync();
+        var handler = new ParseCountingHandler
+        {
+            Intent = new { searchQuery = "dress watch for dinner under 40000", maxPrice = 40000,
+                excludedStyles = new[] { "sport", "diver" } }
+        };
+        var service = CreateServiceForParse(context, handler);
+        const string query = "already own a Speedmaster, want something for dinners, not another sports watch, max 40k";
+        service.ShareClassification(query, new IntentClassification("discovery", 0.95));
+
+        var result = await service.FindWatchesAsync(query);
+
+        Assert.Equal(1, handler.ParseCalls);
+        Assert.NotNull(result.QueryIntent);
+        Assert.Null(result.QueryIntent.BrandId);
+        Assert.Null(result.QueryIntent.CollectionId);
+        Assert.Empty(result.QueryIntent.CollectionIds);
+        Assert.Equal(40000m, result.QueryIntent.MaxPrice);
+        Assert.Equal(["sport", "diver"], result.QueryIntent.ExcludedStyles);
+        Assert.DoesNotContain("Speedmaster", result.QueryIntent.RetrievalQuery);
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ConciergeKeepsBudgetAndExclusionsWithoutInventingSizeOrFloor()
+    {
+        using var context = CreateContext();
+        context.Brands.Add(new Brand { Id = 1, Name = "Patek Philippe" });
+        await context.SaveChangesAsync();
+        var handler = new ParseCountingHandler
+        {
+            Intent = new { searchQuery = "small everyday watch around 15000 with a ceiling of 30000",
+                maxPrice = 30000, excludedBrands = new[] { "Patek Philippe" } }
+        };
+        var service = CreateServiceForParse(context, handler);
+        const string query = "my old Patek is 44mm, too big. prefer 15k, could spend 30k. no Patek this time";
+        service.ShareClassification(query, new IntentClassification("advice_request", 0.95));
+
+        var result = await service.FindWatchesAsync(query);
+
+        Assert.Equal(30000m, result.QueryIntent!.MaxPrice);
+        Assert.Null(result.QueryIntent.MinPrice);
+        Assert.Null(result.QueryIntent.MinDiameterMm);
+        Assert.Null(result.QueryIntent.MaxDiameterMm);
+        Assert.Null(result.QueryIntent.BrandId);
+        Assert.Equal([1], result.QueryIntent.ExcludedBrandIds);
+    }
+
+    [Theory]
+    [InlineData("a bracelet-watch for everyday use", false)]
+    [InlineData("a black-tie wedding", false)]
+    [InlineData("5711/1A-010", true)]
+    [InlineData("310.30.42.50.01.001", true)]
+    public void ReferenceDetectionRequiresDigits(string query, bool expected)
+    {
+        Assert.Equal(expected, WatchFinderService.IsLikelyReferenceQuery(query));
+    }
+
+    [Fact]
+    public async Task FindWatchesAsync_ParsePrefetchedForAnotherQuery_IsNotUsed()
+    {
+        using var context = CreateContext();
+        var handler = new ParseCountingHandler();
+        var service = CreateServiceForParse(context, handler);
+
+        service.PrefetchIntent("a rugged watch for hiking");
+        await service.FindWatchesAsync("an elegant dress watch for a dinner party");
+
+        Assert.Equal(2, handler.ParseCalls);
+    }
+
+    [Fact]
+    public void BuildFilterStateForDiagnostics_MapsMultiBrandAndCollectionIds()
+    {
+        var intent = new QueryIntent
+        {
+            BrandIds = [2, 12],
+            CollectionIds = [46, 6],
+            MaxPrice = 100_000m,
+            Style = "diver"
+        };
+
+        var state = WatchFinderService.BuildFilterStateForDiagnostics(intent);
+
+        Assert.Equal([2, 12], state.BrandIds);
+        Assert.Equal([46, 6], state.CollectionIds);
+        Assert.Equal(
+            ["Price on Request", "Under $5k", "$5k \u2013 $10k", "$10k \u2013 $25k", "$25k \u2013 $50k", "$50k \u2013 $100k"],
+            state.PriceBuckets);
+    }
+
+    [Fact]
+    public void HasStrictCollectionIntent_ReturnsFalseForStyleDerivedCollections()
+    {
+        var intent = new QueryIntent
+        {
+            BrandId = 2,
+            CollectionIds = [5, 7],
+            CollectionsDerivedFromStyle = true,
+            Style = "dress"
+        };
+
+        Assert.True(WatchFinderService.HasCollectionIntent(intent));
+        Assert.False(WatchFinderService.HasStrictCollectionIntent(intent));
+    }
+
+    [Fact]
+    public void ShouldApplyStyleSqlFilter_ReturnsTrueForGenericStyleQueries()
+    {
+        var intent = new QueryIntent { Style = "dress" };
+
+        Assert.True(WatchFinderService.ShouldApplyStyleSqlFilter(intent));
+    }
+
+    [Fact]
+    public void ShouldApplyStyleSqlFilter_ReturnsFalseWhenBrandIntentExists()
+    {
+        var intent = new QueryIntent { Style = "dress", BrandId = 2, MinPrice = 200_000m };
+
+        Assert.False(WatchFinderService.ShouldApplyStyleSqlFilter(intent));
+    }
+
+    [Fact]
+    public void DirectSqlScore_PrioritisesExactReference()
+    {
+        var intent = new QueryIntent();
+        var exact = new Watch { Name = "M126710BLRO-0001", CurrentPrice = 20_100m, BrandId = 9 };
+        var other = new Watch { Name = "M126200-0003", CurrentPrice = 14_050m, BrandId = 9 };
+
+        var exactScore = WatchFinderService.DirectSqlScore("M126710BLRO-0001", exact, intent, true);
+        var otherScore = WatchFinderService.DirectSqlScore("M126710BLRO-0001", other, intent, true);
+
+        Assert.True(exactScore > otherScore);
+        Assert.True(exactScore >= 900);
+    }
+
+    [Fact]
+    public void DirectSqlScore_PrioritisesReferenceFragmentContainment()
+    {
+        var exactFamily = new Watch { Name = "M126710BLRO-0001", CurrentPrice = 20_100m, BrandId = 9 };
+        var other = new Watch { Name = "M126500LN-0001", CurrentPrice = 28_200m, BrandId = 9 };
+
+        var fragmentScore = WatchFinderService.DirectSqlScore("710BL", exactFamily, null, true);
+        var otherScore = WatchFinderService.DirectSqlScore("710BL", other, null, true);
+
+        Assert.True(fragmentScore > otherScore);
+        Assert.True(fragmentScore >= 900);
+    }
+
+    [Fact]
+    public void ResolveFuzzyCollections_MatchesSmallTyposAcrossCollections()
+    {
+        var collections = new List<Collection>
+        {
+            new() { Id = 10, Name = "Seamaster", BrandId = 1 },
+            new() { Id = 20, Name = "Overseas", BrandId = 2 },
+            new() { Id = 30, Name = "Patrimony", BrandId = 2 },
+        };
+
+        var matches = WatchFinderService.ResolveFuzzyCollections("seamastr oversea", collections, []);
+
+        Assert.Equal([10, 20], matches.Select(c => c.Id).Order().ToArray());
+    }
+
+    [Fact]
+    public void ResolveFuzzyCollections_RespectsMatchedBrandScope()
+    {
+        var collections = new List<Collection>
+        {
+            new() { Id = 10, Name = "Seamaster", BrandId = 1 },
+            new() { Id = 20, Name = "Overseas", BrandId = 2 },
+        };
+
+        var matches = WatchFinderService.ResolveFuzzyCollections("seamastr oversea", collections, [2]);
+
+        Assert.Equal([20], matches.Select(c => c.Id).ToArray());
+    }
+
+    [Fact]
+    public void ResolveFuzzyCollections_DoesNotMatchGenericStyleTerms()
+    {
+        var collections = new List<Collection>
+        {
+            new() { Id = 10, Name = "Sport Collection", BrandId = 1 },
+            new() { Id = 20, Name = "Heritage Collection", BrandId = 1 },
+        };
+
+        var matches = WatchFinderService.ResolveFuzzyCollections("sport watches under 100k", collections, []);
+
+        Assert.Empty(matches);
+    }
+
+    [Fact]
+    public void ResolveFuzzyCollections_MatchesPunctuationInsensitiveNames()
+    {
+        var collections = new List<Collection>
+        {
+            new() { Id = 10, Name = "Reverso", BrandId = 1 },
+            new() { Id = 20, Name = "Day-Date", BrandId = 2 },
+            new() { Id = 30, Name = "Seamaster", BrandId = 3 },
+            new() { Id = 40, Name = "Datejust", BrandId = 2 },
+        };
+
+        var matches = WatchFinderService.ResolveFuzzyCollections(
+            "JLC Reverso, Rolex Daydate, Omega Seamaster under 50k with good water resistance",
+            collections,
+            [1, 2, 3]);
+
+        Assert.Equal([10, 20, 30], matches.Select(c => c.Id).Order().ToArray());
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_AffordabilityTerm_SetsAccessibleCeiling()
+    {
+        var intent = new QueryIntent();
+        WatchFinderService.ApplyRegexFilters("affordable everyday watches", intent);
+        Assert.Equal(WatchFinderService.AffordableCeiling, intent.MaxPrice);
+    }
+
+    [Fact]
+    public void ApplyRegexFilters_ExplicitPrice_OverridesAffordabilityCeiling()
+    {
+        var intent = new QueryIntent();
+        WatchFinderService.ApplyRegexFilters("affordable watches under 5000", intent);
+        Assert.Equal(5_000m, intent.MaxPrice);
+    }
+
+    // ── Deterministic ranking: budget cap, Price-on-Request placement, style family ──────────
+
+    private static DeterministicWatchSearchService CreateDeterministic(TourbillonContext context) =>
+        new(context, NullLogger<DeterministicWatchSearchService>.Instance, TestStorage);
+
+    private static Watch StyledWatch(int id, Brand brand, Collection collection, string slug, decimal price) => new()
+    {
+        Id = id,
+        BrandId = brand.Id,
+        Brand = brand,
+        CollectionId = collection.Id,
+        Collection = collection,
+        Name = slug.ToUpperInvariant(),
+        Slug = slug,
+        Description = $"{brand.Name} {collection.Name}",
+        CurrentPrice = price,
+    };
+
+    [Fact]
+    public async Task TryDirectSqlSearch_BudgetCap_DoesNotLeadWithMostExpensive()
+    {
+        using var context = CreateContext();
+        var brand = new Brand { Id = 1, Name = "Rolex", Slug = "rolex" };
+        var coll = new Collection { Id = 1, BrandId = 1, Brand = brand, Name = "Submariner", Slug = "submariner", Styles = ["sport"] };
+        context.Brands.Add(brand);
+        context.Collections.Add(coll);
+        context.Watches.AddRange(
+            StyledWatch(1, brand, coll, "cheap", 5_000m),
+            StyledWatch(2, brand, coll, "mid", 12_000m),
+            StyledWatch(3, brand, coll, "ceiling", 19_500m));
+        await context.SaveChangesAsync();
+
+        var result = await CreateDeterministic(context).TryDirectSqlSearchAsync(
+            "sporty watches under 20k", new QueryIntent { Style = "sport", MaxPrice = 20_000m }, "test");
+
+        Assert.NotNull(result);
+        // The old code treated the cap as a target and ranked the $19.5k piece first; a budget
+        // query should spread across the range rather than cluster at the ceiling.
+        Assert.NotEqual("ceiling", result!.Watches.First().Slug);
+        Assert.Equal("cheap", result.Watches.First().Slug);
+    }
+
+    [Fact]
+    public async Task TryDirectSqlSearch_PriceConstraint_ExcludesPriceOnRequest()
+    {
+        using var context = CreateContext();
+        var brand = new Brand { Id = 1, Name = "Rolex", Slug = "rolex" };
+        var coll = new Collection { Id = 1, BrandId = 1, Brand = brand, Name = "Submariner", Slug = "submariner", Styles = ["sport"] };
+        context.Brands.Add(brand);
+        context.Collections.Add(coll);
+        context.Watches.AddRange(
+            StyledWatch(1, brand, coll, "priced-low", 5_000m),
+            StyledWatch(2, brand, coll, "priced-high", 18_000m),
+            StyledWatch(3, brand, coll, "por", 0m));
+        await context.SaveChangesAsync();
+
+        var result = await CreateDeterministic(context).TryDirectSqlSearchAsync(
+            "sporty watches under 20k", new QueryIntent { Style = "sport", MaxPrice = 20_000m }, "test");
+
+        Assert.NotNull(result);
+        // Price on Request cannot be judged against a budget. Ranking it last was not enough: the
+        // concierge's prestige sort promoted those same watches back to the top of the cards, so a
+        // stated budget now excludes them outright.
+        Assert.DoesNotContain("por", result!.Watches.Select(w => w.Slug));
+        Assert.Equal(["priced-low", "priced-high"], result.Watches.Select(w => w.Slug));
+    }
+
+    [Fact]
+    public async Task TryDirectSqlSearch_SportStyle_IncludesDiverTaggedCollections()
+    {
+        using var context = CreateContext();
+        var brand = new Brand { Id = 1, Name = "Omega", Slug = "omega" };
+        var sportColl = new Collection { Id = 1, BrandId = 1, Brand = brand, Name = "Speedmaster", Slug = "speedmaster", Styles = ["sport"] };
+        var diverColl = new Collection { Id = 2, BrandId = 1, Brand = brand, Name = "Seamaster", Slug = "seamaster", Styles = ["diver"] };
+        context.Brands.Add(brand);
+        context.Collections.AddRange(sportColl, diverColl);
+        context.Watches.AddRange(
+            StyledWatch(1, brand, sportColl, "speedmaster-1", 8_000m),
+            StyledWatch(2, brand, diverColl, "seamaster-1", 6_000m));
+        await context.SaveChangesAsync();
+
+        var result = await CreateDeterministic(context).TryDirectSqlSearchAsync(
+            "sporty watches under 20k", new QueryIntent { Style = "sport", MaxPrice = 20_000m }, "test");
+
+        Assert.NotNull(result);
+        // A diver is a sport watch; a diver-tagged collection must not vanish from a sport query.
+        Assert.Contains("seamaster-1", result!.Watches.Select(w => w.Slug));
+    }
+
+    [Fact]
+    public async Task TryDirectSqlSearch_BoundedRange_StillRanksByProximityToMidpoint()
+    {
+        using var context = CreateContext();
+        var brand = new Brand { Id = 1, Name = "Rolex", Slug = "rolex" };
+        var coll = new Collection { Id = 1, BrandId = 1, Brand = brand, Name = "Datejust", Slug = "datejust", Styles = ["dress"] };
+        context.Brands.Add(brand);
+        context.Collections.Add(coll);
+        context.Watches.AddRange(
+            StyledWatch(1, brand, coll, "low", 6_500m),
+            StyledWatch(2, brand, coll, "mid", 10_000m),
+            StyledWatch(3, brand, coll, "high", 13_500m));
+        await context.SaveChangesAsync();
+
+        // "around 10k" sets both bounds → a genuine target at the midpoint, unchanged by the cap fix.
+        var result = await CreateDeterministic(context).TryDirectSqlSearchAsync(
+            "dress watches around 10k", new QueryIntent { Style = "dress", MinPrice = 6_000m, MaxPrice = 14_000m }, "test");
+
+        Assert.NotNull(result);
+        Assert.Equal("mid", result!.Watches.First().Slug);
+    }
+}

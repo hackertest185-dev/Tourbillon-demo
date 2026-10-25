@@ -1,0 +1,61 @@
+# Demo backend only. The frontend deploys on Vercel; AI is intentionally disabled.
+# Configure Neon, Upstash, and a verified SMTP sender in Render's Blueprint setup.
+services:
+  - type: web
+    name: tourbillon-api-demo
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    healthCheckPath: /health/live
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: AiService__Enabled
+        value: 'false'
+      - key: ChatSettings__WarmStarters
+        value: 'false'
+      - key: AdminSettings__AllowFirstAdminSetup
+        value: 'false'
+      - key: AdminSecurity__RequireMfaForWrites
+        value: 'true'
+      - key: WatchFinderSettings__DisableLimitInDev
+        value: 'false'
+      - key: ChatSettings__DisableLimitInDev
+        value: 'false'
+      - key: AllowedHosts
+        fromService:
+          name: tourbillon-api-demo
+          type: web
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: AuthSecurity__OtpPepper
+        generateValue: true
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Redis__ConnectionString
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: AppSettings__FrontendBaseUrl
+        sync: false
+      - key: Smtp__Host
+        value: smtp-relay.brevo.com
+      - key: Smtp__Port
+        value: '2525'
+      - key: Smtp__EnableSsl
+        value: 'true'
+      - key: Smtp__Username
+        sync: false
+      - key: Smtp__Password
+        sync: false
+      - key: Smtp__FromAddress
+        sync: false
+      - key: Smtp__FromName
+        value: Tourbillon
+      - key: Authentication__Google__ClientId
+        sync: false
+      - key: Authentication__Google__ClientSecret
+        sync: false
