@@ -177,17 +177,23 @@ builder.Services.AddHangfire(config => config
             ExpiryCheckInterval = TimeSpan.FromHours(6),
             InvisibilityTimeout = TimeSpan.FromMinutes(30),
         }));
-builder.Services.AddHangfireServer(options =>
+// The public demo does not need a job worker. Keeping it optional prevents a
+// transient Redis wake-up from delaying the HTTP listener during deployment.
+var backgroundJobsEnabled = builder.Configuration.GetValue("BackgroundJobs:Enabled", true);
+if (backgroundJobsEnabled)
 {
-    options.WorkerCount = 2;
-    // Drives cron and delayed jobs; the daily and 6-hourly schedules tolerate this.
-    options.SchedulePollingInterval = TimeSpan.FromMinutes(5);
-    options.HeartbeatInterval = TimeSpan.FromMinutes(5);
-    // ServerTimeout must comfortably exceed the heartbeat interval so this single
-    // server is never reaped between heartbeats.
-    options.ServerCheckInterval = TimeSpan.FromMinutes(15);
-    options.ServerTimeout = TimeSpan.FromMinutes(30);
-});
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = 2;
+        // Drives cron and delayed jobs; the daily and 6-hourly schedules tolerate this.
+        options.SchedulePollingInterval = TimeSpan.FromMinutes(5);
+        options.HeartbeatInterval = TimeSpan.FromMinutes(5);
+        // ServerTimeout must comfortably exceed the heartbeat interval so this single
+        // server is never reaped between heartbeats.
+        options.ServerCheckInterval = TimeSpan.FromMinutes(15);
+        options.ServerTimeout = TimeSpan.FromMinutes(30);
+    });
+}
 
 // Register health checks — postgres + redis (Unhealthy on failure), ai-service (Degraded on failure)
 builder.Services.AddTransient<AiServiceHealthCheck>();
@@ -634,20 +640,23 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Recurring jobs — Hangfire stores the schedule in its own tables and re-registers
-// on every boot. Runs daily at 03:00 UTC.
-RecurringJob.AddOrUpdate<BrowsingEventRetentionJob>(
-    "browsing-event-retention",
-    job => job.RunAsync(),
-    "0 3 * * *");
+if (backgroundJobsEnabled)
+{
+    // Recurring jobs — Hangfire stores the schedule in its own tables and re-registers
+    // on every boot. Runs daily at 03:00 UTC.
+    RecurringJob.AddOrUpdate<BrowsingEventRetentionJob>(
+        "browsing-event-retention",
+        job => job.RunAsync(),
+        "0 3 * * *");
 
-// Starter answers are computed once and kept until the catalogue changes, so nothing runs on a
-// schedule: startup fills in any that are missing and a catalogue edit re-warms them. The six-hourly job
-// that used to regenerate all seven is removed from Hangfire's storage wherever it was registered.
-// Local dev leaves ChatSettings:WarmStarters off, so a restart there never pays for starters.
-RecurringJob.RemoveIfExists("chat-warm-starters");
-if (app.Configuration.GetValue<bool>("ChatSettings:WarmStarters", true))
-    BackgroundJob.Enqueue<ChatService>(service => service.WarmStartersAsync());
+    // Starter answers are computed once and kept until the catalogue changes, so nothing runs on a
+    // schedule: startup fills in any that are missing and a catalogue edit re-warms them. The six-hourly job
+    // that used to regenerate all seven is removed from Hangfire's storage wherever it was registered.
+    // Local dev leaves ChatSettings:WarmStarters off, so a restart there never pays for starters.
+    RecurringJob.RemoveIfExists("chat-warm-starters");
+    if (app.Configuration.GetValue<bool>("ChatSettings:WarmStarters", true))
+        BackgroundJob.Enqueue<ChatService>(service => service.WarmStartersAsync());
+}
 
     await appRunTask;
 }
