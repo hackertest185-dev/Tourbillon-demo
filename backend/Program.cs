@@ -179,7 +179,9 @@ builder.Services.AddHangfire(config => config
         }));
 // The public demo does not need a job worker. Keeping it optional prevents a
 // transient Redis wake-up from delaying the HTTP listener during deployment.
-var backgroundJobsEnabled = builder.Configuration.GetValue("BackgroundJobs:Enabled", true);
+var backgroundJobsEnabled = builder.Configuration.GetValue(
+    "BackgroundJobs:Enabled",
+    builder.Environment.IsDevelopment());
 if (backgroundJobsEnabled)
 {
     builder.Services.AddHangfireServer(options =>
