@@ -86,6 +86,8 @@ public sealed class LocalStorageService : IStorageService
     {
         if (string.IsNullOrWhiteSpace(publicId)) return null;
         if (Uri.TryCreate(publicId, UriKind.Absolute, out _)) return publicId;
+        // Demo catalogue images are served by the frontend from /public/catalogue.
+        if (publicId.StartsWith("/catalogue/", StringComparison.Ordinal)) return publicId;
         var url = $"{_publicBaseUrl}/images/{NormalizeKey(publicId)}";
         return version.HasValue ? $"{url}?v={version.Value}" : url;
     }
