@@ -553,7 +553,15 @@ app.MapGet("/health", () => Results.Redirect("/health/live"));
 
 // Bind the public port before first-run database work. A managed platform's TCP
 // probe must never wait for Neon to wake or for catalogue seeding to finish.
+// Hostless provides PORT at runtime; fall back to the documented container port
+// for local Docker and other platforms. Explicitly binding all interfaces avoids
+// a loopback-only listener that would fail the provider's TCP health check.
+var hostedPort = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Clear();
+app.Urls.Add($"http://0.0.0.0:{hostedPort}");
+Console.WriteLine($"Starting HTTP listener on 0.0.0.0:{hostedPort}");
 await app.StartAsync();
+Console.WriteLine($"HTTP listener is ready on 0.0.0.0:{hostedPort}");
 
 // Database setup is intentionally detached from readiness. The catalogue is
 // available as soon as its schema is ready, while the container stays healthy
