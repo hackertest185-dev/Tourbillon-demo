@@ -17,6 +17,9 @@ const HOP_BY_HOP = new Set([
   'proxy-authenticate',
   'upgrade',
   'content-length', // recalculated by fetch
+  // Vercel's fetch may transparently decompress the upstream response. Forwarding
+  // the original marker would make browsers try to decompress it a second time.
+  'content-encoding',
 ]);
 
 function buildUpstreamHeaders(req: NextRequest): HeadersInit {
