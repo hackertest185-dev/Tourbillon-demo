@@ -551,16 +551,19 @@ app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthC
 // Bare /health alias for Docker Desktop UI polling (redirects to /health/live)
 app.MapGet("/health", () => Results.Redirect("/health/live"));
 
-// Start Kestrel before the first-run database work. Managed platforms perform a
-// short health probe during a release; migrations and the initial catalogue seed
-// can legitimately take longer than that probe, especially when Neon is waking
-// from idle. Starting the host first keeps /health/live available while setup
-// completes below.
-var appRunTask = app.RunAsync();
+// Bind the public port before first-run database work. A managed platform's TCP
+// probe must never wait for Neon to wake or for catalogue seeding to finish.
+await app.StartAsync();
 
+// Database setup is intentionally detached from readiness. The catalogue is
+// available as soon as its schema is ready, while the container stays healthy
+// throughout a cold database wake-up.
+_ = Task.Run(async () =>
+{
+    try
+    {
 // Optional: Auto apply migrations & seed
 using (var scope = app.Services.CreateScope())
-{
     var context = scope.ServiceProvider.GetRequiredService<TourbillonContext>();
 
     // Create the database if it doesn't exist. Development only: managed providers
@@ -660,7 +663,14 @@ if (backgroundJobsEnabled)
         BackgroundJob.Enqueue<ChatService>(service => service.WarmStartersAsync());
 }
 
-    await appRunTask;
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Background application initialization failed");
+    }
+});
+
+await app.WaitForShutdownAsync();
 }
 catch (Exception ex) when (ex is not HostAbortedException)
 {
