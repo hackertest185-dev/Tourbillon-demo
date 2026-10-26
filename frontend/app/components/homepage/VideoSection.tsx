@@ -26,6 +26,8 @@ export default function VideoSection() {
   useGSAP(() => {
     if (!sectionRef.current || !scrollHintRef.current) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Pinning a playing video forces costly compositing during touch scrolling.
+    if (window.matchMedia('(max-width: 767px), (pointer: coarse)').matches) return;
 
     // Pin section briefly so the hero owns the first viewport.
     ScrollTrigger.create({
@@ -52,7 +54,9 @@ export default function VideoSection() {
     const video = videoRef.current;
     if (!video || hasVideoFailed) return;
 
+    let visible = false;
     const tryPlay = async () => {
+      if (!visible || document.hidden) return;
       try {
         await video.play();
       } catch {
@@ -63,8 +67,17 @@ export default function VideoSection() {
     video.muted = true;
     video.defaultMuted = true;
 
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) void tryPlay();
+      else video.pause();
+    }, { threshold: 0.01 });
+    observer.observe(video);
+    const handleVisibility = () => {
+      if (document.hidden) video.pause();
+      else void tryPlay();
+    };
     const handleLoadedData = () => { void tryPlay(); };
-    const handleCanPlay = () => { void tryPlay(); };
 
     const handleError = () => {
       setSourceIndex((current) => {
@@ -79,15 +92,15 @@ export default function VideoSection() {
     };
 
     video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
-
-    void tryPlay();
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
+      observer.disconnect();
+      video.pause();
       video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [sourceIndex, hasVideoFailed]);
 

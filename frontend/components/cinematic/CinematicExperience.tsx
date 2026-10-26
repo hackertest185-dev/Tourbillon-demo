@@ -152,7 +152,7 @@ export default function CinematicExperience() {
       trigger.current = tween.scrollTrigger ?? null;
       // Animate only the exit; the original hero component and resting appearance stay intact.
       const video = hero.current?.querySelector('video');
-      if (video) gsap.to(video, { opacity: .08, filter: 'blur(9px)', ease: 'power3.inOut', scrollTrigger: { trigger: hero.current, start: 'bottom bottom', end: 'bottom top', scrub: 1 } });
+      if (video) gsap.to(video, { opacity: .08, ...(mobile ? {} : { filter: 'blur(9px)' }), ease: 'power3.inOut', scrollTrigger: { trigger: hero.current, start: 'bottom bottom', end: 'bottom top', scrub: 1 } });
       update();
     }, root);
     const refresh = requestAnimationFrame(() => ScrollTrigger.refresh());
@@ -160,7 +160,7 @@ export default function CinematicExperience() {
       cancelAnimationFrame(refresh); context.revert(); trigger.current = null;
       panels.forEach(panel => { panel.style.removeProperty('opacity'); panel.style.removeProperty('visibility'); panel.querySelectorAll<HTMLElement>('[data-reveal]').forEach(line => line.style.removeProperty('transform')); });
     };
-  }, [enhanced]);
+  }, [enhanced, mobile]);
 
   const goTo = useCallback((index: number, focus = false) => {
     const heading = document.getElementById(`cinema-heading-${index}`);
@@ -193,8 +193,8 @@ export default function CinematicExperience() {
       <div ref={stage} className={styles.stage}>
         <div className={styles.artwork} aria-hidden="true">
           {(!enhanced || !sceneReady) && <StaticWatch />}
-          {enhanced && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
-            active={tabVisible && (inView || !sceneReady)} onFailure={onFailure} onReady={onReady} /></SceneBoundary>}
+          {enhanced && (!mobile || inView || sceneReady) && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
+            active={tabVisible && inView} onFailure={onFailure} onReady={onReady} /></SceneBoundary>}
         </div>
         <div className={styles.shade} aria-hidden="true" />
         <div className={styles.folio} aria-hidden="true"><span translate="no" className="notranslate">Tourbillon / رحلة جوه عالم الساعات</span><span>الوقت ليه فن وحكاية.</span></div>
