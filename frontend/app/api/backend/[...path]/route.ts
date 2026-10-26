@@ -53,7 +53,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     }
   });
 
-  return new NextResponse(upstreamRes.body, {
+  // Materialize the upstream stream before returning it. On Vercel, forwarding
+  // this particular cross-origin response stream directly can yield an empty
+  // body even when the .NET API returned JSON successfully.
+  const body = req.method === 'HEAD' ? null : await upstreamRes.arrayBuffer();
+
+  return new NextResponse(body, {
     status: upstreamRes.status,
     headers: resHeaders,
   });
