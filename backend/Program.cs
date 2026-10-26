@@ -564,6 +564,7 @@ _ = Task.Run(async () =>
     {
 // Optional: Auto apply migrations & seed
 using (var scope = app.Services.CreateScope())
+{
     var context = scope.ServiceProvider.GetRequiredService<TourbillonContext>();
 
     // Create the database if it doesn't exist. Development only: managed providers
