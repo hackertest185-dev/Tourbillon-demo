@@ -110,7 +110,7 @@ export default function VideoSection() {
     <section
       ref={sectionRef}
       className="relative w-full overflow-hidden"
-      style={{ height: 'calc(100svh + 3rem + 50px)', marginTop: 'calc(-3rem - 50px)' }}
+      style={{ height: 'calc(100vh + 3rem + 50px)', marginTop: 'calc(-3rem - 50px)' }}
     >
       <div className="absolute inset-0 bg-[#1e1512]" />
 
@@ -134,7 +134,7 @@ export default function VideoSection() {
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
           aria-label="Tourbillon hero video"
           className="absolute inset-0 h-full w-full object-cover"
         >

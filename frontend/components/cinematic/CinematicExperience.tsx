@@ -70,9 +70,7 @@ export default function CinematicExperience() {
       if (disposed || completed) return;
       completed = true;
       setLoadProgress(100);
-      // Phones keep the cinematic scroll choreography but use the lightweight
-      // vector watch instead of running video + a WebGL scene at the same time.
-      supported = !preference.matches && (small.matches || supportsWebGL());
+      supported = !preference.matches && supportsWebGL();
       setMode(supported ? 'cinematic' : 'static');
       timers.push(setTimeout(() => { if (!disposed) setBooting(false); }, preference.matches ? 0 : 600));
     };
@@ -118,20 +116,11 @@ export default function CinematicExperience() {
 
   useLayoutEffect(() => {
     if (!enhanced || !story.current || !stage.current) return;
-    const storyElement = story.current;
-    const stageElement = stage.current;
-    const panels = Array.from(stageElement.querySelectorAll<HTMLElement>('[data-chapter]'));
+    const panels = Array.from(stage.current.querySelectorAll<HTMLElement>('[data-chapter]'));
     const playhead = { value: 0 };
     const update = () => {
       const value = playhead.value;
       motion.current.progress = value;
-      stageElement.style.setProperty('--cinema-progress', String(value));
-      if (mobile) {
-        stageElement.style.setProperty('--cinema-watch-x', `${value * -1.2}vw`);
-        stageElement.style.setProperty('--cinema-watch-y', `${value * -.55}vh`);
-        stageElement.style.setProperty('--cinema-watch-rotate', `${value * 5}deg`);
-        stageElement.style.setProperty('--cinema-watch-scale', String(1 + value * .012));
-      }
       const next = Math.max(0, Math.min(6, Math.round(value)));
       if (lastChapter.current !== next) {
         const previous = panels[lastChapter.current];
@@ -150,20 +139,14 @@ export default function CinematicExperience() {
           line.style.transform = `translateY(${offset * 95}%)`;
         });
       });
-      stageElement.style.setProperty('--orbit-turn', `${(value - 4) * 22}deg`);
+      stage.current?.style.setProperty('--orbit-turn', `${(value - 4) * 22}deg`);
     };
     const context = gsap.context(() => {
       const tween = gsap.to(playhead, {
         value: 6, ease: 'none', onUpdate: update,
         scrollTrigger: {
-          trigger: storyElement,
-          start: 'top top',
-          end: () => `+=${window.innerHeight * (mobile ? 5.85 : CINEMA.scrollScreens)}`,
-          pin: stageElement,
-          pinType: mobile ? 'fixed' : 'transform',
-          scrub: mobile ? .58 : CINEMA.scrub,
-          anticipatePin: mobile ? .5 : 1,
-          invalidateOnRefresh: true,
+          trigger: story.current, start: 'top top', end: () => `+=${window.innerHeight * CINEMA.scrollScreens}`,
+          pin: stage.current, pinType: 'transform', scrub: CINEMA.scrub, anticipatePin: 1, invalidateOnRefresh: true,
         },
       });
       trigger.current = tween.scrollTrigger ?? null;
@@ -175,11 +158,6 @@ export default function CinematicExperience() {
     const refresh = requestAnimationFrame(() => ScrollTrigger.refresh());
     return () => {
       cancelAnimationFrame(refresh); context.revert(); trigger.current = null;
-      stageElement.style.removeProperty('--cinema-progress');
-      stageElement.style.removeProperty('--cinema-watch-x');
-      stageElement.style.removeProperty('--cinema-watch-y');
-      stageElement.style.removeProperty('--cinema-watch-rotate');
-      stageElement.style.removeProperty('--cinema-watch-scale');
       panels.forEach(panel => { panel.style.removeProperty('opacity'); panel.style.removeProperty('visibility'); panel.querySelectorAll<HTMLElement>('[data-reveal]').forEach(line => line.style.removeProperty('transform')); });
     };
   }, [enhanced, mobile]);
@@ -203,7 +181,7 @@ export default function CinematicExperience() {
   }, [mode, goTo]);
 
   const colors = { '--cinema-black': CINEMA.colors.black, '--cinema-charcoal': CINEMA.colors.charcoal, '--cinema-gold': CINEMA.colors.gold, '--cinema-cream': CINEMA.colors.cream } as CSSProperties;
-  return <div ref={root} className={styles.experience} style={colors} data-cinema-mode={enhanced ? 'cinematic' : 'static'} data-mobile={mobile ? 'true' : 'false'}>
+  return <div ref={root} className={styles.experience} style={colors} data-cinema-mode={enhanced ? 'cinematic' : 'static'}>
     <a href="#smart-search" className={styles.skipLink} onClick={event => { event.preventDefault(); goTo(5, true); }}>روح على طول لاختيار ساعتك</a>
     {booting && <div className={styles.loader} role="status" aria-label="بنجهزلك تجربة Tourbillon">
       <span translate="no" className={`${styles.loaderWordmark} notranslate`}>Tourbillon</span><span className={styles.loaderCaption}>فن الوقت</span>
@@ -214,8 +192,8 @@ export default function CinematicExperience() {
     <div ref={story} className={`${styles.story} ${enhanced ? styles.enhanced : styles.still}`}>
       <div ref={stage} className={styles.stage}>
         <div className={styles.artwork} aria-hidden="true">
-          {(mobile || !enhanced || !sceneReady) && <StaticWatch />}
-          {enhanced && !mobile && (inView || sceneReady) && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
+          {(!enhanced || !sceneReady) && <StaticWatch />}
+          {enhanced && (!mobile || inView || sceneReady) && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
             active={tabVisible && inView} onFailure={onFailure} onReady={onReady} /></SceneBoundary>}
         </div>
         <div className={styles.shade} aria-hidden="true" />

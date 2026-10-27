@@ -8,7 +8,7 @@ import styles from './cinematic.module.css';
 
 export function MaisonLinks({ orbit = false }: { orbit?: boolean }) {
   const { data: brands = [] } = useQuery({ queryKey: ['brands'], queryFn: fetchBrands });
-  return <div data-lenis-prevent="true" className={orbit ? styles.maisonOrbit : styles.maisonList} aria-label="اكتشف براندات الساعات">
+  return <div className={orbit ? styles.maisonOrbit : styles.maisonList} aria-label="اكتشف براندات الساعات">
     {brands.map(({ name, slug }, index) => {
       const angle = (index / brands.length) * Math.PI * 2;
       // Semantic HTML on a CSS 3D ellipse, rather than inaccessible canvas text.
@@ -21,19 +21,7 @@ export function MaisonLinks({ orbit = false }: { orbit?: boolean }) {
 }
 
 function WatchCollectionCta() {
-  return <Link
-    href="/watches"
-    prefetch={false}
-    scroll
-    className={styles.watchCta}
-    aria-label="شوف ساعاتنا"
-    onClick={(event) => {
-      // A hard navigation releases GSAP's pinned stage before the catalogue
-      // loads, so mobile browsers always arrive at the top of /watches.
-      event.preventDefault();
-      window.location.assign('/watches');
-    }}
-  >
+  return <Link href="/watches" prefetch={false} className={styles.watchCta} aria-label="شوف ساعاتنا">
     <span className={styles.watchCtaDial} aria-hidden="true">
       <i className={styles.watchCtaHandHour} />
       <i className={styles.watchCtaHandMinute} />

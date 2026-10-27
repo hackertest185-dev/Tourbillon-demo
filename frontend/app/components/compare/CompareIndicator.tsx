@@ -43,7 +43,7 @@ const CompareIndicator = () => {
   };
 
   return (
-    <div className="fixed bottom-20 right-3 z-50 origin-bottom-right scale-[.86] select-none sm:bottom-24 sm:right-8 sm:scale-100" ref={panelRef}>
+    <div className="fixed bottom-24 right-8 z-50 select-none" ref={panelRef}>
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -52,7 +52,7 @@ const CompareIndicator = () => {
             exit={{ opacity: 0, y: 20, scale: 0.92 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="absolute mb-1"
-            style={{ width: 'min(380px, calc(100vw - 2rem))', right: '0', bottom: 'calc(3rem + 4vh)' }}
+            style={{ width: '380px', right: '10%', bottom: 'calc(3rem + 4vh)' }}
           >
             {/* Panel */}
             <div className="rounded-2xl overflow-hidden border border-[#bfa68a]/20 shadow-2xl shadow-black/60"
