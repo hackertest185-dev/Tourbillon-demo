@@ -11,6 +11,13 @@ let csrfToken: string | null = null;
 let csrfRequest: Promise<string> | null = null;
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+// Authentication can rotate cookies. A synchronizer token from the old session
+// must never be reused after that boundary.
+export const resetCsrfToken = () => {
+  csrfToken = null;
+  csrfRequest = null;
+};
+
 const getCsrfToken = async (): Promise<string> => {
   if (csrfToken) return csrfToken;
   if (!csrfRequest) {
@@ -46,10 +53,24 @@ const fetchWithTimeout = async (
   try {
     const method = (rest.method ?? 'GET').toUpperCase();
     const headers = new Headers(rest.headers);
+    let addedCsrfHeader = false;
     if (unsafeMethods.has(method) && !headers.has('X-XSRF-TOKEN')) {
       headers.set('X-XSRF-TOKEN', await getCsrfToken());
+      addedCsrfHeader = true;
     }
-    const response = await fetch(input, { ...rest, headers, signal: controller.signal });
+    const send = () => fetch(input, { ...rest, headers, signal: controller.signal });
+    let response = await send();
+
+    // A cached token can be stale after a session rotation. Refresh it and
+    // replay once so users never have to refresh the whole page themselves.
+    if (addedCsrfHeader && response.status === 400) {
+      const payload = await response.clone().json().catch(() => null) as { message?: string } | null;
+      if (payload?.message?.toLowerCase().includes('csrf')) {
+        resetCsrfToken();
+        headers.set('X-XSRF-TOKEN', await getCsrfToken());
+        response = await send();
+      }
+    }
     // Intercept unexpected 401s (token expired mid-session) — skip public/auth endpoints
     if (response.status === 401 && _onUnauthorized) {
       const url = typeof input === 'string' ? input : input.toString();

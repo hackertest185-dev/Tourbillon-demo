@@ -23,7 +23,7 @@ const panelMotion = {
 };
 
 function validateNewPassword(pw: string, confirm: string, current?: string): string | null {
-  if (pw.length < 8) return "Password must be at least 8 characters";
+  if (pw.length < 12) return "Password must be at least 12 characters";
   if (!/[A-Z]/.test(pw)) return "Must include an uppercase letter";
   if (!/\d/.test(pw)) return "Must include a number";
   if (current && pw === current) return "Choose a password different from your current password";

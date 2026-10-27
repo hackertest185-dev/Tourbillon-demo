@@ -6,7 +6,7 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { getCurrentUser, logoutUser, flushBehaviorEvents, mergeBehaviorEvents, setUnauthorizedHandler, User } from '@/lib/api';
+import { getCurrentUser, logoutUser, flushBehaviorEvents, mergeBehaviorEvents, resetCsrfToken, setUnauthorizedHandler, User } from '@/lib/api';
 import { useFavourites } from '@/stores/favouritesStore';
 import { CACHE_PERSIST_KEY } from '@/providers/QueryProvider';
 
@@ -133,6 +133,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Register 401 interceptor — fires when any authenticated API call returns 401
         // (e.g. cookie expired mid-session). Clears local auth state without a full page reload.
         setUnauthorizedHandler(() => {
+            resetCsrfToken();
             clearPersistedQueryCache();
             lastUserIdRef.current = null;
             setUser(null);
@@ -143,12 +144,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }, []);
 
     const login = async (mode: AuthLoginMode = 'refresh') => {
+        resetCsrfToken();
         await fetchUser(mode);
     };
 
     const logout = async () => {
         try {
             await logoutUser();
+            resetCsrfToken();
             await resetAnonymousBehavior();
             clearPersistedQueryCache();
             lastUserIdRef.current = null;

@@ -103,9 +103,22 @@ const UserMenu = () => {
     const [isOpen, setIsOpen] = useState(false); // Local state for dropdown visibility
     const timeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for timeout management
     const isHoveringRef = useRef(false); // Ref to track hover state reliably
-  
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const closeOnOutsidePress = (event: PointerEvent) => {
+        if (!menuRef.current?.contains(event.target as Node)) setIsOpen(false);
+      };
+      document.addEventListener('pointerdown', closeOnOutsidePress);
+      return () => document.removeEventListener('pointerdown', closeOnOutsidePress);
+    }, []);
+
+    const supportsHover = () =>
+      typeof window !== 'undefined' && window.matchMedia('(hover: hover)').matches;
+
     // Handle mouse enter with delay to prevent flickering
     const handleMouseEnter = () => {
+      if (!supportsHover()) return;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -116,6 +129,7 @@ const UserMenu = () => {
   
     // Handle mouse leave with delay to allow moving to dropdown
     const handleMouseLeave = () => {
+      if (!supportsHover()) return;
       isHoveringRef.current = false;
       timeoutRef.current = setTimeout(() => {
         if (!isHoveringRef.current) {
@@ -144,35 +158,42 @@ const UserMenu = () => {
 
     return (
       <div
+        ref={menuRef}
         className="relative"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <button className="hover:opacity-70 transition-all duration-300 cursor-pointer bg-transparent border-none p-0">
+        <button
+          type="button"
+          aria-label="Account menu"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen((value) => !value)}
+          className="hover:opacity-70 transition-all duration-300 cursor-pointer bg-transparent border-none p-0"
+        >
           <UserIcon />
         </button>
 
         {isOpen && (
           <div
-            className="absolute right-0 mt-2 w-48 bg-white/5 border border-[#bfa68a] rounded-xl shadow-lg py-2 z-50 backdrop-blur-md"
+            className="fixed left-4 right-4 top-20 z-[70] w-auto rounded-xl border border-[#bfa68a] bg-[#211714]/95 py-2 shadow-2xl backdrop-blur-md md:absolute md:left-auto md:right-0 md:top-auto md:z-50 md:mt-2 md:w-48"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             <div className="px-3 py-2 text-sm text-[#bfa68a] border-b border-[#bfa68a]/30 font-medium text-center">
               Welcome, {user?.firstName}
             </div>
-            <Link href="/account/edit-details" className="block px-3 py-2 mt-1 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
+            <Link href="/account/edit-details" onClick={() => setIsOpen(false)} className="block px-3 py-2 mt-1 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
               Edit Details
             </Link>
-            <Link href="/account/inquiries" className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
+            <Link href="/account/inquiries" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
               My Inquiries
             </Link>
             {isAdmin && (
-              <Link href="/scrape" className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
+              <Link href="/scrape" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
                 Scrape
               </Link>
             )}
-            <button onClick={logout} className="block w-full px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
+            <button onClick={() => { setIsOpen(false); void logout(); }} className="block w-full px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
               Logout
             </button>
           </div>
