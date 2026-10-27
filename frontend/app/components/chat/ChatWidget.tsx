@@ -23,7 +23,7 @@ export default function ChatWidget() {
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.97 }}
           onClick={openChat}
-          className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-[#bfa68a]/50 shadow-xl shadow-black/40 cursor-pointer"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-[#bfa68a]/50 shadow-xl shadow-black/40 cursor-pointer sm:h-auto sm:w-auto sm:gap-3 sm:rounded-2xl sm:px-5 sm:py-3.5"
           style={{
             background: 'rgba(191,166,138,0.18)',
             backdropFilter: 'blur(20px)',
@@ -39,7 +39,7 @@ export default function ChatWidget() {
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
 
-          <span className="text-[#ecddc8] text-sm font-medium tracking-wide font-inter">
+          <span className="hidden text-[#ecddc8] text-sm font-medium tracking-wide font-inter sm:inline">
             Concierge
           </span>
         </motion.button>

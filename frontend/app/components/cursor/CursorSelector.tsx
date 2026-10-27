@@ -117,7 +117,7 @@ const CursorSelector = () => {
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="fixed bottom-8 left-4 z-50 select-none">
+    <div ref={containerRef} className="fixed bottom-8 left-4 z-50 hidden select-none md:block">
       <AnimatePresence>
         {isOpen && (
           <motion.div
