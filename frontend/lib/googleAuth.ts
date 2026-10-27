@@ -1,15 +1,12 @@
 // A top-level redirect works in both full browsers and embedded tabs.
 import { getSafeReturnTo } from './returnNavigation';
 
-// Google OAuth should bypass the Next.js backend proxy so ASP.NET owns the full
-// external-auth handshake and callback path end-to-end.
+// Google OAuth stays on the public frontend origin so the proxy can preserve
+// the correlation and Identity cookies through the full external-auth flow.
 export function getGoogleAuthUrl(): string {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL;
-  const directApiBase = process.env.NEXT_PUBLIC_OAUTH_API_URL
-    || (apiBase?.startsWith('/api/backend') ? 'http://localhost:5248/api' : apiBase)
-    || 'http://localhost:5248/api';
-
-  return `${directApiBase.replace(/\/$/, '')}/authentication/google`;
+  // Keep the OAuth handshake on the same public origin as the frontend. This
+  // preserves the correlation and Identity cookies through the server proxy.
+  return '/api/backend/authentication/google';
 }
 
 export function startGoogleAuth(returnTo?: string | null): void {

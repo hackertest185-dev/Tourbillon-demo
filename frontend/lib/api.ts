@@ -585,10 +585,11 @@ interface ResetPasswordData {
 
 // Password Reset API Functions
 export const forgotPassword = async (data: ForgotPasswordData) => {
-    const response = await fetch(`${API_BASE_URL}/authentication/forgot-password`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
     });
     
     // Check if response has content before parsing JSON
@@ -609,10 +610,11 @@ export const forgotPassword = async (data: ForgotPasswordData) => {
 };
 
 export const verifyCode = async (data: VerifyCodeData) => {
-    const response = await fetch(`${API_BASE_URL}/authentication/verify-code`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/verify-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
     });
     
     const text = await response.text();
@@ -631,10 +633,11 @@ export const verifyCode = async (data: VerifyCodeData) => {
 };
 
 export const resetPassword = async (data: ResetPasswordData) => {
-    const response = await fetch(`${API_BASE_URL}/authentication/reset-password`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
+        credentials: 'include',
     });
     if (!response.ok) {
         const errorData = await response.json();

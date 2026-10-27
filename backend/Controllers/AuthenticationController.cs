@@ -361,6 +361,16 @@ public class AuthenticationController : ControllerBase
         if (scheme == null)
             return StatusCode(503, new { message = "Google login is not configured on this server." });
 
+        // The frontend proxy owns the public OAuth callback. Align the request
+        // URL with the configured public frontend so Google never receives a
+        // localhost or plain-http redirect from a TLS-terminating host.
+        var publicFrontend = GetFrontendBaseUrl();
+        if (Uri.TryCreate(publicFrontend, UriKind.Absolute, out var frontendUri))
+        {
+            Request.Scheme = frontendUri.Scheme;
+            Request.Host = new HostString(frontendUri.Authority);
+        }
+
         var redirectUrl = Url.Action(nameof(GoogleCallback), "Authentication");
         var properties  = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
         if (popup)
@@ -376,7 +386,7 @@ public class AuthenticationController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> GoogleCallback()
     {
-        var frontendBase = _configuration["AppSettings:FrontendBaseUrl"] ?? "http://localhost:3000";
+        var frontendBase = GetFrontendBaseUrl();
 
         var info = await _signInManager.GetExternalLoginInfoAsync();
         if (info == null)
@@ -438,6 +448,14 @@ public class AuthenticationController : ControllerBase
                       && popupVal == "1";
         var callbackPath = isPopup ? "/auth/popup-close" : "/auth/callback";
         return Redirect($"{frontendBase}{callbackPath}?newAccount={(isNewAccount ? "1" : "0")}");
+    }
+
+    private string GetFrontendBaseUrl()
+    {
+        return (_configuration["AppSettings:FrontendBaseUrl"]
+                ?? _configuration["FRONTEND_BASE_URL"]
+                ?? "https://velora-five-umber.vercel.app")
+            .TrimEnd('/');
     }
 
     // POST: api/authentication/magic-login/request
