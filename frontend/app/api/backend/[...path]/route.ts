@@ -56,7 +56,15 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // Materialize the upstream stream before returning it. On Vercel, forwarding
   // this particular cross-origin response stream directly can yield an empty
   // body even when the .NET API returned JSON successfully.
-  const body = req.method === 'HEAD' ? null : await upstreamRes.arrayBuffer();
+  // 204/205/304 responses are not allowed to carry a body. Constructing a
+  // NextResponse with an empty ArrayBuffer for one of those statuses throws in
+  // Vercel and turned successful backend deletes (such as clearing chat) into
+  // a 500 at the proxy boundary.
+  const hasNoBody = req.method === 'HEAD'
+    || upstreamRes.status === 204
+    || upstreamRes.status === 205
+    || upstreamRes.status === 304;
+  const body = hasNoBody ? null : await upstreamRes.arrayBuffer();
 
   return new NextResponse(body, {
     status: upstreamRes.status,
