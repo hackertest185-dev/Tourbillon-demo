@@ -265,7 +265,7 @@ export default function ForgotPasswordPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) { setError('Passwords do not match.'); return; }
-    if (newPassword.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (newPassword.length < 12) { setError('Password must be at least 12 characters.'); return; }
     setError(''); setLoading(true);
     try {
       await resetPassword({ email, verificationGrant, newPassword });
@@ -281,7 +281,7 @@ export default function ForgotPasswordPage() {
   const stepLabels: Record<Step, { eyebrow: string; heading: string; sub: string }> = {
     email:  { eyebrow: 'Recovery', heading: 'Reset Password',     sub: 'Enter your email and we\'ll send a verification code.' },
     verify: { eyebrow: 'Verification', heading: 'Enter Code',     sub: `Code sent to ${email}` },
-    reset:  { eyebrow: 'New Password', heading: 'Set New Password', sub: 'Choose a password at least 8 characters long.' },
+    reset:  { eyebrow: 'New Password', heading: 'Set New Password', sub: 'Choose a password at least 12 characters long.' },
   };
 
   const passwordsMatch = confirmPassword.length > 0 && newPassword === confirmPassword;

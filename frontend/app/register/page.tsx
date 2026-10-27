@@ -148,6 +148,8 @@ export default function RegisterPage() {
       return setError('Please enter your phone number'), false;
     if (!formData.password)
       return setError('Please enter a password'), false;
+    if (formData.password.length < 12)
+      return setError('Password must be at least 12 characters'), false;
     if (formData.password !== formData.confirmPassword)
       return setError('Passwords do not match'), false;
     if (!formData.agreeToTerms)

@@ -40,8 +40,8 @@ function ResetPasswordForm() {
             return;
         }
 
-        if (newPassword.length < 8) {
-            setError("Password must be at least 8 characters long.");
+        if (newPassword.length < 12) {
+            setError("Password must be at least 12 characters long.");
             return;
         }
 
@@ -79,7 +79,7 @@ function ResetPasswordForm() {
                                 className="w-full h-10 px-4 rounded-md border border-[#bfa68a] text-[#bfa68a] bg-transparent placeholder-[#bfa68a]/70 focus:outline-none"
                                 required
                                 disabled={loading || !email || !token}
-                                minLength={8}
+                                minLength={12}
                             />
                         </div>
                         <div>
@@ -91,7 +91,7 @@ function ResetPasswordForm() {
                                 className="w-full h-10 px-4 rounded-md border border-[#bfa68a] text-[#bfa68a] bg-transparent placeholder-[#bfa68a]/70 focus:outline-none"
                                 required
                                 disabled={loading || !email || !token}
-                                minLength={8}
+                                minLength={12}
                             />
                         </div>
                         {error && <p className="text-sm text-red-500">{error}</p>}
