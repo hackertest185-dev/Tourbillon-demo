@@ -17,8 +17,11 @@ export async function GET(req: NextRequest) {
   const response = await fetch(upstream, { headers, redirect: 'manual' });
   const responseHeaders = new Headers();
   response.headers.forEach((value, key) => {
+    if (key.toLowerCase() === 'set-cookie') return;
     if (!HOP_BY_HOP.has(key.toLowerCase())) responseHeaders.append(key, value);
   });
+  const setCookies = response.headers.getSetCookie?.() ?? [];
+  for (const cookie of setCookies) responseHeaders.append('set-cookie', cookie);
 
   return new NextResponse(await response.arrayBuffer(), {
     status: response.status,

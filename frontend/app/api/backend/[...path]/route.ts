@@ -41,6 +41,10 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     method: req.method,
     headers: buildUpstreamHeaders(req),
     body: hasBody ? req.body : undefined,
+    // OAuth endpoints must return their 302 to the browser. Following the
+    // redirect here makes Vercel fetch Google's HTML and serve it on our own
+    // origin, which leaves Google's sign-in page stuck on "Loading".
+    redirect: 'manual',
     // Required for streaming request bodies in Node.js fetch
     ...(hasBody ? { duplex: 'half' } : {}),
   } as RequestInit);
@@ -48,10 +52,14 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   // Forward the response — preserve status, headers (including Set-Cookie for auth), and body
   const resHeaders = new Headers();
   upstreamRes.headers.forEach((value, key) => {
+    if (key.toLowerCase() === 'set-cookie') return;
     if (!HOP_BY_HOP.has(key.toLowerCase())) {
       resHeaders.append(key, value);
     }
   });
+  // Preserve each Identity/Google correlation cookie independently.
+  const setCookies = upstreamRes.headers.getSetCookie?.() ?? [];
+  for (const cookie of setCookies) resHeaders.append('set-cookie', cookie);
 
   // Materialize the upstream stream before returning it. On Vercel, forwarding
   // this particular cross-origin response stream directly can yield an empty

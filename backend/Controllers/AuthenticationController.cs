@@ -371,7 +371,10 @@ public class AuthenticationController : ControllerBase
             Request.Host = new HostString(frontendUri.Authority);
         }
 
-        var redirectUrl = Url.Action(nameof(GoogleCallback), "Authentication");
+        // Google returns through the frontend's same-origin backend proxy.
+        // Generating this from the API request would omit `/api/backend` and
+        // send the browser to a frontend route that does not exist.
+        var redirectUrl = $"{publicFrontend.TrimEnd('/')}/api/backend/authentication/google-callback";
         var properties  = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl);
         if (popup)
             properties.Items["popup"] = "1";
