@@ -1,5 +1,6 @@
 // Reset password page that allows users to set a new password using the reset token from email
 "use client";
+import { egyptianError } from '@/lib/egyptianError';
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -26,7 +27,7 @@ function ResetPasswordForm() {
         if (tokenParam) setToken(tokenParam);
 
         if (!emailParam || !tokenParam) {
-            setError("Invalid reset link. Please request a new password reset.");
+            setError("لينك تغيير الباسورد مش مظبوط. اطلب لينك جديد.");
         }
     }, [searchParams]);
 
@@ -36,12 +37,12 @@ function ResetPasswordForm() {
         setSuccess("");
 
         if (newPassword !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError("الباسوردين مش زي بعض.");
             return;
         }
 
         if (newPassword.length < 12) {
-            setError("Password must be at least 12 characters long.");
+            setError("الباسورد لازم يكون 12 حرف على الأقل.");
             return;
         }
 
@@ -49,12 +50,12 @@ function ResetPasswordForm() {
 
         try {
             await resetPassword({ email, verificationGrant: token, newPassword });
-            setSuccess("Password has been reset successfully. Redirecting to login...");
+            setSuccess("الباسورد اتغيّر بنجاح. بنحوّلك لتسجيل الدخول...");
             setTimeout(() => {
                 router.push("/login");
             }, 2000);
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to reset password. The link may have expired.";
+            const errorMessage = egyptianError(err, "معرفناش نغيّر الباسورد. ممكن صلاحية اللينك تكون خلصت.");
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -65,9 +66,9 @@ function ResetPasswordForm() {
         <StaggeredFade>
             <div className="flex justify-center items-center h-screen overflow-hidden" style={{ height: '100vh', maxHeight: '100vh' }}>
                 <div className="w-full max-w-md p-8 space-y-6 bg-white/5 border border-[#bfa68a] rounded-2xl shadow-lg backdrop-blur-lg transform -translate-y-[25%]">
-                    <h1 className="text-4xl font-playfair text-center text-[#F9F6F2]">Set New Password</h1>
+                    <h1 className="text-4xl font-playfair text-center text-[#F9F6F2]">حدد باسورد جديد</h1>
                     <p className="text-[#bfa68a] mt-2 text-sm text-center">
-                        Enter your new password below.
+                        اكتب الباسورد الجديد تحت.
                     </p>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
@@ -75,7 +76,7 @@ function ResetPasswordForm() {
                                 type="password"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
-                                placeholder="New Password"
+                                placeholder="باسورد جديد"
                                 className="w-full h-10 px-4 rounded-md border border-[#bfa68a] text-[#bfa68a] bg-transparent placeholder-[#bfa68a]/70 focus:outline-none"
                                 required
                                 disabled={loading || !email || !token}
@@ -87,7 +88,7 @@ function ResetPasswordForm() {
                                 type="password"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                placeholder="Confirm New Password"
+                                placeholder="اكتب الباسورد الجديد تاني"
                                 className="w-full h-10 px-4 rounded-md border border-[#bfa68a] text-[#bfa68a] bg-transparent placeholder-[#bfa68a]/70 focus:outline-none"
                                 required
                                 disabled={loading || !email || !token}
@@ -101,12 +102,12 @@ function ResetPasswordForm() {
                             disabled={loading || !email || !token}
                             className="w-full py-2 font-semibold text-[#1e1512] bg-gradient-to-r from-[#bfa68a] to-[#f0e6d2] rounded-xl hover:opacity-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loading ? "Resetting..." : "Reset Password"}
+                            {loading ? "بنغيّر الباسورد..." : "غيّر الباسورد"}
                         </button>
                     </form>
                     <p className="text-sm text-center text-[#bfa68a]">
                         <Link href="/login" className="underline hover:text-[#F9F6F2] cursor-pointer">
-                            Back to Sign In
+                            ارجع لتسجيل الدخول
                         </Link>
                     </p>
                 </div>
@@ -117,7 +118,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-screen">Loading...</div>}>
+        <Suspense fallback={<div className="flex justify-center items-center h-screen">بنحمّل...</div>}>
             <ResetPasswordForm />
         </Suspense>
     );

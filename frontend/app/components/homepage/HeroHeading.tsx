@@ -7,8 +7,8 @@ import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 
 const LINES = [
-  ['Thirteen', 'Maisons.'],
-  ['Endless', 'Discovery.'],
+  ["براندات", "مميزة."],
+  ["كل ساعة", "وراها حكاية."],
 ];
 
 export default function HeroHeading() {

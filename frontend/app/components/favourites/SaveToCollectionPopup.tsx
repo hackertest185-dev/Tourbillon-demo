@@ -3,6 +3,7 @@
 // Positioned by measuring actual DOM height after mount to avoid incorrect viewport-flip.
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
@@ -144,7 +145,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
       setNewName('');
       setShowNewInput(false);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Could not create collection');
+      setCreateError(egyptianError(err, "معرفناش نعمل المجموعة. جرّب تاني."));
     } finally {
       setCreatingCollection(false);
     }
@@ -194,7 +195,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Find a collection"
+              placeholder="دوّر على مجموعة"
               className="w-full bg-white/6 rounded-lg pl-8 pr-3 py-2 text-xs text-white/80 placeholder-white/25 font-inter outline-none border border-white/8 focus:border-[#bfa68a]/50 transition-colors"
             />
           </div>
@@ -214,7 +215,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
                 if (e.key === 'Enter') handleCreateCollection();
                 if (e.key === 'Escape') { setShowNewInput(false); setNewName(''); setCreateError(''); }
               }}
-              placeholder="Collection name"
+              placeholder="اسم المجموعة"
               maxLength={100}
               className="flex-1 bg-white/6 border border-white/12 rounded-lg px-3 py-1.5 text-sm text-white/90 placeholder-white/25 font-inter outline-none focus:border-[#bfa68a]/50 transition-colors"
             />
@@ -223,7 +224,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
               disabled={!newName.trim() || creatingCollection}
               className="px-3 py-1.5 rounded-lg text-xs font-inter font-semibold bg-[#bfa68a]/20 text-[#bfa68a] hover:bg-[#bfa68a]/30 transition-colors disabled:opacity-40 shrink-0"
             >
-              {creatingCollection ? '...' : 'Save'}
+              {creatingCollection ? '...' : "احفظ"}
             </button>
           </div>
           {createError && (
@@ -240,7 +241,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
               <path d="M5.5 1v9M1 5.5h9" />
             </svg>
           </div>
-          <span className="text-sm font-inter text-white/55 group-hover:text-white/75 transition-colors">New collection</span>
+          <span className="text-sm font-inter text-white/55 group-hover:text-white/75 transition-colors">مجموعة جديدة</span>
         </button>
       )}
 
@@ -252,7 +253,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
         {/* "Saved in" section header */}
         {hasSaved && !search && (
           <div className="px-4 pt-2.5 pb-1">
-            <span className="text-[10px] font-inter font-semibold text-white/25 uppercase tracking-[0.1em]">Saved in</span>
+            <span className="text-[10px] font-inter font-semibold text-white/25 uppercase tracking-[0.1em]">محفوظة في</span>
           </div>
         )}
 
@@ -280,8 +281,8 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
             <div className="flex-1 min-w-0">
               <span className={`block text-sm font-inter transition-colors ${
                 effectiveFavActive ? 'text-white/90' : 'text-white/60 group-hover:text-white/80'
-              }`}>Favourites</span>
-              <span className="text-[11px] text-white/25 font-inter">{favouriteWatchIds.size} watches</span>
+              }`}>المفضلة</span>
+              <span className="text-[11px] text-white/25 font-inter">{favouriteWatchIds.size} ساعة</span>
             </div>
             {effectiveFavActive && <CheckMark />}
           </button>
@@ -318,7 +319,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
 
         {/* Empty search state */}
         {search && unsavedCollections.length === 0 && !showFavInSearch && (
-          <p className="px-4 py-5 text-center text-xs text-white/30 font-inter">No collections found</p>
+          <p className="px-4 py-5 text-center text-xs text-white/30 font-inter">مفيش مجموعات بالاسم ده</p>
         )}
       </div>
 
@@ -329,7 +330,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
           onClick={onClose}
           className="px-3.5 py-1.5 rounded-full text-xs font-inter font-semibold text-white/50 hover:text-white/75 hover:bg-white/6 transition-colors"
         >
-          Cancel
+          إلغاء
         </button>
         {hasChanges && (
           <button
@@ -337,7 +338,7 @@ const SaveToCollectionPopup = ({ watchId, anchorRect, autoSave, onClose }: SaveT
             disabled={updatingRows.size > 0}
             className="px-3.5 py-1.5 rounded-full text-xs font-inter font-semibold bg-[#bfa68a]/20 text-[#bfa68a] hover:bg-[#bfa68a]/30 transition-colors disabled:opacity-40"
           >
-            {updatingRows.size > 0 ? 'Saving...' : 'Done'}
+            {updatingRows.size > 0 ? "بنحفظ..." : "تم"}
           </button>
         )}
       </div>
@@ -380,7 +381,7 @@ const CollectionRow = ({ name, count, inCol, loading, onClick }: CollectionRowPr
       <span className={`block text-sm font-inter truncate transition-colors ${
         inCol ? 'text-white/90' : 'text-white/60 group-hover:text-white/80'
       }`}>{name}</span>
-      <span className="text-[11px] text-white/25 font-inter">{count} watches</span>
+      <span className="text-[11px] text-white/25 font-inter">{count} ساعة</span>
     </div>
     {inCol && <CheckMark />}
   </button>

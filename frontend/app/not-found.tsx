@@ -6,10 +6,10 @@ export default function NotFound() {
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 text-center">
       <p className="text-[9px] uppercase tracking-[0.5em] text-[#bfa68a] mb-4">404</p>
       <h1 className="font-playfair text-[2.5rem] sm:text-[3.5rem] font-light text-[#f0e6d2] leading-tight mb-4">
-        Page not found
+        الصفحة دي مش موجودة
       </h1>
       <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-xs">
-        The page you are looking for does not exist or has been moved.
+        اللينك ده مش موجود أو الصفحة اتنقلت.
       </p>
       <Link
         href="/watches"
@@ -19,7 +19,7 @@ export default function NotFound() {
           backgroundSize: '200% 100%',
         }}
       >
-        Browse Watches
+        اتفرج على الساعات
       </Link>
     </div>
   );

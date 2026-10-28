@@ -1,6 +1,8 @@
 // Secure account deletion form.
 "use client";
 
+import { egyptianError } from '@/lib/egyptianError';
+
 import { useState } from "react";
 import { deleteAccount } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,17 +66,17 @@ export default function DeleteAccountForm() {
 
   const validateDeleteForm = () => {
     if (!deleteData.currentPassword) {
-      setDeleteError("Please enter your current password");
+      setDeleteError("اكتب الباسورد الحالي");
       return false;
     }
 
     if (!deleteData.confirmPassword) {
-      setDeleteError("Please confirm your current password");
+      setDeleteError("اكتب الباسورد الحالي تاني للتأكيد");
       return false;
     }
 
     if (deleteData.currentPassword !== deleteData.confirmPassword) {
-      setDeleteError("Password confirmation does not match");
+      setDeleteError("الباسوردين مش زي بعض");
       return false;
     }
 
@@ -99,37 +101,37 @@ export default function DeleteAccountForm() {
       });
 
       if (result.error) {
-        setDeleteError(result.error);
+        setDeleteError(egyptianError(result.error, 'معرفناش نمسح الحساب. اتأكد من الباسورد الحالي وجرّب تاني.'));
         return;
       }
 
       await logout();
       window.location.href = "/tourbillon";
     } catch {
-      setDeleteError("An unexpected error occurred during account deletion.");
+      setDeleteError("حصلت مشكلة وإحنا بنمسح الحساب. جرّب تاني.");
     }
   };
 
   return (
     <section className="border-t border-red-400/20 pt-9">
       <div className="mb-6">
-        <p className="text-[9px] uppercase tracking-[0.36em] text-red-300/70">Danger zone</p>
-        <h2 className="mt-2 font-playfair text-2xl font-light text-red-200">Delete Account</h2>
+        <p className="text-[9px] uppercase tracking-[0.36em] text-red-300/70">إعدادات لازم تاخد بالك منها</p>
+        <h2 className="mt-2 font-playfair text-2xl font-light text-red-200">امسح حسابي</h2>
         <p className="mt-2 max-w-xl text-xs leading-relaxed text-red-100/35">
-          This permanently removes your profile, saved account details, and access to private account features.
+          لو مسحت حسابك، بياناتك الشخصية وكل حاجة محفوظة عليه هتتمسح نهائي، ومش هتقدر تستخدم المميزات الخاصة بالحساب ده.
         </p>
       </div>
 
       <form onSubmit={handleDeleteAccount} className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           <PasswordField
-            label="Current password"
+            label="الباسورد الحالي"
             name="currentPassword"
             value={deleteData.currentPassword}
             onChange={handleDeleteChange}
           />
           <PasswordField
-            label="Confirm current password"
+            label="أكد الباسورد الحالي"
             name="confirmPassword"
             value={deleteData.confirmPassword}
             onChange={handleDeleteChange}
@@ -141,11 +143,11 @@ export default function DeleteAccountForm() {
             type="submit"
             className="w-full border border-red-300/25 py-3 text-[9.5px] font-medium uppercase tracking-[0.28em] text-red-100/75 transition hover:border-red-300/45 hover:text-red-100 sm:w-auto sm:px-8"
           >
-            {showDeleteConfirmation ? "Confirm deletion" : "Delete account"}
+            {showDeleteConfirmation ? "أكد مسح الحساب" : "امسح الحساب"}
           </button>
           {deleteError && <p className="text-sm text-[#e07575]">{deleteError}</p>}
           {showDeleteConfirmation && !deleteError && (
-            <p className="text-sm text-red-100/45">Press confirm deletion to finish.</p>
+            <p className="text-sm text-red-100/45">دوس على «أكد مسح الحساب» عشان تكمّل.</p>
           )}
         </div>
       </form>

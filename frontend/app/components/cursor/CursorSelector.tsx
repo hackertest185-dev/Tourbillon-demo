@@ -135,7 +135,7 @@ const CursorSelector = () => {
               {/* Header */}
               <div className="px-4 py-3 border-b border-white/5">
                 <span className="text-[11px] font-inter font-semibold text-[#bfa68a] uppercase tracking-[0.15em]">
-                  Cursor Style
+                  شكل المؤشر
                 </span>
               </div>
 

@@ -114,7 +114,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                 window.open(result.cloudinaryUrl, '_blank');
             }
         } catch (err: unknown) {
-            setUploadError(err instanceof Error ? err.message : 'Staging on Cloudinary failed');
+            setUploadError(err instanceof Error ? err.message : "الرفع المؤقت على Cloudinary منفعش");
         } finally {
             setStagingOnCloudinary(false);
         }
@@ -133,7 +133,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                 await invalidatePublicWatchQueries();
             }
         } catch (err: unknown) {
-            setUploadError(err instanceof Error ? err.message : 'Finalize from Cloudinary failed');
+            setUploadError(err instanceof Error ? err.message : "حفظ الصورة من Cloudinary منفعش");
         } finally {
             setFinalizingFromCloudinary(false);
         }
@@ -169,7 +169,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             }
         } catch (err: unknown) {
             URL.revokeObjectURL(blobUrl);
-            setUploadError(err instanceof Error ? err.message : 'Image upload failed');
+            setUploadError(err instanceof Error ? err.message : "رفع الصورة منفعش");
         } finally {
             setUploadingImage(false);
         }
@@ -217,7 +217,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             }
         } catch (err: unknown) {
             URL.revokeObjectURL(blobUrl);
-            setUploadError(err instanceof Error ? err.message : 'Image upload failed');
+            setUploadError(err instanceof Error ? err.message : "رفع الصورة منفعش");
         } finally {
             setUploadingImage(false);
         }
@@ -246,7 +246,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             await invalidatePublicWatchQueries();
             onSave();
         } catch (err: unknown) {
-            setSaveError(err instanceof Error ? err.message : 'Failed to save watch');
+            setSaveError(err instanceof Error ? err.message : "معرفناش نحفظ الساعة");
             setSaving(false);
         }
     };
@@ -254,7 +254,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
     if (loading) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="text-white text-xl">Loading Review Studio...</div>
+                <div className="text-white text-xl">بنحمّل شاشة المراجعة...</div>
             </div>
         );
     }
@@ -288,7 +288,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
 
                 {/* Left Column: Image */}
                 <div>
-                    <h2 className="text-2xl font-bold mb-4 font-playfair text-[#f0e6d2]">Image Review</h2>
+                    <h2 className="text-2xl font-bold mb-4 font-playfair text-[#f0e6d2]">راجع الصورة</h2>
 
                     {pendingFile && cropMode ? (
                         // Crop mode — drag/zoom to reframe
@@ -307,11 +307,11 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                     className="object-contain max-h-full max-w-full rounded"
                                 />
                             </div>
-                            <p className="text-sm text-gray-400 mb-3 text-center">Image ready. Upload directly or adjust framing first.</p>
+                            <p className="text-sm text-gray-400 mb-3 text-center">الصورة جاهزة. ارفعها زي ما هي أو عدّل الكادر الأول.</p>
                             <div className="flex gap-3 justify-center mb-3">
-                                <button className="px-4 py-2 border border-white/30 rounded hover:bg-white/10 text-sm" onClick={() => { setPendingFile(null); setCropMode(false); }}>Cancel</button>
-                                <button className="px-4 py-2 border border-[#f0e6d2]/50 rounded hover:bg-[#f0e6d2]/10 text-sm text-[#f0e6d2]" onClick={() => setCropMode(true)}>Crop & Adjust</button>
-                                <button className="px-4 py-2 bg-[#f0e6d2] text-black rounded font-medium text-sm" onClick={handleUseAsIs}>Use as-is</button>
+                                <button className="px-4 py-2 border border-white/30 rounded hover:bg-white/10 text-sm" onClick={() => { setPendingFile(null); setCropMode(false); }}>إلغاء</button>
+                                <button className="px-4 py-2 border border-[#f0e6d2]/50 rounded hover:bg-[#f0e6d2]/10 text-sm text-[#f0e6d2]" onClick={() => setCropMode(true)}>قص وعدّل</button>
+                                <button className="px-4 py-2 bg-[#f0e6d2] text-black rounded font-medium text-sm" onClick={handleUseAsIs}>استخدمها زي ما هي</button>
                             </div>
                             {uploadError && <p className="text-red-400 text-sm mt-2">{uploadError}</p>}
                         </>
@@ -330,12 +330,12 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                         className="object-contain max-h-full max-w-full rounded"
                                     />
                                 ) : (
-                                    <div className="text-gray-500 italic">No image stored</div>
+                                    <div className="text-gray-500 italic">مفيش صورة محفوظة</div>
                                 )}
                             </div>
 
                             <div>
-                                <p className="text-sm text-gray-400 mb-1">Public ID:</p>
+                                <p className="text-sm text-gray-400 mb-1">معرّف الملف:</p>
                                 <input className="w-full bg-black/50 border border-white/20 p-2 text-sm text-gray-300 rounded mb-4" value={imagePublicId} readOnly />
                             </div>
 
@@ -344,14 +344,14 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                     className="flex-1 border border-dashed border-white/30 rounded-lg p-4 text-center hover:bg-white/5 transition-colors cursor-pointer text-sm"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
-                                    {uploadingImage ? 'Uploading...' : 'Upload direct to S3'}
+                                    {uploadingImage ? "بنرفع..." : "ارفع على S3 مباشرة"}
                                     <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                                 </div>
                                 <div
                                     className="flex-1 border border-dashed border-[#bfa68a]/40 rounded-lg p-4 text-center hover:bg-[#bfa68a]/5 transition-colors cursor-pointer text-sm text-[#bfa68a]"
                                     onClick={() => stageFileInputRef.current?.click()}
                                 >
-                                    {stagingOnCloudinary ? 'Staging...' : 'Stage on Cloudinary'}
+                                    {stagingOnCloudinary ? "بنرفع مؤقتًا..." : "ارفع مؤقتًا على Cloudinary"}
                                     <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" ref={stageFileInputRef} onChange={e => { const f = e.target.files?.[0]; if (f) handleStageOnCloudinary(f); e.target.value = ''; }} />
                                 </div>
                             </div>
@@ -359,7 +359,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                             <div className="mt-3 flex gap-2">
                                 <input
                                     type="text"
-                                    placeholder="Cloudinary public ID (after editing)"
+                                    placeholder="معرّف الصورة على Cloudinary بعد التعديل"
                                     className="flex-1 bg-black/50 border border-white/20 rounded p-2 text-xs text-gray-300 placeholder-gray-600"
                                     value={cloudinaryPublicIdInput}
                                     onChange={e => setCloudinaryPublicIdInput(e.target.value)}
@@ -369,7 +369,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                     onClick={handleFinalizeFromCloudinary}
                                     disabled={finalizingFromCloudinary || !cloudinaryPublicIdInput.trim()}
                                 >
-                                    {finalizingFromCloudinary ? 'Saving...' : 'Finalize to S3'}
+                                    {finalizingFromCloudinary ? "بنحفظ..." : "احفظ على S3"}
                                 </button>
                             </div>
                             {uploadError && <p className="text-red-400 text-sm mt-2">{uploadError}</p>}
@@ -379,22 +379,22 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
 
                 {/* Right Column: Text Replacements */}
                 <div className="flex flex-col h-full overflow-y-auto">
-                    <h2 className="text-2xl font-bold mb-4 font-playfair text-[#f0e6d2]">Data Editing</h2>
+                    <h2 className="text-2xl font-bold mb-4 font-playfair text-[#f0e6d2]">تعديل البيانات</h2>
 
                     {saveError && <div className="bg-red-500/20 text-red-200 p-3 rounded mb-4">{saveError}</div>}
 
                     <div className="mb-4">
-                        <label className="block text-sm text-gray-400 mb-1">Name / Title (Current: {originalName})</label>
+                        <label className="block text-sm text-gray-400 mb-1">الاسم / العنوان (الحالي: {originalName})</label>
                         <input type="text" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={name} onChange={e => setName(e.target.value)} />
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-sm text-gray-400 mb-1">Description</label>
+                        <label className="block text-sm text-gray-400 mb-1">الوصف</label>
                         <input type="text" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={description} onChange={e => setDescription(e.target.value)} />
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-sm text-gray-400 mb-1">Production Status</label>
+                        <label className="block text-sm text-gray-400 mb-1">حالة إنتاج الساعة</label>
                         <select
                             className="w-full bg-black/60 border border-white/20 rounded p-2 text-white focus:outline-none focus:border-[#f0e6d2] transition-colors"
                             value={productionStatus}
@@ -407,14 +407,14 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                     </div>
 
                     <div className="mb-4">
-                        <label className="block text-sm text-gray-400 mb-1">Price in AUD (Current: {originalPrice === '0' ? 'Price on request' : originalPrice})</label>
+                        <label className="block text-sm text-gray-400 mb-1">السعر بالدولار الأسترالي (الحالي: {originalPrice === '0' ? 'Price on request' : originalPrice})</label>
                         <input type="number" step="0.01" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={price} onChange={e => setPrice(e.target.value)} />
                     </div>
 
                     <div className="mb-6 flex-grow flex flex-col">
                         <label className="text-sm text-gray-400 mb-1 flex justify-between">
-                            <span>Raw Specs JSON</span>
-                            <span className="text-[#f0e6d2] cursor-pointer hover:underline" onClick={() => setSpecsJson(originalSpecs)}>Reset</span>
+                            <span>بيانات المواصفات بصيغة JSON</span>
+                            <span className="text-[#f0e6d2] cursor-pointer hover:underline" onClick={() => setSpecsJson(originalSpecs)}>ارجع للأصل</span>
                         </label>
                         <textarea
                             className="w-full h-48 bg-black/60 border border-white/20 rounded p-2 text-white font-mono text-sm resize-none"
@@ -424,9 +424,9 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                     </div>
 
                     <div className="flex justify-end gap-4 mt-auto">
-                        <button className="px-6 py-2 border border-white/30 rounded hover:bg-white/10" onClick={onClose}>Cancel</button>
+                        <button className="px-6 py-2 border border-white/30 rounded hover:bg-white/10" onClick={onClose}>إلغاء</button>
                         <button className="px-6 py-2 bg-[#f0e6d2] text-black rounded font-medium disabled:opacity-50" onClick={handleSave} disabled={saving || !!pendingFile || uploadingImage}>
-                            {saving ? 'Saving...' : 'Save Watch Data'}
+                            {saving ? "بنحفظ..." : "احفظ بيانات الساعة"}
                         </button>
                     </div>
                 </div>

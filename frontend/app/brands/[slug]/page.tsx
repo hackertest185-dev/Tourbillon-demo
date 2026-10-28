@@ -112,13 +112,13 @@ const BrandPage = () => {
   }, [brand?.image]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen text-white/80">Loading...</div>;
+    return <div className="flex justify-center items-center min-h-screen text-white/80">بنحمّل...</div>;
   }
   if (error) {
-    return <div className="flex justify-center items-center min-h-screen text-red-500">Error loading brand.</div>;
+    return <div className="flex justify-center items-center min-h-screen text-red-500">حصلت مشكلة وإحنا بنحمّل البراند.</div>;
   }
   if (!brand) {
-    return <div className="flex justify-center items-center min-h-screen text-white/80">Brand not found.</div>;
+    return <div className="flex justify-center items-center min-h-screen text-white/80">مش لاقيين البراند ده.</div>;
   }
 
   // Split into lede + body. Two strategies:
@@ -177,7 +177,7 @@ const BrandPage = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
           </svg>
-          {returnTo || navigationState ? 'Back' : 'All Watches'}
+          {returnTo || navigationState ? "ارجع" : "كل الساعات"}
         </button>
       </div>
 
@@ -225,7 +225,7 @@ const BrandPage = () => {
       {collections.length > 0 && (
         <section className="mb-16">
           <ScrollFade>
-            <h2 className="text-2xl font-playfair font-semibold text-[#f0e6d2] mb-0">Collections</h2>
+            <h2 className="text-2xl font-playfair font-semibold text-[#f0e6d2] mb-0">المجموعات</h2>
           </ScrollFade>
 
           <div className="max-w-2xl">
@@ -245,13 +245,13 @@ const BrandPage = () => {
       {/* ── Watches ── */}
       <section>
         <ScrollFade>
-          <h2 className="text-2xl font-playfair font-semibold text-[#f0e6d2] mb-12">Timepieces</h2>
+          <h2 className="text-2xl font-playfair font-semibold text-[#f0e6d2] mb-12">الساعات</h2>
         </ScrollFade>
 
         {watchesLoading ? (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white/40 mx-auto mb-4" />
-            <p className="text-white/50 text-sm font-playfair">Loading watches...</p>
+            <p className="text-white/50 text-sm font-playfair">بنحمّل الساعات...</p>
           </div>
         ) : watches.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16">
@@ -268,7 +268,7 @@ const BrandPage = () => {
             ))}
           </div>
         ) : (
-          <p className="text-white/50 text-sm font-playfair">No watches available for this brand yet.</p>
+          <p className="text-white/50 text-sm font-playfair">لسه مفيش ساعات متاحة للبراند ده.</p>
         )}
       </section>
 

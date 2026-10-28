@@ -52,7 +52,7 @@ export default function EditDetailsPage() {
 
   if (loading || !user) return null;
 
-  const displayName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Collector";
+  const displayName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "محب الساعات";
   const signInCount = [user.hasPassword, user.hasGoogle, true].filter(Boolean).length;
 
   return (
@@ -66,26 +66,26 @@ export default function EditDetailsPage() {
         >
           <motion.div variants={fadeUp} className="mb-5 h-px w-8 bg-[#bfa68a]/50" />
           <motion.p variants={fadeUp} className="mb-3 text-[9px] uppercase tracking-[0.5em] text-[#bfa68a]">
-            Account
+            حسابك
           </motion.p>
           <motion.h1 variants={fadeUp} className="font-playfair text-[3rem] font-light leading-none text-[#f0e6d2]">
-            Edit Profile
+            عدّل حسابك
           </motion.h1>
           <motion.p variants={fadeUp} className="mt-5 max-w-[280px] text-[13px] leading-[1.85] text-white/38">
-            Manage your account details, recovery options, and sign-in methods in one place.
+            عدّل بياناتك وطرق الدخول وأمان حسابك من مكان واحد.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 space-y-5 border-l border-[#bfa68a]/22 pl-6">
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">Signed in as</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">داخل بحساب</p>
               <p className="mt-2 text-sm text-[#f0e6d2]/85">{displayName}</p>
               <p className="mt-1 text-xs text-white/32">{user.email}</p>
             </div>
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">Security</p>
-              <p className="mt-2 text-sm text-[#f0e6d2]/85">{signInCount} active sign-in methods</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">الأمان</p>
+              <p className="mt-2 text-sm text-[#f0e6d2]/85">{signInCount} طرق دخول شغالة</p>
               <p className="mt-1 text-xs text-white/32">
-                Password {user.hasPassword ? "enabled" : "not set"} - Magic link active
+                الباسورد {user.hasPassword ? "شغّال" : "لسه متحددش"} - الدخول بكود الإيميل شغال
               </p>
             </div>
           </motion.div>

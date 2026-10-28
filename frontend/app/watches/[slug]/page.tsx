@@ -115,8 +115,8 @@ const WatchDetailPage = () => {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
-                    <h2 className="text-2xl font-playfair font-bold text-red-400 mb-2">Invalid Watch</h2>
-                    <p className="text-white/60">The watch URL is not valid.</p>
+                    <h2 className="text-2xl font-playfair font-bold text-red-400 mb-2">الساعة دي مش موجودة</h2>
+                    <p className="text-white/60">لينك الساعة مش مظبوط.</p>
                 </div>
             </div>
         );
@@ -131,8 +131,8 @@ const WatchDetailPage = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-playfair font-bold text-red-400 mb-2">Error Loading Watch</h2>
-                    <p className="text-white/60">Failed to fetch watch details. Please try again later.</p>
+                    <h2 className="text-2xl font-playfair font-bold text-red-400 mb-2">حصلت مشكلة في تحميل الساعة</h2>
+                    <p className="text-white/60">معرفناش نجيب تفاصيل الساعة. جرّب تاني بعد شوية.</p>
                 </div>
             </div>
         );
@@ -166,7 +166,7 @@ const WatchDetailPage = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
                     </svg>
-                    Back
+                    ارجع
                 </button>
             </div>
 
@@ -188,7 +188,7 @@ const WatchDetailPage = () => {
                         <div>
                     {/* Brand and Collection breadcrumb */}
                     {(brands.length > 0 || collections.length > 0) && (
-                        <div className="flex items-center gap-2 mb-3 text-sm">
+                        <div dir="ltr" translate="no" className="notranslate flex items-center gap-2 mb-3 text-sm">
                             {watch.brandSlug && brands.find(b => b.id === watch.brandId) && (
                                 <Link href={withReturnTo(`/brands/${watch.brandSlug}`, returnTo)} className="text-white/50 hover:text-white/80 transition-colors font-inter">
                                     {brands.find(b => b.id === watch.brandId)?.name}
@@ -205,10 +205,10 @@ const WatchDetailPage = () => {
                         </div>
                     )}
 
-                    <h1 className="text-4xl lg:text-5xl font-playfair font-bold text-[#f0e6d2] mb-2">
+                    <h1 dir="ltr" translate="no" className="notranslate text-start text-4xl lg:text-5xl font-playfair font-bold text-[#f0e6d2] mb-2">
                         <span translate="no" className="notranslate">{watch.name || 'Unnamed Watch'}</span>
                     </h1>
-                    <p className="text-lg text-white/60 mb-8">
+                    <p dir="ltr" translate="no" className="notranslate text-start text-lg text-white/60 mb-8">
                         {watch.description || 'No description available.'}
                     </p>
                         </div>
@@ -216,17 +216,17 @@ const WatchDetailPage = () => {
 
                     <ScrollFade>
                     <div className="mb-8">
-                        <span className="text-4xl md:text-7xl font-bold text-white">
+                        <span dir="ltr" translate="no" className="notranslate inline-block text-4xl md:text-7xl font-bold text-white">
                             {watch.currentPrice > 0 ? `$${watch.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Price on request'}
                         </span>
                         {structuredSpecs?.catalogueSource && (
                             <p className="text-sm text-white/60 mt-3">
-                                USD · Official US retail · Checked {structuredSpecs.catalogueSource.checkedAt}
+                                <bdi dir="ltr" translate="no">USD</bdi> · سعر التجزئة الرسمي في أمريكا · اتراجع يوم <bdi dir="ltr" translate="no">{structuredSpecs.catalogueSource.checkedAt}</bdi>
                                 {' · '}
-                                <a className="underline hover:text-white" href={structuredSpecs.catalogueSource.url} target="_blank" rel="noopener noreferrer">Manufacturer source</a>
+                                <a className="underline hover:text-white" href={structuredSpecs.catalogueSource.url} target="_blank" rel="noopener noreferrer">المصدر الرسمي للشركة المصنعة</a>
                             </p>
                         )}
-                        <p className="text-sm text-white/50 mt-1">Price subject to market changes</p>
+                        <p className="text-sm text-white/50 mt-1">السعر ممكن يتغير حسب السوق</p>
                         {structuredSpecs?.productionStatus && (
                             <span className={`inline-block mt-2 px-3 py-1 text-xs font-medium rounded-full border ${
                                 structuredSpecs.productionStatus === 'Discontinued'
@@ -235,7 +235,7 @@ const WatchDetailPage = () => {
                                     ? 'text-amber-300/80 border-amber-400/30 bg-amber-400/10'
                                     : 'text-[#f0e6d2]/70 border-[#f0e6d2]/20 bg-[#f0e6d2]/5'
                             }`}>
-                                {structuredSpecs.productionStatus}
+                                <bdi dir="ltr" translate="no">{structuredSpecs.productionStatus}</bdi>
                             </span>
                         )}
                     </div>
@@ -247,13 +247,13 @@ const WatchDetailPage = () => {
                             whileTap={{ scale: 0.97 }}
                             onClick={() => setRegisterInterestOpen(true)}
                             className={watchDetailSolidCtaClassName}>
-                            Register Your Interest
+                            سجّل اهتمامك بالساعة
                         </motion.button>
                         <motion.button
                             whileTap={{ scale: 0.97 }}
                             onClick={() => setAppointmentOpen(true)}
                             className={watchDetailSolidCtaClassName}>
-                            Book an Appointment
+                            احجز معانا
                         </motion.button>
                         <CompareToggle watch={watch} variant="button" className="flex-1 min-w-0 w-full sm:w-auto justify-center" />
                     </div>
@@ -263,12 +263,12 @@ const WatchDetailPage = () => {
                     {specSections.length > 0 && (
                         <div>
                             <ScrollFade>
-                                <h2 className="text-2xl font-playfair font-semibold border-b border-white/10 pb-3 mb-6">Specifications</h2>
+                                <h2 className="text-2xl font-playfair font-semibold border-b border-white/10 pb-3 mb-6">المواصفات</h2>
                             </ScrollFade>
                             <div className="space-y-6">
                                 {specSections.map((section) => (
                                     <ScrollFade key={section.title}>
-                                        <div>
+                                        <div dir="ltr" translate="no" className="notranslate">
                                             <h3 className="text-sm font-semibold uppercase tracking-widest text-white/40 mb-3">{section.title}</h3>
                                             <table className="w-full text-left">
                                                 <tbody>
@@ -291,8 +291,8 @@ const WatchDetailPage = () => {
                     {flatSpecRows && flatSpecRows.length > 0 && (
                         <ScrollFade>
                             <div>
-                                <h2 className="text-2xl font-playfair font-semibold border-b border-white/10 pb-3 mb-4">Specifications</h2>
-                                <table className="w-full text-left">
+                                <h2 className="text-2xl font-playfair font-semibold border-b border-white/10 pb-3 mb-4">المواصفات</h2>
+                                <table dir="ltr" translate="no" className="notranslate w-full text-left">
                                     <tbody>
                                         {flatSpecRows.map((spec) => (
                                             <tr key={spec.label} className="border-b border-white/5">
@@ -319,31 +319,31 @@ const WatchDetailPage = () => {
             {watch.editorialContent && (
                 <div className="mt-20 border-t border-white/10 pt-14 max-w-3xl">
                     <ScrollFade>
-                        <h2 className="text-3xl font-playfair font-semibold text-[#f0e6d2] mb-12">The Story</h2>
+                        <h2 className="text-3xl font-playfair font-semibold text-[#f0e6d2] mb-12">حكاية الساعة</h2>
                     </ScrollFade>
                     <div className="space-y-10">
                         <ScrollFade>
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Why This Watch Matters</h3>
-                                <p className="text-white/80 leading-relaxed font-inter">{watch.editorialContent.whyItMatters}</p>
+                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">إيه اللي بيميز الساعة دي؟</h3>
+                                <p dir="ltr" translate="no" className="notranslate text-start text-white/80 leading-relaxed font-inter">{watch.editorialContent.whyItMatters}</p>
                             </div>
                         </ScrollFade>
                         <ScrollFade>
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Best For</h3>
-                                <p className="text-white/80 leading-relaxed font-inter">{watch.editorialContent.bestFor}</p>
+                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">أنسب لمين؟</h3>
+                                <p dir="ltr" translate="no" className="notranslate text-start text-white/80 leading-relaxed font-inter">{watch.editorialContent.bestFor}</p>
                             </div>
                         </ScrollFade>
                         <ScrollFade>
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Design Language</h3>
-                                <p className="text-white/80 leading-relaxed font-inter">{watch.editorialContent.designLanguage}</p>
+                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">طابع التصميم</h3>
+                                <p dir="ltr" translate="no" className="notranslate text-start text-white/80 leading-relaxed font-inter">{watch.editorialContent.designLanguage}</p>
                             </div>
                         </ScrollFade>
                         <ScrollFade>
                             <div>
-                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Collector Appeal</h3>
-                                <p className="text-white/80 leading-relaxed font-inter">{watch.editorialContent.collectorAppeal}</p>
+                                <h3 className="text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">إيه اللي بيخلي هواة الساعات يحبوها؟</h3>
+                                <p dir="ltr" translate="no" className="notranslate text-start text-white/80 leading-relaxed font-inter">{watch.editorialContent.collectorAppeal}</p>
                             </div>
                         </ScrollFade>
                     </div>

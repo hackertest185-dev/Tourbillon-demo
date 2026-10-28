@@ -37,7 +37,7 @@ export default function AdminBrandsPage() {
       closePanel();
       await load();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Save failed');
+      setErr(e instanceof Error ? e.message : "الحفظ منفعش");
     } finally { setSaving(false); }
   };
 
@@ -47,31 +47,31 @@ export default function AdminBrandsPage() {
       await adminDeleteBrand(b.id);
       await load();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      alert(e instanceof Error ? e.message : "المسح منفعش");
     }
   };
 
   const set = (key: keyof typeof EMPTY, val: string) =>
     setPanel(p => p ? { ...p, data: { ...p.data, [key]: val } } : p);
 
-  if (loading) return <div className="p-8 text-white text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-white text-sm">بنحمّل...</div>;
 
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Brands</h1>
-          <p className="text-[#555] text-xs mt-0.5">{filtered.length} of {brands.length} entries</p>
+          <h1 className="text-xl font-semibold text-white">البراندات</h1>
+          <p className="text-[#555] text-xs mt-0.5">{filtered.length} من {brands.length} عنصر</p>
         </div>
         <button
           className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors"
           onClick={openAdd}
-        >+ Add Brand</button>
+        >+ ضيف براند</button>
       </div>
 
       <div className="mb-4">
         <input
-          type="text" placeholder="Search brands..."
+          type="text" placeholder="دوّر على براند..."
           className="bg-[#111] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 w-80 focus:outline-none focus:border-[#c9a96e]"
           value={search} onChange={e => setSearch(e.target.value)}
         />
@@ -81,10 +81,10 @@ export default function AdminBrandsPage() {
         <table className="w-full text-left text-sm border-collapse">
           <thead>
             <tr className="border-b border-[#1e1e1e] bg-[#111]">
-              <th className="px-3 py-2 text-[#555] font-normal">Name</th>
-              <th className="px-3 py-2 text-[#555] font-normal">Slug</th>
-              <th className="px-3 py-2 text-[#555] font-normal">Image key</th>
-              <th className="px-3 py-2 text-[#555] font-normal w-24">Actions</th>
+              <th className="px-3 py-2 text-[#555] font-normal">الاسم</th>
+              <th className="px-3 py-2 text-[#555] font-normal">جزء اللينك</th>
+              <th className="px-3 py-2 text-[#555] font-normal">معرّف الصورة</th>
+              <th className="px-3 py-2 text-[#555] font-normal w-24">التحكم</th>
             </tr>
           </thead>
           <tbody>
@@ -95,8 +95,8 @@ export default function AdminBrandsPage() {
                 <td className="px-3 py-2 text-[#444] text-[10px] font-mono">{b.image || '—'}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1.5">
-                    <button className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors" onClick={() => openEdit(b)}>Edit</button>
-                    <button className="bg-red-900/60 text-red-300 px-3 py-1 rounded text-xs hover:bg-red-800 transition-colors" onClick={() => handleDelete(b)}>Delete</button>
+                    <button className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors" onClick={() => openEdit(b)}>عدّل</button>
+                    <button className="bg-red-900/60 text-red-300 px-3 py-1 rounded text-xs hover:bg-red-800 transition-colors" onClick={() => handleDelete(b)}>امسح</button>
                   </div>
                 </td>
               </tr>
@@ -108,32 +108,32 @@ export default function AdminBrandsPage() {
       {panel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-[#111] border border-[#1e1e1e] rounded-lg w-full max-w-md p-6">
-            <h2 className="text-white text-base font-semibold mb-4">{panel.mode === 'add' ? 'Add Brand' : 'Edit Brand'}</h2>
+            <h2 className="text-white text-base font-semibold mb-4">{panel.mode === 'add' ? "ضيف براند" : "عدّل البراند"}</h2>
             <div className="space-y-3">
               <div>
-                <label className="text-[#555] text-xs block mb-1">Name *</label>
+                <label className="text-[#555] text-xs block mb-1">الاسم *</label>
                 <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e]" value={panel.data.name} onChange={e => set('name', e.target.value)} />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1">Description</label>
+                <label className="text-[#555] text-xs block mb-1">الوصف</label>
                 <textarea className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e] resize-none" rows={3} value={panel.data.description} onChange={e => set('description', e.target.value)} />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1">Summary</label>
+                <label className="text-[#555] text-xs block mb-1">ملخص</label>
                 <textarea className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e] resize-none" rows={2} value={panel.data.summary} onChange={e => set('summary', e.target.value)} />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1">Image key</label>
+                <label className="text-[#555] text-xs block mb-1">معرّف الصورة</label>
                 <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e] font-mono" value={panel.data.image} onChange={e => set('image', e.target.value)} />
               </div>
             </div>
             {err && <p className="text-red-400 text-xs mt-3">{err}</p>}
             <div className="flex justify-end gap-2 mt-5">
-              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={closePanel}>Cancel</button>
+              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={closePanel}>إلغاء</button>
               <button
                 className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
                 onClick={handleSave} disabled={saving}
-              >{saving ? 'Saving…' : 'Save'}</button>
+              >{saving ? "بنحفظ..." : "احفظ"}</button>
             </div>
           </div>
         </div>

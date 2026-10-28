@@ -2,6 +2,7 @@
 // Now using the split-panel luxury design.
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -222,7 +223,7 @@ export default function ForgotPasswordPage() {
       setStep('verify');
       startCountdown(30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send code. Please try again.');
+      setError(egyptianError(err, "معرفناش نبعت الكود. جرّب تاني."));
     } finally {
       setLoading(false);
     }
@@ -232,10 +233,10 @@ export default function ForgotPasswordPage() {
     setError(''); setSuccess(''); setLoading(true);
     try {
       await forgotPassword({ email });
-      setSuccess('New code sent.');
+      setSuccess("بعتنالك كود جديد.");
       startCountdown(30);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend code.');
+      setError(egyptianError(err, "معرفناش نبعت الكود تاني."));
     } finally {
       setLoading(false);
     }
@@ -246,11 +247,11 @@ export default function ForgotPasswordPage() {
     setError(''); setLoading(true);
     try {
       const result = await verifyCode({ email, code: codeValue });
-      if (!result.verificationGrant) throw new Error('Verification expired. Please request a new code.');
+      if (!result.verificationGrant) throw new Error("صلاحية التحقق خلصت. اطلب كود جديد.");
       setVerificationGrant(result.verificationGrant);
       setStep('reset');
     } catch {
-      setError('Incorrect or expired code. Please try again.');
+      setError("الكود غلط أو صلاحيته خلصت. جرّب تاني.");
       setCode('');
     } finally {
       setLoading(false);
@@ -264,24 +265,24 @@ export default function ForgotPasswordPage() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) { setError('Passwords do not match.'); return; }
-    if (newPassword.length < 12) { setError('Password must be at least 12 characters.'); return; }
+    if (newPassword !== confirmPassword) { setError("الباسوردين مش زي بعض."); return; }
+    if (newPassword.length < 12) { setError("الباسورد لازم يكون 12 حرف على الأقل."); return; }
     setError(''); setLoading(true);
     try {
       await resetPassword({ email, verificationGrant, newPassword });
-      setSuccess('Password updated. Redirecting…');
+      setSuccess("الباسورد اتغيّر. بنحوّلك لتسجيل الدخول...");
       setTimeout(() => router.push('/auth/start'), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reset password.');
+      setError(egyptianError(err, "معرفناش نغيّر الباسورد. جرّب تاني."));
     } finally {
       setLoading(false);
     }
   };
 
   const stepLabels: Record<Step, { eyebrow: string; heading: string; sub: string }> = {
-    email:  { eyebrow: 'Recovery', heading: 'Reset Password',     sub: 'Enter your email and we\'ll send a verification code.' },
-    verify: { eyebrow: 'Verification', heading: 'Enter Code',     sub: `Code sent to ${email}` },
-    reset:  { eyebrow: 'New Password', heading: 'Set New Password', sub: 'Choose a password at least 12 characters long.' },
+    email:  { eyebrow: "استرجاع الحساب", heading: "غيّر الباسورد",     sub: "اكتب إيميلك وهنبعتلك كود تحقق." },
+    verify: { eyebrow: "التحقق", heading: "اكتب الكود",     sub: `بعتنا الكود على ${email}` },
+    reset:  { eyebrow: "باسورد جديد", heading: "حدد باسورد جديد", sub: "اختار باسورد فيه 12 حرف على الأقل." },
   };
 
   const passwordsMatch = confirmPassword.length > 0 && newPassword === confirmPassword;
@@ -310,19 +311,19 @@ export default function ForgotPasswordPage() {
         >
           <motion.div variants={fadeUp} className="w-8 h-px bg-[#bfa68a]/50 mb-5" />
           <motion.p variants={fadeUp} className="text-[9px] uppercase tracking-[0.5em] text-[#bfa68a] mb-3">
-            Account Access
+            دخول الحساب
           </motion.p>
           <motion.h2 variants={fadeUp} className="font-playfair text-[2.75rem] font-light text-[#f0e6d2] leading-[1.1] mb-4 whitespace-nowrap">
-            Secure Recovery
+            استرجع حسابك بأمان
           </motion.h2>
           <motion.p variants={fadeUp} className="text-white/38 text-[13px] leading-relaxed mb-6">
-            Regain access to your Tourbillon vault and private advisory.
+            ارجع لحسابك على Tourbillon ولساعاتك اللي حفظتها.
           </motion.p>
 
           <motion.div variants={fadeUp} className="space-y-3.5 mb-6">
             {[
-              ['Secure Process', 'Protected by multi-factor authentication'],
-              ['Privacy First', 'Your collection data remains safely encrypted'],
+              ["خطوات آمنة", "بنتأكد من هويتك بكود على إيميلك"],
+              ["خصوصيتك تهمنا", "ساعاتك المحفوظة بتفضل مرتبطة بحسابك"],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-px h-9 bg-[#bfa68a]/22 shrink-0 mt-0.5" />
@@ -336,10 +337,10 @@ export default function ForgotPasswordPage() {
 
           <motion.blockquote variants={fadeUp} className="border-l-2 border-[#bfa68a]/60 pl-6 py-1 mt-2">
             <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-              &ldquo;Time is the most valuable thing a man can spend.&rdquo;
+              الوقت أغلى حاجة ممكن تديها.
             </p>
             <cite className="block text-[9px] uppercase tracking-[0.28em] text-[#bfa68a]/70 mt-3 not-italic">
-              Theophrastus
+              ثيوفراستوس
             </cite>
           </motion.blockquote>
         </motion.div>
@@ -398,7 +399,7 @@ export default function ForgotPasswordPage() {
               {step === 'email' && (
                 <form onSubmit={handleSendCode} className="space-y-6" noValidate>
                   <FieldInput
-                    label="Email Address"
+                    label="الإيميل"
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -406,7 +407,7 @@ export default function ForgotPasswordPage() {
                     autoFocus
                   />
                   {error && <p className="text-[#e07575] text-xs">{error}</p>}
-                  <GoldButton loading={loading} label="Send Code" loadingLabel="Sending…" />
+                  <GoldButton loading={loading} label="ابعت الكود" loadingLabel="بنبعت..." />
                 </form>
               )}
 
@@ -424,7 +425,7 @@ export default function ForgotPasswordPage() {
 
                   <div className="pt-2 space-y-4">
                     {code.length === 6 ? (
-                      <GoldButton loading={loading} label="Verify Code" loadingLabel="Verifying…" />
+                      <GoldButton loading={loading} label="اتأكد من الكود" loadingLabel="بنتأكد..." />
                     ) : (
                       <button
                         type="button"
@@ -432,7 +433,7 @@ export default function ForgotPasswordPage() {
                         disabled={loading || countdown > 0}
                         className="w-full py-3.5 text-[9.5px] uppercase tracking-[0.32em] font-medium border border-white/12 text-white/45 hover:border-[#bfa68a]/35 hover:text-white/70 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-300"
                       >
-                        {countdown > 0 ? `Resend Code (${countdown}s)` : 'Resend Code'}
+                        {countdown > 0 ? `ابعت الكود تاني بعد ${countdown} ثانية` : "ابعت الكود تاني"}
                       </button>
                     )}
 
@@ -441,7 +442,7 @@ export default function ForgotPasswordPage() {
                       onClick={() => { setStep('email'); setCode(''); setError(''); setSuccess(''); }}
                       className="block w-full text-center text-[9px] uppercase tracking-[0.2em] text-white/25 hover:text-white/45 transition"
                     >
-                      ← Different email
+                      استخدم إيميل تاني
                     </button>
                   </div>
                 </form>
@@ -451,7 +452,7 @@ export default function ForgotPasswordPage() {
               {step === 'reset' && (
                 <form onSubmit={handleReset} className="space-y-5" noValidate>
                   <FieldInput
-                    label="New Password"
+                    label="باسورد جديد"
                     type={showNew ? 'text' : 'password'}
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
@@ -464,13 +465,13 @@ export default function ForgotPasswordPage() {
                         tabIndex={-1}
                         className="absolute right-0 top-1/2 -translate-y-1/2 text-white/28 hover:text-white/55 transition text-[8.5px] uppercase tracking-widest"
                       >
-                        {showNew ? 'Hide' : 'Show'}
+                        {showNew ? "اخفي" : "أظهر"}
                       </button>
                     }
                   />
                   <div>
                     <FieldInput
-                      label="Confirm Password"
+                      label="أكد الباسورد"
                       type={showConfirm ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={e => setConfirmPassword(e.target.value)}
@@ -482,15 +483,15 @@ export default function ForgotPasswordPage() {
                           tabIndex={-1}
                           className="absolute right-0 top-1/2 -translate-y-1/2 text-white/28 hover:text-white/55 transition text-[8.5px] uppercase tracking-widest"
                         >
-                          {showConfirm ? 'Hide' : 'Show'}
+                          {showConfirm ? "اخفي" : "أظهر"}
                         </button>
                       }
                     />
                     {passwordsMatch && (
-                      <p className="text-[10px] text-[#bfa68a]/65 mt-2 tracking-wide">Passwords match</p>
+                      <p className="text-[10px] text-[#bfa68a]/65 mt-2 tracking-wide">الباسوردين زي بعض</p>
                     )}
                     {passwordsMismatch && (
-                      <p className="text-[10px] text-[#e07575]/80 mt-2">Passwords do not match</p>
+                      <p className="text-[10px] text-[#e07575]/80 mt-2">الباسوردين مش زي بعض</p>
                     )}
                   </div>
 
@@ -498,7 +499,7 @@ export default function ForgotPasswordPage() {
                   {success && <p className="text-[#bfa68a]/75 text-xs pt-1">{success}</p>}
 
                   <div className="pt-2">
-                    <GoldButton loading={loading} label="Set New Password" loadingLabel="Saving…" />
+                    <GoldButton loading={loading} label="حدد باسورد جديد" loadingLabel="بنحفظ..." />
                   </div>
                 </form>
               )}
@@ -508,9 +509,9 @@ export default function ForgotPasswordPage() {
           {/* Footer link */}
           <motion.div variants={formItem} className="mt-8 text-center">
             <p className="text-[10.5px] text-white/22">
-              Remember your password?{' '}
+              افتكرت الباسورد؟{' '}
               <Link href="/login" className="text-[#bfa68a]/65 hover:text-[#bfa68a] transition">
-                Sign In
+                سجّل دخول
               </Link>
             </p>
           </motion.div>

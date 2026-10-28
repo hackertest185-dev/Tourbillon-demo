@@ -9,27 +9,27 @@ const NAV = [
   {
     group: 'Content',
     items: [
-      { href: '/admin/watches', label: 'Watches' },
-      { href: '/admin/collections', label: 'Collections' },
-      { href: '/admin/brands', label: 'Brands' },
+      { href: '/admin/watches', label: "الساعات" },
+      { href: '/admin/collections', label: "المجموعات" },
+      { href: '/admin/brands', label: "البراندات" },
     ],
   },
   {
     group: 'Media',
-    items: [{ href: '/admin/media', label: 'Media Library' }],
+    items: [{ href: '/admin/media', label: "مكتبة الصور والفيديوهات" }],
   },
   {
     group: 'Publishing',
     items: [
-      { href: '/admin/editorial', label: 'Editorial' },
-      { href: '/admin/scraping', label: 'Scraping' },
+      { href: '/admin/editorial', label: "المقالات والمحتوى" },
+      { href: '/admin/scraping', label: "سحب البيانات" },
     ],
   },
   {
-    group: 'System',
+    group: "النظام",
     items: [
-      { href: '/admin/analytics', label: 'Analytics' },
-      { href: '/admin/system', label: 'System' },
+      { href: '/admin/analytics', label: "الإحصائيات" },
+      { href: '/admin/system', label: "النظام" },
     ],
   },
 ];
@@ -50,7 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-[180px] flex-shrink-0 border-r border-[#1e1e1e] flex flex-col bg-[#0d0d0d]">
         <div className="px-4 py-4 border-b border-[#1a1a1a]">
           <div className="text-[#c9a96e] text-[9px] tracking-[3px] uppercase">Tourbillon</div>
-          <div className="text-[#444] text-[8px] mt-0.5">Admin Console</div>
+          <div className="text-[#444] text-[8px] mt-0.5">لوحة الإدارة</div>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2">

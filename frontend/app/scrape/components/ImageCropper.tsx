@@ -113,7 +113,7 @@ export default function ImageCropper({ rawFile, onConfirm, onCancel }: {
 
     return (
         <div>
-            <p className="text-sm text-gray-400 mb-2">Drag to reposition, scroll to zoom. Square frame = card crop.</p>
+            <p className="text-sm text-gray-400 mb-2">اسحب الصورة عشان تظبط مكانها، واستخدم التمرير للتكبير. الكادر المربع هو اللي هيظهر في الكارت.</p>
             <div
                 ref={containerRef}
                 className="relative overflow-hidden rounded-lg border-2 border-[#f0e6d2]/50 cursor-grab active:cursor-grabbing mx-auto"
@@ -147,8 +147,8 @@ export default function ImageCropper({ rawFile, onConfirm, onCancel }: {
                 </div>
             </div>
             <div className="flex gap-3 mt-4 justify-center">
-                <button className="px-5 py-2 border border-white/30 rounded hover:bg-white/10 text-sm" onClick={onCancel}>Cancel</button>
-                <button className="px-5 py-2 bg-[#f0e6d2] text-black rounded font-medium text-sm" onClick={handleConfirm}>Confirm Crop</button>
+                <button className="px-5 py-2 border border-white/30 rounded hover:bg-white/10 text-sm" onClick={onCancel}>إلغاء</button>
+                <button className="px-5 py-2 bg-[#f0e6d2] text-black rounded font-medium text-sm" onClick={handleConfirm}>أكد القص</button>
             </div>
         </div>
     );

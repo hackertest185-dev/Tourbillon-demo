@@ -627,7 +627,7 @@ function ActionChips({
 
       {suggestActions.length > 0 && (
         <div className={`flex flex-col gap-1.5 ${actionItems.length > 0 ? 'mt-2' : ''}`}>
-          <p className="px-0.5 text-[10px] uppercase tracking-wider text-white/25">Try asking</p>
+          <p className="px-0.5 text-[10px] uppercase tracking-wider text-white/25">ممكن تسألنا عن</p>
           {suggestActions.map((action, idx) => (
             <button
               key={`${messageKey}-suggest-${idx}`}
@@ -807,13 +807,13 @@ export default function ChatPanel() {
   return (
     <div className="flex h-[calc(100vh-88px)] flex-col overflow-hidden">
       <div className="flex items-center justify-between px-8 pb-4">
-        <p className="text-sm text-white/40">Ask about any watch or brand</p>
+        <p className="text-sm text-white/40">اسألنا عن أي ساعة أو براند</p>
         {messages.length > 0 && (
           <button
             onClick={clearSession}
             className="text-xs text-white/30 transition-colors hover:text-white/60"
           >
-            Clear
+            امسح
           </button>
         )}
       </div>
@@ -829,7 +829,7 @@ export default function ChatPanel() {
               >
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
-              <h3 className="font-playfair text-base text-[#ecddc8]/70">How can I help you?</h3>
+              <h3 className="font-playfair text-base text-[#ecddc8]/70">نقدر نساعدك إزاي؟</h3>
 
               <div className="flex w-full max-w-xs flex-col items-center gap-2">
                 {EXAMPLE_PROMPTS.map(prompt => (
@@ -882,7 +882,7 @@ export default function ChatPanel() {
                       onClick={() => void retryLastMessage()}
                       className="mt-2 text-[10px] tracking-[0.12em] uppercase text-[#bfa68a] hover:text-[#f0e6d2] transition-colors"
                     >
-                      Retry
+                      جرّب تاني
                     </button>
                   )}
                   </>
@@ -901,7 +901,7 @@ export default function ChatPanel() {
 
       {showUsage && (
         <div className="pb-2 text-center text-xs text-white/25">
-          {dailyUsed} of {dailyLimit} messages today
+          {dailyUsed} من {dailyLimit} رسالة النهارده
         </div>
       )}
 
@@ -915,7 +915,7 @@ export default function ChatPanel() {
             value={input}
             onChange={event => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything..."
+            placeholder="اسألنا اللي تحبه..."
             rows={1}
             className="flex-1 resize-none overflow-hidden rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base sm:text-sm text-[#ecddc8] outline-none transition-colors placeholder:text-white/25 focus:border-white/20"
           />

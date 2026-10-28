@@ -1,6 +1,7 @@
 // Profile details form for account settings.
 "use client";
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useEffect, useState } from "react";
 import { updateUser, User } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -141,17 +142,17 @@ export default function UpdateDetailsForm({ user }: UpdateDetailsFormProps) {
 
   const validateForm = () => {
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setError("Please enter your full name");
+      setError("اكتب اسمك كامل");
       return false;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError("Email is not valid");
+      setError("الإيميل مش مظبوط");
       return false;
     }
 
     if (!formData.phoneNumber.trim()) {
-      setError("Please enter your phone number");
+      setError("اكتب رقم موبايلك");
       return false;
     }
 
@@ -184,10 +185,10 @@ export default function UpdateDetailsForm({ user }: UpdateDetailsFormProps) {
         return;
       }
 
-      setSuccess("Profile updated.");
+      setSuccess("بياناتك اتحدّثت.");
       await login("refresh");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
+      setError(egyptianError(err, "حصلت مشكلة مش متوقعة. جرّب تاني."));
     } finally {
       setSaving(false);
     }
@@ -196,23 +197,23 @@ export default function UpdateDetailsForm({ user }: UpdateDetailsFormProps) {
   return (
     <section>
       <div className="mb-7">
-        <p className="text-[9px] uppercase tracking-[0.36em] text-[#bfa68a]">Profile</p>
-        <h2 className="mt-2 font-playfair text-2xl font-light text-[#f0e6d2]">Personal Details</h2>
+        <p className="text-[9px] uppercase tracking-[0.36em] text-[#bfa68a]">ملفك الشخصي</p>
+        <h2 className="mt-2 font-playfair text-2xl font-light text-[#f0e6d2]">بياناتك الشخصية</h2>
         <p className="mt-2 text-xs leading-relaxed text-white/35">
-          Keep your contact information current for appointments, orders, and private advisory.
+          خلّي بيانات التواصل مظبوطة عشان نقدر نكلمك بخصوص مواعيدك وطلباتك.
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-7">
         <div className="grid gap-6 md:grid-cols-2">
-          <FieldInput label="First name" name="firstName" value={formData.firstName} onChange={handleChange} />
-          <FieldInput label="Last name" name="lastName" value={formData.lastName} onChange={handleChange} />
+          <FieldInput label="اسمك الأول" name="firstName" value={formData.firstName} onChange={handleChange} />
+          <FieldInput label="اسم العيلة" name="lastName" value={formData.lastName} onChange={handleChange} />
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <FieldInput label="Email address" name="email" type="email" value={formData.email} onChange={handleChange} />
+          <FieldInput label="الإيميل" name="email" type="email" value={formData.email} onChange={handleChange} />
           <FieldInput
-            label="Phone number"
+            label="رقم الموبايل"
             name="phoneNumber"
             type="tel"
             value={formData.phoneNumber}
@@ -223,20 +224,20 @@ export default function UpdateDetailsForm({ user }: UpdateDetailsFormProps) {
 
         <div className="grid gap-6 md:grid-cols-2">
           <FieldInput
-            label="Date of birth"
+            label="تاريخ ميلادك"
             name="dateOfBirth"
             type="date"
             value={formData.dateOfBirth}
             onChange={handleChange}
           />
-          <SelectField label="State" name="state" value={formData.state} onChange={handleChange} />
+          <SelectField label="المحافظة" name="state" value={formData.state} onChange={handleChange} />
         </div>
 
-        <FieldInput label="Address" name="address" value={formData.address} onChange={handleChange} />
+        <FieldInput label="العنوان" name="address" value={formData.address} onChange={handleChange} />
 
         <div className="grid gap-6 md:grid-cols-2">
-          <FieldInput label="City" name="city" value={formData.city} onChange={handleChange} />
-          <FieldInput label="Country" name="country" value={formData.country} onChange={handleChange} />
+          <FieldInput label="المدينة" name="city" value={formData.city} onChange={handleChange} />
+          <FieldInput label="البلد" name="country" value={formData.country} onChange={handleChange} />
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -249,7 +250,7 @@ export default function UpdateDetailsForm({ user }: UpdateDetailsFormProps) {
               backgroundSize: "200% 100%",
             }}
           >
-            {saving ? "Saving..." : "Update profile"}
+            {saving ? "بنحفظ..." : "حدّث بياناتك"}
           </button>
           {error && <p className="text-sm text-[#e07575]">{error}</p>}
           {success && <p className="text-sm text-[#bfa68a]/80">{success}</p>}

@@ -99,7 +99,7 @@ export default function LoginPage() {
   const oauthError = searchParams.get('error');
 
   useEffect(() => {
-    if (oauthError) setError('Google sign-in could not be completed. Please try again.');
+    if (oauthError) setError("الدخول بجوجل مكملش. جرّب تاني.");
   }, [oauthError]);
 
   // Pre-filled email from /auth/start — locked chip mode
@@ -136,7 +136,7 @@ export default function LoginPage() {
       await login('existing-account');
       router.push(redirect || '/tourbillon');
     } catch {
-      setError(requiresMfa ? 'Invalid authenticator code.' : 'Invalid email or password.');
+      setError(requiresMfa ? "كود تطبيق التحقق مش مظبوط." : "الإيميل أو الباسورد مش مظبوط.");
     } finally {
       setLoading(false);
     }
@@ -169,19 +169,19 @@ export default function LoginPage() {
         >
           <motion.div variants={fadeUp} className="w-8 h-px bg-[#bfa68a]/50 mb-5" />
           <motion.p variants={fadeUp} className="text-[9px] uppercase tracking-[0.5em] text-[#bfa68a] mb-3">
-            Member Access
+            دخول الأعضاء
           </motion.p>
           <motion.h2 variants={fadeUp} className="font-playfair text-[2.75rem] font-light text-[#f0e6d2] leading-[1.1] mb-4 whitespace-nowrap">
-            Welcome Back
+            نورتنا تاني
           </motion.h2>
           <motion.p variants={fadeUp} className="text-white/38 text-[13px] leading-relaxed mb-6">
-            Access your collection, track orders, and connect with our private advisors.
+            ادخل على مجموعتك، وتابع طلباتك، واتواصل مع خبراء الساعات عندنا.
           </motion.p>
 
           <motion.div variants={fadeUp} className="space-y-3.5 mb-6">
             {[
-              ['Curated Collections', 'Hand-selected timepieces from the Holy Trinity and beyond'],
-              ['Personal Advisors', 'One-on-one guidance from certified horological experts'],
+              ["مجموعات مختارة بعناية", "ساعات مختارة من أشهر 3 دور ساعات فخمة في العالم، وبراندات مميزة تانية."],
+              ["خبراء يساعدوك في الاختيار", "خبير ساعات يساعدك بنفسه تختار الساعة المناسبة ليك."],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-px h-9 bg-[#bfa68a]/22 shrink-0 mt-0.5" />
@@ -195,10 +195,10 @@ export default function LoginPage() {
 
           <motion.blockquote variants={fadeUp} className="border-l-2 border-[#bfa68a]/60 pl-6 py-1 mt-2">
             <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-              &ldquo;Give me the perfect oil and I will give you the perfect watch.&rdquo;
+              التفاصيل الصغيرة هي اللي بتعمل الساعة المميزة.
             </p>
             <cite className="block text-[9px] uppercase tracking-[0.28em] text-[#bfa68a]/70 mt-3 not-italic">
-              Abraham-Louis Breguet
+              أبراهام لويس بريجيه
             </cite>
           </motion.blockquote>
         </motion.div>
@@ -217,10 +217,10 @@ export default function LoginPage() {
           className="w-full max-w-[400px]"
         >
           <motion.p variants={formItem} className="text-[9px] uppercase tracking-[0.4em] text-[#bfa68a] mb-2.5">
-            Sign In
+            سجّل دخول
           </motion.p>
           <motion.h1 variants={formItem} className="font-playfair text-[1.85rem] font-light text-[#f0e6d2] mb-7">
-            Your Account
+            حسابك
           </motion.h1>
 
           {/* Smart flow: locked email chip — only shown when coming from /auth/start */}
@@ -231,7 +231,7 @@ export default function LoginPage() {
                 href={changeEmailHref}
                 className="text-[9px] uppercase tracking-[0.22em] text-[#bfa68a]/55 hover:text-[#bfa68a] transition ml-4 shrink-0"
               >
-                ← Change
+                غيّر الإيميل
               </Link>
             </motion.div>
           )}
@@ -246,12 +246,12 @@ export default function LoginPage() {
                   className="flex items-center justify-center gap-3 w-full py-3 border border-white/14 text-white/55 hover:border-[#bfa68a]/35 hover:text-white/75 transition text-[9.5px] uppercase tracking-[0.18em] mb-5"
                 >
                   <GoogleIcon />
-                  Continue with Google
+                  كمّل بحساب جوجل
                 </button>
               </motion.div>
               <motion.div variants={formItem} className="flex items-center gap-4 mb-5">
                 <div className="flex-1 h-px bg-white/10" />
-                <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/28">or</span>
+                <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/28">أو</span>
                 <div className="flex-1 h-px bg-white/10" />
               </motion.div>
             </>
@@ -262,7 +262,7 @@ export default function LoginPage() {
             {!isSmartFlow && (
               <motion.div variants={formItem}>
                 <label className="block text-[8.5px] uppercase tracking-[0.28em] text-[#bfa68a]/65 mb-2">
-                  Email
+                  الإيميل
                 </label>
                 <FocusInput
                   type="email"
@@ -275,7 +275,7 @@ export default function LoginPage() {
 
             <motion.div variants={formItem}>
               <label className="block text-[8.5px] uppercase tracking-[0.28em] text-[#bfa68a]/65 mb-2">
-                Password
+                الباسورد
               </label>
               <FocusInput
                 type={showPassword ? 'text' : 'password'}
@@ -290,7 +290,7 @@ export default function LoginPage() {
                     className="absolute right-0 top-1/2 -translate-y-1/2 text-white/28 hover:text-white/55 transition text-[8.5px] uppercase tracking-widest"
                     tabIndex={-1}
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    {showPassword ? "اخفي" : "أظهر"}
                   </button>
                 }
               />
@@ -299,7 +299,7 @@ export default function LoginPage() {
             {requiresMfa && (
               <motion.div variants={formItem}>
                 <label className="block text-[8.5px] uppercase tracking-[0.28em] text-[#bfa68a]/65 mb-2">
-                  Authenticator Code
+                  كود تطبيق التحقق
                 </label>
                 <FocusInput
                   type="text"
@@ -335,31 +335,31 @@ export default function LoginPage() {
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '100% 0'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '0% 0'; }}
               >
-                {loading ? 'Signing in...' : requiresMfa ? 'Verify & Sign In' : 'Sign In'}
+                {loading ? "بنسجل دخولك..." : requiresMfa ? "اتأكد من الكود وادخل" : "سجّل دخول"}
               </button>
             </motion.div>
           </form>
 
           <motion.div variants={formItem} className="mt-6 space-y-2 text-center">
             <p className="text-[10.5px] text-white/32">
-              No account?{' '}
+              معندكش حساب؟{' '}
               <Link
                 href={`/register${prefilledEmail ? `?email=${encodeURIComponent(prefilledEmail)}` : ''}${redirect ? `${prefilledEmail ? '&' : '?'}redirect=${encodeURIComponent(redirect)}` : ''}`}
                 className="text-[#bfa68a]/75 hover:text-[#bfa68a] transition"
               >
-                Create one
+                اعمل حساب
               </Link>
             </p>
             <p className="text-[10.5px] text-white/22">
               <Link href="/forgot-password" className="hover:text-white/45 transition">
-                Forgot password
+                نسيت الباسورد؟
               </Link>
               <span className="mx-2 opacity-50">·</span>
               <Link
                 href={`/login/magic${prefilledEmail ? `?email=${encodeURIComponent(prefilledEmail)}` : ''}${redirect ? `${prefilledEmail ? '&' : '?'}redirect=${encodeURIComponent(redirect)}` : ''}`}
                 className="hover:text-white/45 transition"
               >
-                Sign in without password
+                ادخل من غير باسورد
               </Link>
             </p>
           </motion.div>

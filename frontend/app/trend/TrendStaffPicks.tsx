@@ -33,7 +33,7 @@ function FeaturedWatchCard({ watch }: { watch: Watch }) {
   const imageSrc = watch.imageUrl || imageTransformations.card(watch.image);
 
   return (
-    <Link translate="no" className="notranslate group flex flex-col h-full" href={`/watches/${watch.slug}`}>
+    <Link dir="ltr" translate="no" className="notranslate group flex flex-col h-full text-start" href={`/watches/${watch.slug}`}>
       <div className="relative flex-1 min-h-[260px] bg-black/30 overflow-hidden">
         <div className="absolute inset-0 p-8"><Watch3D watch={watch} fallbackSrc={imageSrc} alt={watch.name} index={watch.id} /></div>
       </div>
@@ -61,10 +61,12 @@ function StaffPickPair({
   pick,
   watch,
   isLoading,
+  isError,
 }: {
   pick: StaffPick;
   watch: Watch | undefined;
   isLoading: boolean;
+  isError: boolean;
 }) {
   const featuredVisualSrc = watch?.imageUrl || (watch?.image ? imageTransformations.detail(watch.image) : null);
 
@@ -93,7 +95,11 @@ function StaffPickPair({
 
       {/* Watch card — always right */}
       <div className="w-full lg:w-2/5 border border-[#bfa68a]/10 lg:border-l-0 flex flex-col">
-        {isLoading ? <FeaturedCardSkeleton /> : watch ? <FeaturedWatchCard watch={watch} /> : null}
+        {isLoading ? <FeaturedCardSkeleton /> : watch ? <FeaturedWatchCard watch={watch} /> : (
+          <p role={isError ? 'alert' : 'status'} className="p-6 text-sm leading-relaxed text-white/55">
+            {isError ? 'معرفناش نحمّل الساعة دي دلوقتي. جرّب تاني بعد شوية.' : 'الساعة دي مش متاحة دلوقتي. اتفرج على باقي الساعات اللي عندنا.'}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -114,17 +120,16 @@ export default function TrendStaffPicks() {
       <ScrollFade>
       <div>
         <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80">
-          Staff Picks
+          اختيارات فريقنا
         </p>
         <h2
           className="mt-4 font-playfair font-light leading-tight text-[#f0e6d2]"
           style={{ fontSize: 'clamp(1.8rem, 3.5vw, 3rem)' }}
         >
-          Hand-selected by our editors.
+          ساعات اختارها فريقنا بعناية.
         </h2>
         <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-white/45 text-balance">
-          Pieces that stopped us — chosen for form, precision, and the quiet confidence
-          they carry.
+          ساعات شدت انتباهنا بتصميمها ودقتها وفخامتها الهادية.
         </p>
       </div>
       </ScrollFade>
@@ -136,6 +141,7 @@ export default function TrendStaffPicks() {
               pick={pick}
               watch={results[idx]?.data}
               isLoading={results[idx]?.isLoading ?? true}
+              isError={results[idx]?.isError ?? false}
             />
           </ScrollFade>
         ))}

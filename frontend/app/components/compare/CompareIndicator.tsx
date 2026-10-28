@@ -67,7 +67,7 @@ const CompareIndicator = () => {
                     <path d="M18 7l-3 9a5 5 0 0 0 6 0L18 7" />
                   </svg>
                   <span className="text-[11px] font-inter font-semibold text-[#bfa68a] uppercase tracking-[0.15em]">
-                    Comparison
+                    المقارنة
                   </span>
                   <span className="text-[11px] font-inter text-white/30">{compareCount}/4</span>
                 </div>
@@ -75,7 +75,7 @@ const CompareIndicator = () => {
                   onClick={() => { clearCompare(); setIsExpanded(false); }}
                   className="text-[11px] text-white/25 hover:text-white/50 transition-colors font-inter"
                 >
-                  Clear all
+                  امسح الكل
                 </button>
               </div>
 
@@ -99,7 +99,7 @@ const CompareIndicator = () => {
                         </div>
                       </div>
                       <p className="text-[9px] text-white/30 font-inter mt-1 text-center truncate leading-tight">
-                        <span translate="no" className="notranslate">{watch.name}</span>
+                        <span dir="ltr" translate="no" className="notranslate">{watch.name}</span>
                       </p>
                     </div>
                   ))}
@@ -132,8 +132,8 @@ const CompareIndicator = () => {
                   }`}
                 >
                   {compareCount >= 2
-                    ? 'Compare Watches'
-                    : `Select ${2 - compareCount} more to compare`}
+                    ? "قارن الساعات"
+                    : `اختار ${2 - compareCount} كمان عشان تقارن`}
                 </button>
               </div>
             </div>
@@ -161,7 +161,7 @@ const CompareIndicator = () => {
 
         {/* Label + count */}
         <div className="flex flex-col items-start leading-none">
-          <span className="text-[10px] font-inter text-[#bfa68a]/60 uppercase tracking-[0.15em] mb-0.5">Compare</span>
+          <span className="text-[10px] font-inter text-[#bfa68a]/60 uppercase tracking-[0.15em] mb-0.5">قارن</span>
           <span className="text-[15px] font-playfair font-semibold text-[#f0e6d2]">{compareCount} <span className="text-white/30 text-[13px] font-inter font-normal">/ 4</span></span>
         </div>
 

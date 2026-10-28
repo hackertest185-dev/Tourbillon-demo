@@ -55,14 +55,14 @@ export default function WristFitWidget({ caseSpecs, initialValue }: WristFitWidg
   return (
     <div className="mt-10">
       <h2 className="text-2xl font-playfair font-semibold border-b border-white/10 pb-3 mb-6">
-        Wrist Fit
+        مقاس الساعة على إيدك
       </h2>
 
       <div className={`bg-white/3 border border-white/10 rounded-xl ${scores ? 'p-6 space-y-5' : 'p-4 space-y-3'}`}>
         {/* Input */}
         <div>
           <label className="block text-xs font-medium text-white/40 uppercase tracking-widest mb-2">
-            Your wrist circumference
+            محيط إيدك
           </label>
           <div className="flex items-center gap-3">
             <input
@@ -70,7 +70,7 @@ export default function WristFitWidget({ caseSpecs, initialValue }: WristFitWidg
               min={10}
               max={25}
               step={0.5}
-              placeholder="e.g. 17.0"
+              placeholder="زي 17.0"
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-[#bfa68a]/50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -78,7 +78,7 @@ export default function WristFitWidget({ caseSpecs, initialValue }: WristFitWidg
             <span className="text-white/40 text-sm">cm</span>
           </div>
           {inputValue && !isValid && (
-            <p className="text-xs text-white/40 mt-1">Enter a value between 10 and 25 cm</p>
+            <p className="text-xs text-white/40 mt-1">اكتب مقاس من 10 لـ 25 سم</p>
           )}
         </div>
 

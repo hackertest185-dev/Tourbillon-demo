@@ -8,11 +8,11 @@ import { useEffect, useState } from 'react';
 // (about a second), then retrieval, then the wording and the follow-up chips in parallel (about
 // three). The line is a report of where the turn is, not a spinner with words on it.
 const PHASES: { from: number; lines: string[] }[] = [
-  { from: 0, lines: ['reading your message', 'taking in the details'] },
-  { from: 1400, lines: ['searching the catalogue', 'pulling the closest references'] },
-  { from: 3000, lines: ['weighing the shortlist', 'comparing the picks'] },
-  { from: 5000, lines: ['writing', 'choosing the words'] },
-  { from: 9000, lines: ['still writing', 'almost there'] },
+  { from: 0, lines: ['بيقرأ رسالتك', 'بيراجع التفاصيل'] },
+  { from: 1400, lines: ['بيدوّر في الساعات', 'بيختار الأقرب لطلبك'] },
+  { from: 3000, lines: ['بيراجع الترشيحات', 'بيقارن الاختيارات'] },
+  { from: 5000, lines: ['بيجهّز الرد', 'بيكتبلك التفاصيل'] },
+  { from: 9000, lines: ['لسه بيجهّز الرد', 'قرب يخلّص'] },
 ];
 
 const LINE_MS = 2200;
@@ -50,7 +50,7 @@ export default function ThinkingIndicator() {
         </span>
         {/* Polite, so a screen reader hears the stage without losing the reply when it arrives. */}
         <span role="status" aria-live="polite" className="text-[0.8rem] leading-none text-white/45">
-          Tourbillon is {statusLine(elapsed)}
+          مساعد Tourbillon دلوقتي {statusLine(elapsed)}
           <span aria-hidden className="tracking-[0.2em]">…</span>
         </span>
       </div>

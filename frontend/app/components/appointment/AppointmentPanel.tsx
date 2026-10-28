@@ -2,8 +2,10 @@
 // Animation and portal handled by SlidingPanel.
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { phoneRegionName, timeSlotLabel } from '@/lib/egyptianLocale';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitAppointment } from '@/lib/api';
 import SlidingPanel, { PANEL_EXIT_MS } from './SlidingPanel';
@@ -87,11 +89,11 @@ const PHONE_REGIONS = [
   { code: '+377', label: 'Monaco' },
 ];
 
-const DAY_HEADERS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-const MONTH_FULL = ['January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'];
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY_HEADERS = ['اتنين', 'تلات', 'أربع', 'خميس', 'جمعة', 'سبت', 'حد'];
+const MONTH_FULL = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const DAY_NAMES = ['الأحد', 'الاتنين', 'التلات', 'الأربع', 'الخميس', 'الجمعة', 'السبت'];
+const MONTH_NAMES = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
 
 function parseTimeSlot(slot: string): { hours: number; minutes: number } {
   const [time, period] = slot.split(' ');
@@ -217,7 +219,7 @@ export default function AppointmentPanel({
         phoneRegionCode: phone.trim() ? phoneRegion : undefined,
         notifyByEmail,
         notifyBySms: false,
-        boutiqueName: 'Tourbillon Alexandria',
+        boutiqueName: "Tourbillon اسكندرية",
         visitPurpose: 'discover_brand',
         brandName: brandName || 'Tourbillon',
         appointmentDate: appointmentDate.toISOString(),
@@ -225,7 +227,7 @@ export default function AppointmentPanel({
       setSubmitted(true);
       setActiveSection(0);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(egyptianError(err, "حصلت مشكلة. جرّب تاني."));
     } finally {
       setSubmitting(false);
     }
@@ -247,7 +249,7 @@ export default function AppointmentPanel({
 
   const canGoPrev = calYear > today.getFullYear() || (calYear === today.getFullYear() && calMonth > today.getMonth());
 
-  const purposeLabel = brandName ? `Discover the ${brandName} collections` : 'Discover the Tourbillon collections';
+  const purposeLabel = brandName ? `اكتشف ساعات ${brandName}` : 'اكتشف ساعات Tourbillon';
   const formattedDate = selectedDate
     ? `${DAY_NAMES[selectedDate.getDay()]}, ${selectedDate.getDate()} ${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getFullYear()}`
     : '';
@@ -271,7 +273,7 @@ export default function AppointmentPanel({
           </div>
           {done && !isActive && onEdit && (
             <button onClick={onEdit} className="text-sm text-[#bfa68a] hover:text-[#d4c4a8] transition-colors underline underline-offset-2">
-              Edit
+              عدّل
             </button>
           )}
         </div>
@@ -304,7 +306,7 @@ export default function AppointmentPanel({
           }}
         >
           <span style={{ fontWeight: 600 }}>{r.code}</span>{' '}
-          <span style={{ color: 'rgba(255,255,255,0.5)' }}>{r.label}</span>
+          <span style={{ color: 'rgba(255,255,255,0.5)' }}>{phoneRegionName(r.label)}</span>
         </button>
       ))}
     </div>
@@ -314,8 +316,8 @@ export default function AppointmentPanel({
     <SlidingPanel
       isOpen={isOpen}
       onClose={onClose}
-      title={submitted ? 'Appointment Confirmed' : 'Book an Appointment'}
-      ariaLabel="Book an appointment"
+      title={submitted ? "معادك اتأكد" : "احجز معانا"}
+      ariaLabel="احجز معاد"
       onPanelScroll={() => setRegionDropdownOpen(false)}
       overlays={phoneDropdownOverlay}
     >
@@ -326,21 +328,21 @@ export default function AppointmentPanel({
               <path d="M20 6L9 17l-5-5"/>
             </svg>
           </div>
-          <p className="text-white/90 text-lg font-medium mb-2">{formattedDate} at {selectedTime}</p>
-          <p className="text-white/50 text-sm mb-1">Tourbillon Alexandria</p>
-          <p className="text-white/50 text-sm">Alexandria, Egypt</p>
-          <p className="text-white/40 text-sm mt-6">A confirmation has been sent to {email}.</p>
+          <p className="text-white/90 text-lg font-medium mb-2">{formattedDate} الساعة {timeSlotLabel(selectedTime)}</p>
+          <p className="text-white/50 text-sm mb-1">Tourbillon اسكندرية</p>
+          <p className="text-white/50 text-sm">اسكندرية، مصر</p>
+          <p className="text-white/40 text-sm mt-6">بعتنالك تأكيد على {email}.</p>
           <button
             onClick={onClose}
             className="mt-10 py-3.5 px-12 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors"
           >
-            Done
+            تم
           </button>
         </div>
       ) : (
         <div className="px-8 pb-8">
           {/* Section 1: Boutique */}
-          <SectionHeader num={1} title="Select a boutique" summary="Tourbillon Alexandria"
+          <SectionHeader num={1} title="اختار المعرض" summary="Tourbillon اسكندرية"
             isActive={activeSection === 1} isConfirmed={confirmed.has(1)} onEdit={() => setActiveSection(1)} />
           <div className="overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ maxHeight: activeSection === 1 ? 300 : 0, opacity: activeSection === 1 ? 1 : 0 }}>
@@ -351,21 +353,21 @@ export default function AppointmentPanel({
                     <div className="w-2 h-2 rounded-full bg-[#bfa68a]" />
                   </div>
                   <div>
-                    <p className="text-white/90 font-medium">Tourbillon Alexandria</p>
-                    <p className="text-white/50 text-sm mt-1">Alexandria, Egypt</p>
-                    <p className="text-white/40 text-xs mt-2">Mon - Sat: 10:00 AM - 6:00 PM</p>
+                    <p className="text-white/90 font-medium">Tourbillon اسكندرية</p>
+                    <p className="text-white/50 text-sm mt-1">اسكندرية، مصر</p>
+                    <p className="text-white/40 text-xs mt-2">من الاتنين للسبت: من 10 الصبح لـ 6 المغرب</p>
                   </div>
                 </div>
               </div>
               <button onClick={() => confirmSection(1)}
                 className="w-full mt-4 py-3 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors text-sm">
-                Confirm
+                أكد
               </button>
             </div>
           </div>
 
           {/* Section 2: Purpose */}
-          <SectionHeader num={2} title="Purpose of your visit" summary={purposeLabel}
+          <SectionHeader num={2} title="سبب زيارتك" summary={purposeLabel}
             isActive={activeSection === 2} isConfirmed={confirmed.has(2)} onEdit={() => setActiveSection(2)} />
           <div className="overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ maxHeight: activeSection === 2 ? 200 : 0, opacity: activeSection === 2 ? 1 : 0 }}>
@@ -380,19 +382,19 @@ export default function AppointmentPanel({
               </div>
               <button onClick={() => confirmSection(2)}
                 className="w-full mt-4 py-3 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors text-sm">
-                Confirm
+                أكد
               </button>
             </div>
           </div>
 
           {/* Section 3: Date + Time */}
-          <SectionHeader num={3} title="Appointment details"
-            summary={selectedDate && selectedTime ? `${formattedDate} at ${selectedTime}` : undefined}
+          <SectionHeader num={3} title="تفاصيل المعاد"
+            summary={selectedDate && selectedTime ? `${formattedDate} at ${timeSlotLabel(selectedTime)}` : undefined}
             isActive={activeSection === 3} isConfirmed={confirmed.has(3)} onEdit={() => setActiveSection(3)} />
           <div className="overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
             style={{ maxHeight: activeSection === 3 ? 800 : 0, opacity: activeSection === 3 ? 1 : 0 }}>
             <div className="pt-2 pb-6">
-              <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Date *</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">التاريخ *</label>
               <div className="flex items-center justify-between mb-4">
                 <button onClick={prevMonth} disabled={!canGoPrev}
                   className="text-white/40 hover:text-white/70 disabled:opacity-20 disabled:cursor-not-allowed transition-colors p-1">
@@ -438,16 +440,16 @@ export default function AppointmentPanel({
               {selectedDate && (
                 <div className="mt-5" style={{ animation: 'apptFadeUp 250ms ease-out' }}>
                   <style>{`@keyframes apptFadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }`}</style>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Available Time *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">المعاد المتاح *</label>
                   <div className="grid grid-cols-4 gap-2">
                     {TIME_SLOTS.map(slot => (
-                      <button key={slot} onClick={() => setSelectedTime(slot)}
+                      <button key={timeSlotLabel(slot)} onClick={() => setSelectedTime(slot)}
                         className={`py-2.5 rounded-lg text-sm font-medium border transition-colors ${
                           selectedTime === slot
                             ? 'border-[#bfa68a] bg-[#bfa68a]/15 text-[#ecddc8]'
                             : 'border-white/10 bg-white/5 text-white/50 hover:border-white/20 hover:text-white/70'
                         }`}>
-                        {slot}
+                        {timeSlotLabel(slot)}
                       </button>
                     ))}
                   </div>
@@ -455,13 +457,13 @@ export default function AppointmentPanel({
               )}
               <button onClick={() => confirmSection(3)} disabled={!canConfirmSection3}
                 className="w-full mt-5 py-3 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                Confirm
+                أكد
               </button>
             </div>
           </div>
 
           {/* Section 4: Personal Info */}
-          <SectionHeader num={4} title="Personal information"
+          <SectionHeader num={4} title="بياناتك الشخصية"
             summary={firstName && lastName ? `${firstName} ${lastName}` : undefined}
             isActive={activeSection === 4} isConfirmed={confirmed.has(4)} />
           <div className="overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]"
@@ -469,47 +471,47 @@ export default function AppointmentPanel({
             <div className="pt-2 pb-6">
               {!authLoading && !isAuthenticated && (
                 <div className="flex items-center gap-2 mb-5 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="text-white/50 text-sm">Already joined Tourbillon?</span>
+                  <span className="text-white/50 text-sm">عندك حساب على Tourbillon؟</span>
                   <Link href={`/login?redirect=${encodeURIComponent(loginRedirectPath)}`}
                     className="text-[#bfa68a] hover:text-[#d4c4a8] text-sm font-medium transition-colors">
-                    Sign in
+                    سجّل دخول
                   </Link>
                 </div>
               )}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-white/60 mb-2">First Name *</label>
+                  <label className="block text-sm text-white/60 mb-2">اسمك الأول *</label>
                   <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors"
-                    placeholder="First name" />
+                    placeholder="اسمك الأول" />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/60 mb-2">Last Name *</label>
+                  <label className="block text-sm text-white/60 mb-2">اسم العيلة *</label>
                   <input type="text" value={lastName} onChange={e => setLastName(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors"
-                    placeholder="Last name" />
+                    placeholder="اسم العيلة" />
                 </div>
                 <div>
-                  <label className="block text-sm text-white/60 mb-2">Email *</label>
+                  <label className="block text-sm text-white/60 mb-2">الإيميل *</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                     readOnly={isAuthenticated && !!user?.email}
                     className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors ${isAuthenticated && user?.email ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    placeholder="Email address" />
+                    placeholder="الإيميل" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">Notify me by *</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-white/40 mb-3">ابعتلي التأكيد على *</label>
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2.5">
                       <span className="w-[18px] h-[18px] rounded-full border-2 border-[#bfa68a] flex items-center justify-center">
                         <span className="w-2.5 h-2.5 rounded-full bg-[#bfa68a]" />
                       </span>
-                      <span className="text-sm text-white/70">Email</span>
+                      <span className="text-sm text-white/70">الإيميل</span>
                     </div>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm text-white/60 mb-2">
-                    Mobile Number <span className="text-white/30">(Optional)</span>
+                    رقم الموبايل <span className="text-white/30">(اختياري)</span>
                   </label>
                   <div className="flex gap-2">
                     <div className="flex-shrink-0">
@@ -530,7 +532,7 @@ export default function AppointmentPanel({
                     </div>
                     <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                       className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors"
-                      placeholder="Mobile number" />
+                      placeholder="رقم الموبايل" />
                   </div>
                 </div>
               </div>
@@ -539,7 +541,7 @@ export default function AppointmentPanel({
               )}
               <button onClick={handleSubmit} disabled={!canSubmit || submitting}
                 className="w-full mt-5 py-3 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                {submitting ? 'Booking...' : 'Book Appointment'}
+                {submitting ? "بنحجز معادك..." : "احجز المعاد"}
               </button>
             </div>
           </div>

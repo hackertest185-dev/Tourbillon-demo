@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             lastUserIdRef.current = null;
             setUser(null);
             useFavourites.getState().reset();
-            toast.error('Your session has expired. Please sign in again.');
+            toast.error('صلاحية الجلسة خلصت. سجّل دخولك تاني.');
             router.push('/auth/start');
         });
     }, []);

@@ -11,23 +11,23 @@ import ScrollFade from '@/app/scrollMotion/ScrollFade';
 
 const contactItems = [
   {
-    label: 'Email',
+    label: "الإيميل",
     value: 'nourammar877@gmail.com',
     href: 'mailto:nourammar877@gmail.com',
   },
   {
-    label: 'WhatsApp',
+    label: "واتساب",
     value: '01030888493',
-    href: 'https://wa.me/201030888493?text=Hello%20Tourbillon%2C%20I%27d%20like%20to%20ask%20about%20a%20watch.',
+    href: `https://wa.me/201030888493?text=${encodeURIComponent('أهلًا Tourbillon، كنت عايز أسأل عن ساعة.')}`,
   },
   {
-    label: 'Address',
-    value: 'Alexandria',
+    label: "العنوان",
+    value: 'اسكندرية',
     href: null,
   },
   {
-    label: 'Hours',
-    value: 'Monday – Saturday\n10:00 am – 6:00 pm',
+    label: "مواعيد الشغل",
+    value: 'من الاتنين للسبت\nمن 10 الصبح لـ 6 المغرب',
     href: null,
   },
 ];
@@ -63,7 +63,7 @@ export default function ContactPage() {
             transition={{ duration: 0.6 }}
             className="relative text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80 mb-5"
           >
-            Get in Touch
+            كلمنا
           </motion.p>
           <motion.h1
             initial={{ opacity: 0, y: 16 }}
@@ -72,7 +72,7 @@ export default function ContactPage() {
             className="relative font-playfair font-light text-[#f0e6d2] leading-none mb-6 -ml-[0.06em]"
             style={{ fontSize: 'clamp(3.5rem, 8vw, 7rem)' }}
           >
-            Contact Us
+            كلمنا
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -80,8 +80,7 @@ export default function ContactPage() {
             transition={{ duration: 0.7, delay: 0.15 }}
             className="relative text-white/35 text-sm max-w-[380px] leading-relaxed text-balance"
           >
-            Our advisors are available to assist with acquisitions, valuations,
-            and any enquiry about our collection.
+            خبرائنا موجودين يساعدوك في الشراء، وتقييم الساعات، وأي سؤال عن الساعات اللي عندنا.
           </motion.p>
         </div>
         </ScrollFade>
@@ -92,7 +91,7 @@ export default function ContactPage() {
           {/* Left — contact details */}
           <ScrollFade>
           <div className="lg:border-r border-[#bfa68a]/8 lg:pr-20 pb-16 lg:pb-0">
-            <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80 mb-10">Contact Information</p>
+            <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80 mb-10">بيانات التواصل</p>
             <div>
               {contactItems.map((item, i) => (
                 <motion.div
@@ -128,7 +127,7 @@ export default function ContactPage() {
                 href="https://wa.me/201030888493?text=Hello%20Tourbillon%2C%20I%27d%20like%20to%20ask%20about%20a%20watch."
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Contact us on WhatsApp"
+                aria-label="كلمنا على واتساب"
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
@@ -145,7 +144,7 @@ export default function ContactPage() {
                   <MessageCircle size={27} strokeWidth={1.5} />
                 </motion.span>
                 <span className="block text-[10px] uppercase tracking-[0.25em] text-[#f0e6d2]">
-                  Call us on WhatsApp
+                  اتصل وكلمنا على واتساب
                 </span>
                 <span className="mt-2 block text-xs text-white/40">01030888493</span>
                 <span className="absolute bottom-4 right-5 text-[#bfa68a]/70 transition-transform group-hover:translate-x-1">→</span>
@@ -153,7 +152,7 @@ export default function ContactPage() {
 
               <motion.a
                 href="mailto:nourammar877@gmail.com?subject=Tourbillon%20Inquiry"
-                aria-label="Send us an email"
+                aria-label="ابعتلنا على الإيميل"
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.3 }}
@@ -170,7 +169,7 @@ export default function ContactPage() {
                   <Mail size={27} strokeWidth={1.5} />
                 </motion.span>
                 <span className="block text-[10px] uppercase tracking-[0.25em] text-[#f0e6d2]">
-                  Send us an Email
+                  ابعتلنا على الإيميل
                 </span>
                 <span className="mt-2 block text-xs text-white/40 break-all">nourammar877@gmail.com</span>
                 <span className="absolute bottom-4 right-5 text-[#bfa68a]/70 transition-transform group-hover:translate-x-1">→</span>
@@ -188,16 +187,16 @@ export default function ContactPage() {
             className="lg:pl-20 pt-16 lg:pt-0 flex flex-col justify-between"
           >
             <div>
-              <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80 mb-10">Private Advisory</p>
+              <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80 mb-10">استشارة خاصة</p>
 
               <blockquote className="border-l-2 border-[#bfa68a]/60 pl-6 mb-10 py-1">
                 <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-                  &ldquo;Every great timepiece deserves a conversation.&rdquo;
+                  كل ساعة عظيمة تستاهل كلام يتقال عنها.
                 </p>
               </blockquote>
 
               <p className="text-white/35 text-sm leading-relaxed mb-10 max-w-sm">
-                Reach out for personalised assistance with bespoke acquisitions, watch valuations, or Price on Request timepieces. Our specialists respond within 24 to 48 hours.
+                كلمنا لو محتاج مساعدة خاصة في شراء ساعة، أو تقييم ساعة، أو ساعة سعرها عند السؤال. خبرائنا بيردوا عليك خلال 24 لـ 48 ساعة.
               </p>
 
               <button
@@ -206,7 +205,7 @@ export default function ContactPage() {
                 className="relative inline-flex items-center justify-center text-[10px] uppercase tracking-[0.3em] text-[#bfa68a] border border-[#bfa68a]/25 px-12 py-4 hover:bg-[#bfa68a]/8 hover:border-[#bfa68a]/40 transition-all duration-500 group overflow-hidden mb-4"
               >
                 <span className="transform transition-transform duration-500 group-hover:-translate-x-3">
-                  Book an Appointment
+                  احجز معانا
                 </span>
                 <span className="absolute right-8 opacity-0 -translate-x-4 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0 text-[14px]">
                   →
@@ -218,7 +217,7 @@ export default function ContactPage() {
                 className="relative inline-flex items-center justify-center text-[10px] uppercase tracking-[0.3em] text-[#bfa68a] border border-[#bfa68a]/25 px-12 py-4 hover:bg-[#bfa68a]/8 hover:border-[#bfa68a]/40 transition-all duration-500 group overflow-hidden"
               >
                 <span className="transform transition-transform duration-500 group-hover:-translate-x-3">
-                  Send an Email
+                  ابعتلنا على الإيميل
                 </span>
                 <span className="absolute right-8 opacity-0 -translate-x-4 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0 text-[14px]">
                   →

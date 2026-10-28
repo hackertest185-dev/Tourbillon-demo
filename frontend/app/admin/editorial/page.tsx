@@ -42,7 +42,7 @@ export default function AdminEditorialPage() {
       setEditing(null);
       await load();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Save failed');
+      alert(e instanceof Error ? e.message : "الحفظ منفعش");
     } finally { setSaving(false); }
   };
 
@@ -53,7 +53,7 @@ export default function AdminEditorialPage() {
       const r = await adminSeedEditorial();
       setActionMsg(r.message);
     } catch (e: unknown) {
-      setActionMsg(e instanceof Error ? e.message : 'Failed');
+      setActionMsg(e instanceof Error ? e.message : "منفعش");
     } finally { setWorking(false); }
   };
 
@@ -65,14 +65,14 @@ export default function AdminEditorialPage() {
       setActionMsg(`Deleted ${r.deleted} records`);
       await load();
     } catch (e: unknown) {
-      setActionMsg(e instanceof Error ? e.message : 'Failed');
+      setActionMsg(e instanceof Error ? e.message : "منفعش");
     } finally { setWorking(false); }
   };
 
   const set = (key: keyof WatchEditorialContent, val: string) =>
     setEditing(e => e ? { ...e, content: { ...e.content, [key]: val } } : e);
 
-  if (loading) return <div className="p-8 text-white text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-white text-sm">بنحمّل...</div>;
 
   const coverage = status ? `${status.withEditorial}/${status.total} (${status.coveragePct.toFixed(0)}%)` : '—';
 
@@ -80,19 +80,19 @@ export default function AdminEditorialPage() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Editorial</h1>
-          <p className="text-[#555] text-xs mt-0.5">Coverage: {coverage}</p>
+          <h1 className="text-xl font-semibold text-white">المقالات والمحتوى</h1>
+          <p className="text-[#555] text-xs mt-0.5">نسبة التغطية: {coverage}</p>
         </div>
         <div className="flex items-center gap-2">
           {actionMsg && <span className="text-xs text-green-400">{actionMsg}</span>}
           <button
             className="bg-white/10 text-red-300 px-3 py-1.5 rounded text-sm hover:bg-red-900/40 transition-colors disabled:opacity-50"
             onClick={handleClear} disabled={working}
-          >Clear All</button>
+          >امسح الكل</button>
           <button
             className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
             onClick={handleSeed} disabled={working}
-          >{working ? 'Working…' : 'Seed Missing'}</button>
+          >{working ? "شغّال..." : "ضيف اللي ناقص"}</button>
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export default function AdminEditorialPage() {
 
       <div className="mb-4">
         <input
-          type="text" placeholder="Search watches..."
+          type="text" placeholder="دوّر على ساعة..."
           className="bg-[#111] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 w-80 focus:outline-none focus:border-[#c9a96e]"
           value={search} onChange={e => setSearch(e.target.value)}
         />
@@ -114,9 +114,9 @@ export default function AdminEditorialPage() {
         <table className="w-full text-left text-sm border-collapse">
           <thead>
             <tr className="border-b border-[#1e1e1e] bg-[#111]">
-              <th className="px-3 py-2 text-[#555] font-normal">Watch</th>
-              <th className="px-3 py-2 text-[#555] font-normal w-24">Status</th>
-              <th className="px-3 py-2 text-[#555] font-normal w-20">Actions</th>
+              <th className="px-3 py-2 text-[#555] font-normal">الساعة</th>
+              <th className="px-3 py-2 text-[#555] font-normal w-24">الحالة</th>
+              <th className="px-3 py-2 text-[#555] font-normal w-20">التحكم</th>
             </tr>
           </thead>
           <tbody>
@@ -128,16 +128,16 @@ export default function AdminEditorialPage() {
                 </td>
                 <td className="px-3 py-2">
                   {w.editorialContent ? (
-                    <span className="text-green-500 text-[10px]">Done</span>
+                    <span className="text-green-500 text-[10px]">تم</span>
                   ) : (
-                    <span className="text-[#444] text-[10px]">Missing</span>
+                    <span className="text-[#444] text-[10px]">ناقص</span>
                   )}
                 </td>
                 <td className="px-3 py-2">
                   <button
                     className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors"
                     onClick={() => openEdit(w)}
-                  >Edit</button>
+                  >عدّل</button>
                 </td>
               </tr>
             ))}
@@ -148,14 +148,14 @@ export default function AdminEditorialPage() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-[#111] border border-[#1e1e1e] rounded-lg w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-white text-base font-semibold mb-1">Editorial — {editing.watch.name}</h2>
+            <h2 className="text-white text-base font-semibold mb-1">المحتوى — {editing.watch.name}</h2>
             <p className="text-[#555] text-xs mb-4">{editing.watch.description}</p>
             <div className="space-y-4">
               {([
                 ['whyItMatters', 'Why It Matters'],
-                ['collectorAppeal', 'Collector Appeal'],
-                ['designLanguage', 'Design Language'],
-                ['bestFor', 'Best For'],
+                ['collectorAppeal', "إيه اللي بيخلي هواة الساعات يحبوها؟"],
+                ['designLanguage', "طابع التصميم"],
+                ['bestFor', "أنسب لمين؟"],
               ] as [keyof WatchEditorialContent, string][]).map(([key, label]) => (
                 <div key={key}>
                   <label className="text-[#555] text-xs block mb-1">{label}</label>
@@ -169,11 +169,11 @@ export default function AdminEditorialPage() {
               ))}
             </div>
             <div className="flex justify-end gap-2 mt-5">
-              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={() => setEditing(null)}>Cancel</button>
+              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={() => setEditing(null)}>إلغاء</button>
               <button
                 className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
                 onClick={handleSave} disabled={saving}
-              >{saving ? 'Saving…' : 'Save'}</button>
+              >{saving ? "بنحفظ..." : "احفظ"}</button>
             </div>
           </div>
         </div>

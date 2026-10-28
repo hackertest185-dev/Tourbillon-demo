@@ -135,7 +135,7 @@ export default function VideoSection() {
           loop
           playsInline
           preload="auto"
-          aria-label="Tourbillon hero video"
+          aria-label="فيديو Tourbillon الرئيسي"
           className="absolute inset-0 h-full w-full object-cover"
         >
           <source src={activeSource} type="video/mp4" />
@@ -148,7 +148,7 @@ export default function VideoSection() {
         ref={scrollHintRef}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 select-none text-xs uppercase tracking-[0.2em] text-white/40 animate-bounce"
       >
-        scroll
+        انزل لتحت
       </div>
     </section>
   );

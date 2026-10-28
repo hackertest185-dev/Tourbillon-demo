@@ -90,7 +90,7 @@ export const useFavourites = create<FavouritesStore>()((set, get) => ({
       else await addFavourite(watchId);
     } catch {
       set({ favouriteWatchIds: new Set(favouriteWatchIds) });
-      toast.error('Could not update favourites. Please try again.');
+      toast.error('معرفناش نحدّث المفضلة. جرّب تاني.');
     }
   },
 
@@ -112,7 +112,7 @@ export const useFavourites = create<FavouritesStore>()((set, get) => ({
       set({ collections: fresh.collections });
     } catch {
       set({ collections });
-      toast.error('Could not add to collection. Please try again.');
+      toast.error('معرفناش نضيف الساعة للمجموعة. جرّب تاني.');
     }
   },
 
@@ -134,7 +134,7 @@ export const useFavourites = create<FavouritesStore>()((set, get) => ({
       set({ collections: fresh.collections });
     } catch {
       set({ collections });
-      toast.error('Could not remove from collection. Please try again.');
+      toast.error('معرفناش نشيل الساعة من المجموعة. جرّب تاني.');
     }
   },
 
@@ -158,7 +158,7 @@ export const useFavourites = create<FavouritesStore>()((set, get) => ({
       }));
     } catch {
       set({ collections: snapshot });
-      toast.error('Could not rename collection. Please try again.');
+      toast.error('معرفناش نغيّر اسم المجموعة. جرّب تاني.');
     }
   },
 
@@ -170,7 +170,7 @@ export const useFavourites = create<FavouritesStore>()((set, get) => ({
       await apiDeleteCollection(collectionId);
     } catch {
       set({ collections });
-      toast.error('Could not delete collection. Please try again.');
+      toast.error('معرفناش نمسح المجموعة. جرّب تاني.');
     }
   },
 

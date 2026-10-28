@@ -48,12 +48,12 @@ const CompareToggle = ({ watch, variant = 'icon', className = '' }: CompareToggl
           <path d="M6 7l-3 9a5 5 0 0 0 6 0L6 7" />
           <path d="M18 7l-3 9a5 5 0 0 0 6 0L18 7" />
         </svg>
-        {active ? 'Remove from Comparison' : disabled ? 'Compare Full (4/4)' : 'Add to Comparison'}
+        {active ? "شيل من المقارنة" : disabled ? "المقارنة كاملة (4/4)" : "ضيف للمقارنة"}
       </button>
     );
   }
 
-  const tooltipLabel = active ? 'Remove from comparison' : disabled ? 'Comparison full (4/4)' : 'Add to comparison';
+  const tooltipLabel = active ? "شيل من المقارنة" : disabled ? "المقارنة كاملة (4/4)" : "ضيف للمقارنة";
 
   return (
     <Tooltip>

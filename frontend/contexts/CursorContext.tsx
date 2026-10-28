@@ -12,15 +12,15 @@ export interface CursorOption {
 }
 
 export const CURSOR_OPTIONS: CursorOption[] = [
-  { id: 'default',    label: 'Default',     description: 'System cursor'           },
-  { id: 'tourbillon', label: 'Tourbillon',  description: 'Rotating escapement'     },
-  { id: 'crosshair',  label: 'Crosshair',   description: 'Dial precision marker'   },
-  { id: 'lumed',      label: 'Lume Dot',    description: 'Luminous hour pip'       },
-  { id: 'hand',       label: 'Watch Hand',  description: 'Sword-hand pointer'      },
-  { id: 'bezel',      label: 'Bezel',       description: 'Rotating bezel ring'     },
-  { id: 'compass',    label: 'Compass',     description: 'Navigation rose'         },
-  { id: 'sapphire',   label: 'Sapphire',    description: 'Crystal facet gem'       },
-  { id: 'rotor',      label: 'Rotor',       description: 'Automatic winding rotor' },
+  { id: 'default',    label: 'العادي',       description: 'مؤشر الجهاز العادي' },
+  { id: 'tourbillon', label: 'Tourbillon',   description: 'ميكانيزم بيلف' },
+  { id: 'crosshair',  label: 'علامة الدقة',   description: 'علامة شبه تدريج وش الساعة' },
+  { id: 'lumed',      label: 'نقطة منوّرة',  description: 'نقطة نور شبه علامات الساعة' },
+  { id: 'hand',       label: 'عقرب ساعة',    description: 'مؤشر على شكل عقرب ساعة' },
+  { id: 'bezel',      label: 'إطار الساعة',  description: 'دايرة بتلف حوالين المؤشر' },
+  { id: 'compass',    label: 'بوصلة',        description: 'علامة على شكل بوصلة' },
+  { id: 'sapphire',   label: 'كريستالة',     description: 'شكل مستوحى من زجاج الساعة' },
+  { id: 'rotor',      label: 'دوّار الساعة', description: 'شكل مستوحى من ميكانيزم الساعة الأوتوماتيك' },
 ];
 
 interface CursorContextType {

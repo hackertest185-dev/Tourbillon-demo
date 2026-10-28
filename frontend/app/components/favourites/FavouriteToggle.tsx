@@ -64,14 +64,14 @@ const SignInNudge = ({ anchorRect, onClose }: { anchorRect: DOMRect; onClose: ()
           strokeWidth="1"
         />
       </svg>
-      <p className="text-xs text-white/60 font-inter mb-1">Sign in to save watches</p>
-      <p className="text-[11px] text-white/35 font-inter mb-2.5">and receive email alerts on price drops for your favourites</p>
+      <p className="text-xs text-white/60 font-inter mb-1">سجّل دخولك واحفظ الساعات اللي عجبتك</p>
+      <p className="text-[11px] text-white/35 font-inter mb-2.5">عشان ترجع لها بسهولة وقت ما تحب</p>
       <Link
         href="/login?redirect=/favourites"
         onClick={onClose}
         className="inline-block px-4 py-1.5 rounded-lg bg-[#bfa68a]/15 border border-[#bfa68a]/30 text-xs font-inter font-semibold text-[#bfa68a] hover:bg-[#bfa68a]/25 hover:text-[#d4b896] transition-colors"
       >
-        Sign in
+        سجّل دخول
       </Link>
     </motion.div>,
     document.body

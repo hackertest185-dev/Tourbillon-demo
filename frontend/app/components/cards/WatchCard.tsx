@@ -77,7 +77,7 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
 
       {/* Watch image */}
       <div className="relative mb-4" style={{ transform: 'translateZ(20px)' }}>
-        <Link translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
+        <Link dir="ltr" translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
           <div className="w-full aspect-square bg-gradient-to-br from-black/40 to-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden cursor-pointer">
             <Watch3D watch={watch} fallbackSrc={watch.image || watch.imageUrl ? baseImageSrc : undefined} alt={watch.name} index={watch.id} priority={isPriority} />
           </div>
@@ -90,12 +90,12 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
       </div>
 
       {/* Text info */}
-      <div className="space-y-2" style={{ transform: 'translateZ(10px)' }}>
+      <div dir="ltr" translate="no" className="notranslate space-y-2 text-start" style={{ transform: 'translateZ(10px)' }}>
         <button
           onClick={handleBrandClick}
           className="text-xs text-white/60 hover:text-white/90 font-inter font-light uppercase tracking-wide transition-colors cursor-pointer bg-transparent border-none p-0 text-left underline decoration-white/20 hover:decoration-white/60 underline-offset-2"
         >
-          <span translate="no" className="notranslate">
+          <span dir="ltr" translate="no" className="notranslate">
             {brands.find(b => b.id === watch.brandId)?.name || 'Unknown Brand'}
           </span>
         </button>
@@ -105,13 +105,13 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
             onClick={handleCollectionClick}
             className="block text-xs text-white/50 hover:text-white/80 font-inter font-light transition-colors cursor-pointer bg-transparent border-none p-0 text-left underline decoration-white/15 hover:decoration-white/50 underline-offset-2"
           >
-            <span translate="no" className="notranslate">{collections.find(c => c.id === watch.collectionId)?.name}</span>
+            <span dir="ltr" translate="no" className="notranslate">{collections.find(c => c.id === watch.collectionId)?.name}</span>
           </button>
         )}
 
-        <Link translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
+        <Link dir="ltr" translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
           <h3 className="text-sm font-inter font-medium text-white group-hover:text-[#f0e6d2] transition-colors truncate cursor-pointer">
-            <span translate="no" className="notranslate">{watch.name}</span>
+            <span dir="ltr" translate="no" className="notranslate">{watch.name}</span>
           </h3>
         </Link>
 

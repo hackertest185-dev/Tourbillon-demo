@@ -7,21 +7,21 @@ import { ROUTES } from '@/app/constants/routes';
 
 const navigationColumns = [
   {
-    title: 'Explore',
+    title: "اكتشف",
     links: [
-      { label: 'Watches', href: ROUTES.WATCHES, description: 'Browse the full collection.' },
-      { label: 'Stories', href: ROUTES.STORIES, description: 'Read editorial notes and horology pieces.' },
-      { label: 'Smart Search', href: '/tourbillon#smart-search', description: 'Describe a brief and start from the homepage finder.' },
-      { label: 'Compare', href: '/compare', description: 'Review details side by side.' },
+      { label: "الساعات", href: ROUTES.WATCHES, description: "اتفرج على كل الساعات اللي عندنا." },
+      { label: "حكايات", href: ROUTES.STORIES, description: "اقرأ حكايات ومعلومات مميزة عن عالم الساعات." },
+      { label: "البحث الذكي", href: '/tourbillon#smart-search', description: "قولنا بتدور على ساعة شكلها إيه، وابدأ البحث من الصفحة الرئيسية." },
+      { label: "قارن", href: '/compare', description: "قارن تفاصيل الساعات جنب بعض." },
     ],
   },
   {
-    title: 'Client Services',
+    title: "خدمة العملاء",
     links: [
-      { label: 'Watch DNA', href: '/tourbillon#watch-dna', description: 'See how taste signals shape the homepage curation.' },
-      { label: 'Favourites', href: '/favourites', description: 'Keep saved references within reach.' },
-      { label: 'Sign In', href: ROUTES.LOGIN, description: 'Access your account and saved activity.' },
-      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/hoanganhchu/', description: 'Follow the project and its builder.' },
+      { label: "ذوقك في الساعات", href: '/tourbillon#watch-dna', description: "شوف إزاي اختياراتك بتساعدنا نرشحلك ساعات على ذوقك." },
+      { label: "المفضلة", href: '/favourites', description: "خلي الساعات اللي عجبتك متسجلة عندك عشان ترجع لها بسهولة." },
+      { label: "سجّل دخول", href: ROUTES.LOGIN, description: "ادخل على حسابك وشوف الساعات والحاجات اللي حفظتها." },
+      { label: "لينكد إن", href: 'https://www.linkedin.com/in/hoanganhchu/', description: "تابع المشروع واللي اشتغل عليه." },
     ],
   },
 ];
@@ -119,18 +119,17 @@ export default function Footer() {
             <p className="mb-6 text-[9px] uppercase tracking-[0.38em] text-[#bfa68a] font-inter">
               Tourbillon
             </p>
-            <div className="max-w-xl border-l border-[#bfa68a]/28 pl-6 sm:pl-8">
+            <div className="max-w-xl border-s border-[#bfa68a]/28 ps-6 sm:ps-8">
               <h2 className="font-playfair text-[2.25rem] font-light leading-[0.95] text-[#f0e6d2] sm:text-[2.75rem]">
-                Curated watches for collectors who value restraint.
+                ساعات مختارة بعناية للي بيحبوا الفخامة الهادية من غير مبالغة.
               </h2>
               <p className="mt-5 max-w-md text-[14px] leading-relaxed text-white/42 font-inter sm:text-[15px]">
-                Private sourcing, considered storytelling, and a quieter way to discover modern
-                horology.
+                بنساعدك تكتشف ساعات مميزة بطريقة هادية وراقية، من أول حكاية كل ساعة لحد ما تلاقي اللي يناسب ذوقك.
               </p>
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <FooterCta href={ROUTES.CONTACT} label="Book an Advisor" />
+              <FooterCta href={ROUTES.CONTACT} label="احجز مع خبير ساعات" />
             </div>
           </div>
 
@@ -167,10 +166,10 @@ export default function Footer() {
 
         <div className="flex flex-col gap-4 py-6 text-[11px] tracking-[0.14em] text-white/22 font-inter md:py-7 lg:pr-56 xl:pr-64">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span>Price on Request available</span>
+            <span>السعر متاح لما تسأل عنه</span>
           </div>
           <p className="text-white/45 text-[12px] tracking-[0.08em]">
-            All images and video assets are used for portfolio and demonstration purposes only. No commercial use is intended.
+            كل الصور والفيديوهات المعروضة هنا لغرض عرض المشروع والتجربة بس، ومش للاستخدام التجاري.
           </p>
         </div>
       </div>

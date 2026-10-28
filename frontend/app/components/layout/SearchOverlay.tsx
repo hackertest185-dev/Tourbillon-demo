@@ -58,7 +58,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label="Search watches"
+          aria-label="دوّر على ساعة"
           onKeyDown={e => e.key === 'Escape' && onClose()}
         >
           {/* Backdrop */}
@@ -120,7 +120,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       lineHeight: 1,
                       letterSpacing: '-0.01em',
                     }}>
-                      Find Your Watch
+                      لاقي ساعتك
                     </span>
                     <span style={{
                       fontFamily: 'var(--font-inter)',
@@ -145,7 +145,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     }}
                     onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.50)')}
                     onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.20)')}
-                    aria-label="Close"
+                    aria-label="اقفل"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none">
                       <path d="M18 6L6 18M6 6l12 12"/>
@@ -170,7 +170,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       if (e.key === 'Escape') onClose();
                       if (e.key === 'Enter') { e.preventDefault(); handleSubmit(query); }
                     }}
-                    placeholder="Describe what you're looking for…"
+                    placeholder="قولنا بتدور على ساعة شكلها إيه…"
                     disabled={loading}
                     style={{
                       flex: 1, minWidth: 0,
@@ -217,7 +217,7 @@ export default function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       color: 'rgba(255,255,255,0.20)',
                       marginBottom: 10,
                     }}>
-                      Explore ideas
+                      اكتشف اقتراحات جديدة
                     </p>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {SUGGESTIONS.map(s => (

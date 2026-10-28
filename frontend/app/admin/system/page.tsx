@@ -68,7 +68,7 @@ export default function AdminSystemPage() {
       const m = await fn();
       setMsg(prev => ({ ...prev, [key]: m }));
     } catch (e: unknown) {
-      setMsg(prev => ({ ...prev, [key]: e instanceof Error ? e.message : 'Error' }));
+      setMsg(prev => ({ ...prev, [key]: e instanceof Error ? e.message : "حصلت مشكلة" }));
     } finally {
       setWorking(w => ({ ...w, [key]: false }));
     }
@@ -108,7 +108,7 @@ export default function AdminSystemPage() {
   const handleMigrateS3 = () => act('img-s3', async () => {
     if (!confirm('Migrate all Cloudinary-hosted images to S3? This makes real network requests.')) return 'Cancelled';
     const r = await adminMigrateToS3(false);
-    return r.message ?? 'Done';
+    return r.message ?? "تم";
   });
 
   const handleNormalizeNames = () => act('img-names', async () => {
@@ -146,33 +146,33 @@ export default function AdminSystemPage() {
   return (
     <div className="p-6">
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-white">System</h1>
-        <p className="text-[#555] text-xs mt-0.5">Embeddings, caches, and data maintenance</p>
+        <h1 className="text-xl font-semibold text-white">النظام</h1>
+        <p className="text-[#555] text-xs mt-0.5">صيانة بيانات البحث الذكي والبيانات المتخزنة مؤقتًا</p>
       </div>
 
-      <Card title="Administrator MFA">
+      <Card title="التحقق الإضافي للأدمن">
         <p className="text-[#777] text-xs mb-3">
           {mfaStatus?.enabled
-            ? 'Authenticator MFA is enabled for this account.'
-            : 'Enable an authenticator app before enabling mandatory admin writes in production.'}
+            ? "التحقق الإضافي بتطبيق المصادقة شغّال على الحساب ده."
+            : "ظبّط تطبيق المصادقة قبل ما تفعّل شرط التحقق الإضافي لتعديلات الأدمن على الموقع المنشور."}
         </p>
         {!mfaStatus?.enabled && (
           <div className="space-y-3">
-            <ActionBtn label={W['mfa-setup'] ? 'Preparing…' : 'Start Setup'} onClick={handleMfaSetup} disabled={W['mfa-setup']} />
+            <ActionBtn label={W['mfa-setup'] ? "بنجهّز..." : "ابدأ الإعداد"} onClick={handleMfaSetup} disabled={W['mfa-setup']} />
             {mfaSetup && (
               <div className="space-y-2">
-                <p className="text-[#555] text-[11px] break-all">Key: <span className="text-[#aaa] font-mono">{mfaSetup.sharedKey}</span></p>
-                <p className="text-[#555] text-[11px] break-all">URI: <span className="text-[#aaa] font-mono">{mfaSetup.authenticatorUri}</span></p>
+                <p className="text-[#555] text-[11px] break-all">المفتاح: <span className="text-[#aaa] font-mono">{mfaSetup.sharedKey}</span></p>
+                <p className="text-[#555] text-[11px] break-all">لينك الإعداد: <span className="text-[#aaa] font-mono">{mfaSetup.authenticatorUri}</span></p>
                 <div className="flex gap-2 items-center">
                   <input
                     value={mfaCode}
                     onChange={e => setMfaCode(e.target.value.replace(/\s/g, ''))}
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    placeholder="6-digit code"
+                    placeholder="كود من 6 أرقام"
                     className="bg-black border border-[#292929] rounded px-3 py-1.5 text-xs text-white outline-none"
                   />
-                  <ActionBtn label={W['mfa-enable'] ? 'Enabling…' : 'Enable MFA'} onClick={handleMfaEnable} disabled={W['mfa-enable'] || mfaCode.length < 6} />
+                  <ActionBtn label={W['mfa-enable'] ? "بنشغّل..." : "شغّل التحقق الإضافي"} onClick={handleMfaEnable} disabled={W['mfa-enable'] || mfaCode.length < 6} />
                 </div>
               </div>
             )}
@@ -182,7 +182,7 @@ export default function AdminSystemPage() {
         {msg['mfa-enable'] && <p className="text-green-400 text-xs mt-3">{msg['mfa-enable']}</p>}
         {recoveryCodes && (
           <div className="mt-3 border border-yellow-800/60 bg-yellow-950/20 rounded p-3">
-            <p className="text-yellow-300 text-xs mb-2">Save these recovery codes now. They will not be shown again.</p>
+            <p className="text-yellow-300 text-xs mb-2">احفظ أكواد استرجاع الدخول دلوقتي. مش هتظهر تاني.</p>
             <p className="text-yellow-100 text-xs font-mono break-all">{recoveryCodes.join(' · ')}</p>
           </div>
         )}
@@ -190,12 +190,12 @@ export default function AdminSystemPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-        <Card title="Watch Embeddings">
+        <Card title="بيانات الساعات للبحث الذكي">
           {embStatus && (
             <div className="mb-4 space-y-0.5">
-              <Stat label="Total watches" value={embStatus.total} />
-              <Stat label="Embedded" value={embStatus.embedded} />
-              <Stat label="Coverage" value={`${embStatus.coveragePct.toFixed(1)}%`} />
+              <Stat label="إجمالي الساعات" value={embStatus.total} />
+              <Stat label="اتجهزت للبحث الذكي" value={embStatus.embedded} />
+              <Stat label="نسبة التغطية" value={`${embStatus.coveragePct.toFixed(1)}%`} />
             </div>
           )}
           {embStatus && (
@@ -206,57 +206,57 @@ export default function AdminSystemPage() {
           {msg['emb'] && <p className="text-green-400 text-xs mb-3">{msg['emb']}</p>}
           {msg['emb-regen'] && <p className="text-green-400 text-xs mb-3">{msg['emb-regen']}</p>}
           <div className="flex gap-2">
-            <ActionBtn label={W['emb'] ? 'Generating…' : 'Generate Missing'} onClick={handleGenerateEmbeddings} disabled={W['emb']} />
-            <ActionBtn label={W['emb-regen'] ? 'Regenerating…' : 'Regenerate All'} onClick={handleRegenerateEmbeddings} disabled={W['emb-regen']} danger />
+            <ActionBtn label={W['emb'] ? "بنجهّز..." : "جهّز اللي ناقص"} onClick={handleGenerateEmbeddings} disabled={W['emb']} />
+            <ActionBtn label={W['emb-regen'] ? "بنعيد التجهيز..." : "جهّز الكل من جديد"} onClick={handleRegenerateEmbeddings} disabled={W['emb-regen']} danger />
           </div>
         </Card>
 
-        <Card title="Query Cache">
+        <Card title="البحث المتخزن مؤقتًا">
           {cacheStatus && (
             <div className="mb-4 space-y-0.5">
-              <Stat label="Total entries" value={cacheStatus.total} />
-              <Stat label="Watch Finder" value={cacheStatus.watch_finder} />
-              <Stat label="RAG Chat" value={cacheStatus.rag_chat} />
-              {cacheStatus.message && <Stat label="Status" value={cacheStatus.message} />}
+              <Stat label="إجمالي السجلات" value={cacheStatus.total} />
+              <Stat label="البحث عن ساعة" value={cacheStatus.watch_finder} />
+              <Stat label="شات الذكاء الاصطناعي" value={cacheStatus.rag_chat} />
+              {cacheStatus.message && <Stat label="الحالة" value={cacheStatus.message} />}
             </div>
           )}
           {msg['cache-seed'] && <p className="text-green-400 text-xs mb-3">{msg['cache-seed']}</p>}
           {msg['cache-clear'] && <p className="text-green-400 text-xs mb-3">{msg['cache-clear']}</p>}
           <div className="flex gap-2">
-            <ActionBtn label={W['cache-seed'] ? 'Seeding…' : 'Seed Queries'} onClick={handleSeedCache} disabled={W['cache-seed']} />
-            <ActionBtn label={W['cache-clear'] ? 'Clearing…' : 'Clear Cache'} onClick={handleClearCache} disabled={W['cache-clear']} danger />
+            <ActionBtn label={W['cache-seed'] ? "بنضيف البيانات..." : "ضيف بيانات البحث"} onClick={handleSeedCache} disabled={W['cache-seed']} />
+            <ActionBtn label={W['cache-clear'] ? "بنمسح..." : "امسح البيانات المؤقتة"} onClick={handleClearCache} disabled={W['cache-clear']} danger />
           </div>
         </Card>
 
-        <Card title="Image Maintenance">
+        <Card title="صيانة الصور">
           <div className="space-y-3">
             <div>
-              <p className="text-[#444] text-xs mb-2">Fix legacy image URL references → public IDs</p>
+              <p className="text-[#444] text-xs mb-2">صلّح لينكات الصور القديمة وحوّلها لمعرّفات الملفات</p>
               {msg['img-urls'] && <p className="text-green-400 text-xs mb-2">{msg['img-urls']}</p>}
-              <ActionBtn label={W['img-urls'] ? 'Running…' : 'Migrate Image URLs'} onClick={handleMigrateUrls} disabled={W['img-urls']} />
+              <ActionBtn label={W['img-urls'] ? "شغّال..." : "حدّث لينكات الصور"} onClick={handleMigrateUrls} disabled={W['img-urls']} />
             </div>
             <div className="border-t border-[#111] pt-3">
-              <p className="text-[#444] text-xs mb-2">Normalize image filenames to brand+model convention</p>
+              <p className="text-[#444] text-xs mb-2">وحّد أسماء الصور باسم البراند والموديل</p>
               {msg['img-names'] && <p className="text-green-400 text-xs mb-2">{msg['img-names']}</p>}
-              <ActionBtn label={W['img-names'] ? 'Running…' : 'Normalize Image Names'} onClick={handleNormalizeNames} disabled={W['img-names']} />
+              <ActionBtn label={W['img-names'] ? "شغّال..." : "وحّد أسماء الصور"} onClick={handleNormalizeNames} disabled={W['img-names']} />
             </div>
           </div>
         </Card>
 
-        <Card title="Storage Migration">
+        <Card title="نقل ملفات التخزين">
           <div className="space-y-3">
             <div>
-              <p className="text-[#444] text-xs mb-2">Move all Cloudinary-hosted watch images to S3</p>
+              <p className="text-[#444] text-xs mb-2">انقل صور الساعات من Cloudinary لـ S3</p>
               {msg['img-s3'] && <p className="text-green-400 text-xs mb-2">{msg['img-s3']}</p>}
-              <ActionBtn label={W['img-s3'] ? 'Migrating…' : 'Migrate to S3'} onClick={handleMigrateS3} disabled={W['img-s3']} danger />
+              <ActionBtn label={W['img-s3'] ? "بننقل..." : "انقل لـ S3"} onClick={handleMigrateS3} disabled={W['img-s3']} danger />
             </div>
             <div className="border-t border-[#111] pt-3">
-              <p className="text-[#444] text-xs mb-2">Clean Cloudinary assets with no matching watch record</p>
+              <p className="text-[#444] text-xs mb-2">امسح ملفات Cloudinary اللي مش مرتبطة بأي ساعة</p>
               {msg['img-orphans-dry'] && <p className="text-green-400 text-xs mb-2">{msg['img-orphans-dry']}</p>}
               {msg['img-orphans'] && <p className="text-green-400 text-xs mb-2">{msg['img-orphans']}</p>}
               <div className="flex gap-2">
-                <ActionBtn label={W['img-orphans-dry'] ? 'Running…' : 'Dry Run'} onClick={handleCleanOrphansDry} disabled={W['img-orphans-dry']} />
-                <ActionBtn label={W['img-orphans'] ? 'Deleting…' : 'Delete Orphans'} onClick={handleCleanOrphans} disabled={W['img-orphans']} danger />
+                <ActionBtn label={W['img-orphans-dry'] ? "شغّال..." : "معاينة من غير تنفيذ"} onClick={handleCleanOrphansDry} disabled={W['img-orphans-dry']} />
+                <ActionBtn label={W['img-orphans'] ? "بنمسح..." : "امسح الملفات اللي ملهاش ساعة"} onClick={handleCleanOrphans} disabled={W['img-orphans']} danger />
               </div>
             </div>
           </div>

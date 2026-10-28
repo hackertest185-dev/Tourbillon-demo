@@ -110,6 +110,25 @@ html[dir='rtl'] body {
   text-rendering: optimizeLegibility;
 }
 
+/* Arabic letters must stay joined; product text has its own LTR island. */
+html[dir='rtl'] :is(h1, h2, h3, h4, p, a, button, label, input, textarea, select) {
+  letter-spacing: normal;
+}
+html[dir='rtl'] .font-playfair {
+  font-family: var(--font-arabic-display);
+  line-height: 1.5;
+}
+html[dir='rtl'] [translate='no'], html[dir='rtl'] .notranslate {
+  unicode-bidi: isolate;
+}
+html[dir='rtl'] [dir='ltr'] {
+  font-family: var(--font-inter);
+}
+html[dir='rtl'] .font-playfair[dir='ltr'],
+html[dir='rtl'] [dir='ltr'] .font-playfair {
+  font-family: var(--font-playfair-display);
+}
+
 /* Keep Arabic shaping intact in the cinematic page. The chapter animation
    moves a complete line as one unit; it must never animate individual glyphs. */
 html[dir='rtl'] [data-cinema-mode] {

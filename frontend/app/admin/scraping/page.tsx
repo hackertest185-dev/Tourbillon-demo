@@ -58,7 +58,7 @@ export default function AdminScrapingPage() {
       setResult(r);
       adminGetScrapeStats().then(setStats).catch(() => null);
     } catch (e: unknown) {
-      setResult({ ok: false, message: e instanceof Error ? e.message : 'Error' });
+      setResult({ ok: false, message: e instanceof Error ? e.message : "حصلت مشكلة" });
     } finally { setWorking(false); }
   };
 
@@ -90,10 +90,10 @@ export default function AdminScrapingPage() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Scraping</h1>
+          <h1 className="text-xl font-semibold text-white">سحب البيانات</h1>
           {stats && (
             <p className="text-[#555] text-xs mt-0.5">
-              {stats.totalBrands} brands · {stats.totalCollections} collections · {stats.totalWatches} watches
+              {stats.totalBrands} براندات · {stats.totalCollections} مجموعات · {stats.totalWatches} ساعة
             </p>
           )}
         </div>
@@ -106,7 +106,7 @@ export default function AdminScrapingPage() {
             key={t}
             onClick={() => { setTab(t); setResult(null); }}
             className={`px-3 py-1 rounded text-xs transition-colors capitalize ${tab === t ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'}`}
-          >{t === 'url' ? 'Single URL' : t === 'brand' ? 'Brand / Collection' : t.charAt(0).toUpperCase() + t.slice(1)}</button>
+          >{t === 'url' ? "لينك ساعة واحدة" : t === 'brand' ? "البراند / المجموعة" : t.charAt(0).toUpperCase() + t.slice(1)}</button>
         ))}
       </div>
 
@@ -114,53 +114,53 @@ export default function AdminScrapingPage() {
 
       {tab === 'brand' && (
         <div className="max-w-md space-y-3">
-          <p className="text-[#444] text-xs mb-3">Scrape watches from a brand&apos;s official website using legacy XPath config.</p>
-          <div><label className={labelCls}>Brand name</label><input className={inputCls} placeholder="e.g. Patek Philippe" value={brand} onChange={e => setBrand(e.target.value)} /></div>
-          <div><label className={labelCls}>Collection name</label><input className={inputCls} placeholder="e.g. Calatrava" value={collection} onChange={e => setCollection(e.target.value)} /></div>
-          <div><label className={labelCls}>Max watches</label><input className={smallInputCls} type="number" min="1" max="100" value={maxWatches} onChange={e => setMaxWatches(e.target.value)} /></div>
+          <p className="text-[#444] text-xs mb-3">اسحب الساعات من موقع البراند الرسمي بإعدادات XPath المحفوظة.</p>
+          <div><label className={labelCls}>اسم البراند</label><input className={inputCls} placeholder="e.g. Patek Philippe" value={brand} onChange={e => setBrand(e.target.value)} /></div>
+          <div><label className={labelCls}>اسم المجموعة</label><input className={inputCls} placeholder="e.g. Calatrava" value={collection} onChange={e => setCollection(e.target.value)} /></div>
+          <div><label className={labelCls}>أقصى عدد ساعات</label><input className={smallInputCls} type="number" min="1" max="100" value={maxWatches} onChange={e => setMaxWatches(e.target.value)} /></div>
           <button
             className="bg-[#c9a96e] text-black px-5 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
             onClick={handleBrand} disabled={working || !brand.trim() || !collection.trim()}
-          >{working ? 'Scraping…' : 'Scrape'}</button>
+          >{working ? "بنسحب البيانات..." : "سحب بيانات الساعات"}</button>
         </div>
       )}
 
       {tab === 'sitemap' && (
         <div className="max-w-md space-y-3">
-          <p className="text-[#444] text-xs mb-3">Discover watch URLs from a sitemap XML, then extract each with Claude Haiku.</p>
-          <div><label className={labelCls}>Brand name</label><input className={inputCls} placeholder="e.g. Grand Seiko" value={smBrand} onChange={e => setSmBrand(e.target.value)} /></div>
-          <div><label className={labelCls}>Sitemap URL</label><input className={inputCls} placeholder="https://..." value={smUrl} onChange={e => setSmUrl(e.target.value)} /></div>
-          <div><label className={labelCls}>Max watches</label><input className={smallInputCls} type="number" min="1" max="100" value={smMax} onChange={e => setSmMax(e.target.value)} /></div>
+          <p className="text-[#444] text-xs mb-3">اجمع لينكات الساعات من خريطة الموقع XML، وبعدين استخرج بياناتها باستخدام Claude Haiku.</p>
+          <div><label className={labelCls}>اسم البراند</label><input className={inputCls} placeholder="e.g. Grand Seiko" value={smBrand} onChange={e => setSmBrand(e.target.value)} /></div>
+          <div><label className={labelCls}>لينك خريطة الموقع</label><input className={inputCls} placeholder="https://..." value={smUrl} onChange={e => setSmUrl(e.target.value)} /></div>
+          <div><label className={labelCls}>أقصى عدد ساعات</label><input className={smallInputCls} type="number" min="1" max="100" value={smMax} onChange={e => setSmMax(e.target.value)} /></div>
           <button
             className="bg-[#c9a96e] text-black px-5 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
             onClick={handleSitemap} disabled={working || !smBrand.trim() || !smUrl.trim()}
-          >{working ? 'Scraping…' : 'Scrape Sitemap'}</button>
+          >{working ? "بنسحب البيانات..." : "اسحب من خريطة الموقع"}</button>
         </div>
       )}
 
       {tab === 'listing' && (
         <div className="max-w-md space-y-3">
-          <p className="text-[#444] text-xs mb-3">Crawl a listing/category page and extract all linked watch pages.</p>
-          <div><label className={labelCls}>Brand name</label><input className={inputCls} placeholder="e.g. Breguet" value={lBrand} onChange={e => setLBrand(e.target.value)} /></div>
-          <div><label className={labelCls}>Listing URL</label><input className={inputCls} placeholder="https://..." value={lUrl} onChange={e => setLUrl(e.target.value)} /></div>
-          <div><label className={labelCls}>Max watches</label><input className={smallInputCls} type="number" min="1" max="100" value={lMax} onChange={e => setLMax(e.target.value)} /></div>
+          <p className="text-[#444] text-xs mb-3">اجمع لينكات الساعات من صفحة عرض المنتجات واستخرج بيانات كل ساعة.</p>
+          <div><label className={labelCls}>اسم البراند</label><input className={inputCls} placeholder="e.g. Breguet" value={lBrand} onChange={e => setLBrand(e.target.value)} /></div>
+          <div><label className={labelCls}>لينك صفحة عرض المنتجات</label><input className={inputCls} placeholder="https://..." value={lUrl} onChange={e => setLUrl(e.target.value)} /></div>
+          <div><label className={labelCls}>أقصى عدد ساعات</label><input className={smallInputCls} type="number" min="1" max="100" value={lMax} onChange={e => setLMax(e.target.value)} /></div>
           <button
             className="bg-[#c9a96e] text-black px-5 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
             onClick={handleListing} disabled={working || !lBrand.trim() || !lUrl.trim()}
-          >{working ? 'Scraping…' : 'Scrape Listing'}</button>
+          >{working ? "بنسحب البيانات..." : "اسحب من صفحة المنتجات"}</button>
         </div>
       )}
 
       {tab === 'url' && (
         <div className="max-w-md space-y-3">
-          <p className="text-[#444] text-xs mb-3">Extract a single watch from a product page URL using Claude Haiku.</p>
-          <div><label className={labelCls}>Product URL</label><input className={inputCls} placeholder="https://..." value={uUrl} onChange={e => setUUrl(e.target.value)} /></div>
-          <div><label className={labelCls}>Brand name</label><input className={inputCls} placeholder="e.g. Omega" value={uBrand} onChange={e => setUBrand(e.target.value)} /></div>
-          <div><label className={labelCls}>Collection name</label><input className={inputCls} placeholder="e.g. Seamaster" value={uCollection} onChange={e => setUCollection(e.target.value)} /></div>
+          <p className="text-[#444] text-xs mb-3">استخرج بيانات ساعة واحدة من لينك المنتج باستخدام Claude Haiku.</p>
+          <div><label className={labelCls}>لينك المنتج</label><input className={inputCls} placeholder="https://..." value={uUrl} onChange={e => setUUrl(e.target.value)} /></div>
+          <div><label className={labelCls}>اسم البراند</label><input className={inputCls} placeholder="e.g. Omega" value={uBrand} onChange={e => setUBrand(e.target.value)} /></div>
+          <div><label className={labelCls}>اسم المجموعة</label><input className={inputCls} placeholder="e.g. Seamaster" value={uCollection} onChange={e => setUCollection(e.target.value)} /></div>
           <button
             className="bg-[#c9a96e] text-black px-5 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
             onClick={handleUrl} disabled={working || !uUrl.trim() || !uBrand.trim() || !uCollection.trim()}
-          >{working ? 'Scraping…' : 'Scrape URL'}</button>
+          >{working ? "بنسحب البيانات..." : "اسحب من اللينك"}</button>
         </div>
       )}
     </div>

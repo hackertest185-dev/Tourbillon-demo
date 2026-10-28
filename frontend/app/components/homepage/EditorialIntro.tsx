@@ -22,7 +22,7 @@ export default function EditorialIntro() {
           transition={{ duration: 1.2, ease: 'easeOut', delay: 0.1 }}
           className="text-[10px] uppercase text-[#bfa68a] mb-5 font-inter"
         >
-          The House of Horology
+          عالم الساعات
         </motion.p>
 
         <h1 className="text-5xl md:text-6xl font-playfair font-light mb-6 tourbillon-text-color leading-tight">
@@ -31,7 +31,7 @@ export default function EditorialIntro() {
 
         <ScrollFade delay={0.15}>
           <p className="text-base mb-12 tourbillon-text-color opacity-60 max-w-xl mx-auto">
-            Exceptional timepieces from the world&apos;s finest maisons, curated for the discerning collector.
+            ساعات مميزة من أشهر البراندات، اختارناها للي بيقدّروا التفاصيل.
           </p>
         </ScrollFade>
 
@@ -43,7 +43,7 @@ export default function EditorialIntro() {
               className="relative inline-flex items-center justify-center text-[10px] uppercase tracking-[0.3em] text-[#bfa68a] border border-[#bfa68a]/25 px-12 py-4 hover:bg-[#bfa68a]/8 hover:border-[#bfa68a]/40 transition-all duration-500 group overflow-hidden"
             >
               <span className="transform transition-transform duration-500 group-hover:-translate-x-3">
-                Explore Watches
+                اتفرج على الساعات
               </span>
               <span className="absolute right-8 opacity-0 -translate-x-4 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0 text-[14px]">
                 →
@@ -58,7 +58,7 @@ export default function EditorialIntro() {
                 'text-white/40 hover:text-white/70 hover:bg-transparent text-[11px] tracking-[0.12em] uppercase px-7 h-auto py-3.5 rounded-none font-inter border border-white/10 hover:border-white/20'
               )}
             >
-              Our Story
+              حكايتنا
             </Link>
           </div>
         </ScrollFade>

@@ -155,13 +155,13 @@ const WatchesPage = () => {
         <div className="lg:hidden flex items-center justify-between mb-6">
           <button
             onClick={() => setMobileFilterOpen(true)}
-            aria-label="Open filters"
+            aria-label="افتح الفلاتر"
             className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-white/50 hover:text-white/80 transition-colors duration-200 border border-white/15 px-3 py-2"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M7 12h10M11 20h2" />
             </svg>
-            <span>Filter</span>
+            <span>فلتر</span>
             {activeFilterCount > 0 && (
               <span className="bg-[#bfa68a] text-black text-[9px] font-semibold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                 {activeFilterCount}
@@ -202,10 +202,10 @@ const WatchesPage = () => {
             >
               {/* Drawer header */}
               <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-                <span className="text-[10px] tracking-[0.18em] uppercase text-white/40">Filters</span>
+                <span className="text-[10px] tracking-[0.18em] uppercase text-white/40">الفلاتر</span>
                 <button
                   onClick={() => setMobileFilterOpen(false)}
-                  aria-label="Close filters"
+                  aria-label="اقفل الفلاتر"
                   className="text-white/40 hover:text-white/80 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

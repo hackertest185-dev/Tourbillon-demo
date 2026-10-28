@@ -4,6 +4,7 @@
 // Now using the split-panel design for consistency.
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -84,7 +85,7 @@ export default function MagicLoginPage() {
       setCooldown(RESEND_COOLDOWN);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send code. Please try again.');
+      setError(egyptianError(err, "معرفناش نبعت الكود. جرّب تاني."));
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export default function MagicLoginPage() {
       setCooldown(RESEND_COOLDOWN);
       setTimeout(() => inputRefs.current[0]?.focus(), 50);
     } catch {
-      setError('Failed to resend. Please try again.');
+      setError("معرفناش نبعت الكود تاني. جرّب بعد شوية.");
     }
   };
 
@@ -133,7 +134,7 @@ export default function MagicLoginPage() {
     e.preventDefault();
     const code = chars.join('');
     if (code.length < CODE_LENGTH) {
-      setError('Please enter all 6 characters.');
+      setError("اكتب الكود كامل، 6 خانات.");
       return;
     }
     setError('');
@@ -143,7 +144,7 @@ export default function MagicLoginPage() {
       await login(result.isNewAccount ? 'new-account' : 'existing-account');
       router.replace(redirect || '/tourbillon');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid or expired code.');
+      setError(egyptianError(err, "الكود غلط أو صلاحيته خلصت."));
       setChars(Array(CODE_LENGTH).fill(''));
       inputRefs.current[0]?.focus();
     } finally {
@@ -174,19 +175,19 @@ export default function MagicLoginPage() {
         >
           <motion.div variants={fadeUp} className="w-8 h-px bg-[#bfa68a]/50 mb-5" />
           <motion.p variants={fadeUp} className="text-[9px] uppercase tracking-[0.5em] text-[#bfa68a] mb-3">
-            Member Access
+            دخول الأعضاء
           </motion.p>
           <motion.h2 variants={fadeUp} className="font-playfair text-[2.75rem] font-light text-[#f0e6d2] leading-[1.1] mb-4 whitespace-nowrap">
-            Magic Login
+            ادخل بكود الإيميل
           </motion.h2>
           <motion.p variants={fadeUp} className="text-white/38 text-[13px] leading-relaxed mb-6">
-            Quick, secure, passwordless access to your collection and private advisory.
+            ادخل لحسابك بسرعة بكود على إيميلك، من غير باسورد.
           </motion.p>
 
           <motion.div variants={fadeUp} className="space-y-3.5 mb-6">
             {[
-              ['Seamless Entry', 'No passwords to remember, just a secure one-time code'],
-              ['Personal Advisors', 'One-on-one guidance from certified horological experts'],
+              ["دخول بسهولة", "مش محتاج تفتكر باسورد، كود بيتستخدم مرة واحدة وبس"],
+              ["خبراء يساعدوك في الاختيار", "خبير ساعات يساعدك بنفسه تختار الساعة المناسبة ليك."],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-px h-9 bg-[#bfa68a]/22 shrink-0 mt-0.5" />
@@ -200,10 +201,10 @@ export default function MagicLoginPage() {
 
           <motion.blockquote variants={fadeUp} className="border-l-2 border-[#bfa68a]/60 pl-6 py-1 mt-2">
             <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-              &ldquo;Simplicity is the ultimate sophistication.&rdquo;
+              الشياكة في البساطة.
             </p>
             <cite className="block text-[9px] uppercase tracking-[0.28em] text-[#bfa68a]/70 mt-3 not-italic">
-              Leonardo Da Vinci
+              ليوناردو دافنشي
             </cite>
           </motion.blockquote>
         </motion.div>
@@ -224,19 +225,19 @@ export default function MagicLoginPage() {
           {step === 'email' ? (
             <>
               <motion.p variants={formItem} className="text-[9px] uppercase tracking-[0.4em] text-[#bfa68a] mb-2.5">
-                Passwordless
+                من غير باسورد
               </motion.p>
               <motion.h1 variants={formItem} className="font-playfair text-[1.85rem] font-light text-[#f0e6d2] mb-7 whitespace-nowrap">
-                Sign in without password
+                ادخل من غير باسورد
               </motion.h1>
               <motion.p variants={formItem} className="text-white/35 text-[12px] mb-7 leading-relaxed">
-                Enter your email and we&apos;ll send you a secure one-time code.
+                اكتب إيميلك وهنبعتلك كود دخول تستخدمه مرة واحدة.
               </motion.p>
 
               <form onSubmit={handleSendCode} className="space-y-5" noValidate>
                 <motion.div variants={formItem}>
                   <label className="block text-[8.5px] uppercase tracking-[0.28em] text-[#bfa68a]/65 mb-2">
-                    Email Address
+                    الإيميل
                   </label>
                   <div className="relative">
                     <input
@@ -275,7 +276,7 @@ export default function MagicLoginPage() {
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '100% 0'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '0% 0'; }}
                   >
-                    {loading ? 'Sending...' : 'Send Code'}
+                    {loading ? "بنبعت..." : "ابعت الكود"}
                   </button>
                 </motion.div>
               </form>
@@ -283,13 +284,13 @@ export default function MagicLoginPage() {
           ) : (
             <>
               <motion.p variants={formItem} className="text-[9px] uppercase tracking-[0.4em] text-[#bfa68a] mb-2.5">
-                Verification
+                التحقق
               </motion.p>
               <motion.h1 variants={formItem} className="font-playfair text-[1.85rem] font-light text-[#f0e6d2] mb-4">
-                Enter Code
+                اكتب الكود
               </motion.h1>
               <motion.p variants={formItem} className="text-white/35 text-[12px] mb-7 leading-relaxed">
-                A 6-character code was sent to <span className="text-[#f0e6d2]">{email}</span>
+                بعتنالك كود من 6 خانات على <span className="text-[#f0e6d2]">{email}</span>
               </motion.p>
 
               <form onSubmit={handleVerify} className="space-y-6" noValidate>
@@ -331,7 +332,7 @@ export default function MagicLoginPage() {
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '100% 0'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '0% 0'; }}
                   >
-                    {loading ? 'Verifying...' : 'Confirm'}
+                    {loading ? "بنتأكد..." : "أكد"}
                   </button>
 
                   <button
@@ -340,7 +341,7 @@ export default function MagicLoginPage() {
                     disabled={cooldown > 0 || loading}
                     className="w-full py-3.5 text-[9.5px] uppercase tracking-[0.32em] font-medium border border-white/12 text-white/45 hover:border-[#bfa68a]/35 hover:text-white/70 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-300"
                   >
-                    {cooldown > 0 ? `Resend Code (${cooldown}s)` : 'Resend Code'}
+                    {cooldown > 0 ? `ابعت الكود تاني بعد ${cooldown} ثانية` : "ابعت الكود تاني"}
                   </button>
                 </motion.div>
               </form>
@@ -361,7 +362,7 @@ export default function MagicLoginPage() {
                 }}
                 className="hover:text-white/45 transition"
               >
-                {step === 'code' ? 'Change email' : 'Back to password login'}
+                {step === 'code' ? "غيّر الإيميل" : "ارجع للدخول بالباسورد"}
               </button>
             </p>
           </motion.div>

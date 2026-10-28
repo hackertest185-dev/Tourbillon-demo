@@ -76,7 +76,7 @@ const WatchCard = ({ watch, className = "", hrefSuffix = "", collectionLabels, b
     <div className={`group relative bg-black/30 backdrop-blur-md border border-white/20 rounded-2xl p-6 transition-all duration-500 hover:border-white/40 hover:bg-black/40 hover:scale-[1.02] ${className}`}>
       {/* Image + action button overlay */}
       <div className="relative mb-4">
-        <Link translate="no" className="notranslate block" href={watchHref} onClick={handleWatchClick}>
+        <Link dir="ltr" translate="no" className="notranslate block" href={watchHref} onClick={handleWatchClick}>
           <div className="w-full h-80 bg-black/40 rounded-xl flex items-center justify-center relative overflow-hidden">
             <Watch3D watch={watch} fallbackSrc={watch.image || watch.imageUrl ? baseImageSrc : undefined} alt={watch.name} index={watch.id} />
           </div>
@@ -95,7 +95,7 @@ const WatchCard = ({ watch, className = "", hrefSuffix = "", collectionLabels, b
             onClick={e => { e.preventDefault(); e.stopPropagation(); if (watch.brandSlug) router.push(`/brands/${watch.brandSlug}`); }}
             className="text-xs font-inter text-white/50 uppercase tracking-widest hover:text-white/80 transition-colors bg-transparent border-none cursor-pointer"
           >
-            <span translate="no" className="notranslate">{brandName}</span>
+            <span dir="ltr" translate="no" className="notranslate">{brandName}</span>
           </button>
         </div>
       )}
@@ -107,16 +107,16 @@ const WatchCard = ({ watch, className = "", hrefSuffix = "", collectionLabels, b
             onClick={handleCollectionClick}
             className="inline-block text-sm text-white/80 hover:text-white transition-colors font-playfair font-medium cursor-pointer bg-transparent border-none p-1"
           >
-            <span translate="no" className="notranslate">{collectionNameProp ?? collection?.name}</span>
+            <span dir="ltr" translate="no" className="notranslate">{collectionNameProp ?? collection?.name}</span>
           </button>
         </div>
       )}
 
       {/* Watch Details */}
-      <Link translate="no" className="notranslate" href={watchHref} onClick={handleWatchClick}>
+      <Link dir="ltr" translate="no" className="notranslate" href={watchHref} onClick={handleWatchClick}>
         <div className="space-y-3 text-center">
           <h3 className="text-xl font-playfair font-semibold text-[#f0e6d2] group-hover:text-white transition-colors">
-            <span translate="no" className="notranslate">{watch.name}</span>
+            <span dir="ltr" translate="no" className="notranslate">{watch.name}</span>
           </h3>
           <p className="text-lg text-white/90 font-playfair font-medium">
             {watch.currentPrice === 0 ? 'Price on request' : `$${watch.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}

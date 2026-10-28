@@ -47,7 +47,7 @@ export default function BrandShowcaseSection() {
       {/* Section heading */}
       <ScrollFade>
         <h2 className="text-3xl md:text-5xl font-playfair font-light text-center mb-15 mt-32 text-[#f0e6d2]">
-          Explore Our Brands
+          اكتشف البراندات اللي عندنا
         </h2>
       </ScrollFade>
 
@@ -57,7 +57,7 @@ export default function BrandShowcaseSection() {
       <section className="mb-20">
         <ScrollFade>
           <h3 className="text-3xl md:text-5xl font-playfair font-light text-center mb-20 text-[#f0e6d2]">
-            {existingTrinity.length ? 'The Holy Trinity — Haute Horlogerie' : 'Featured Watchmakers'}
+            {existingTrinity.length ? "تلات براندات من كبار صناعة الساعات" : "براندات تستاهل تشوفها"}
           </h3>
         </ScrollFade>
 
@@ -88,7 +88,7 @@ export default function BrandShowcaseSection() {
         ) : (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/40 mx-auto mb-4" />
-            <p className="text-white/60 font-playfair">Loading luxury brands...</p>
+            <p className="text-white/60 font-playfair">بنحمّل البراندات...</p>
           </div>
         )}
       </section>
@@ -99,7 +99,7 @@ export default function BrandShowcaseSection() {
       <section className="mb-32">
         <ScrollFade>
           <h3 className="text-3xl md:text-5xl font-playfair font-light text-center mb-10 text-[#f0e6d2]">
-            Explore More Brands
+            شوف براندات أكتر
           </h3>
         </ScrollFade>
 
@@ -126,11 +126,11 @@ export default function BrandShowcaseSection() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                       </svg>
                     </div>
-                    <span>Show Less</span>
+                    <span>وريني أقل</span>
                   </>
                 ) : (
                   <>
-                    <span>Show More</span>
+                    <span>وريني أكتر</span>
                     <div className="flex flex-col mt-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

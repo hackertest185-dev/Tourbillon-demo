@@ -13,9 +13,9 @@ import { DUR, EASE_ENTER } from '@/lib/motion';
 type TimeRange = 'today' | '7d' | '30d';
 
 const RANGE_LABELS: Record<TimeRange, string> = {
-  today: 'Today',
-  '7d': 'Last 7 Days',
-  '30d': 'Last 30 Days',
+  today: 'النهارده',
+  '7d': 'آخر 7 أيام',
+  '30d': 'آخر 30 يوم',
 };
 
 const CARD_COUNT = 20;
@@ -48,6 +48,7 @@ function RangeButton({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={isActive}
       className={`relative px-4 py-3 text-[10px] uppercase tracking-[0.28em] transition-all duration-300 rounded-full ${
         isActive
           ? 'text-[#1e1512]'
@@ -76,19 +77,19 @@ function CardSkeleton() {
 export default function TrendMostViewed() {
   const [activeRange, setActiveRange] = useState<TimeRange>('today');
 
-  const { data: watches = [], isLoading: watchesLoading } = useQuery({
+  const { data: watches = [], isLoading: watchesLoading, isError: watchesError } = useQuery({
     queryKey: ['watches'],
     queryFn: fetchWatches,
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: brands = [], isLoading: brandsLoading } = useQuery({
+  const { data: brands = [], isLoading: brandsLoading, isError: brandsError } = useQuery({
     queryKey: ['brands'],
     queryFn: fetchBrands,
     staleTime: 10 * 60 * 1000,
   });
 
-  const { data: collections = [], isLoading: collectionsLoading } = useQuery({
+  const { data: collections = [], isLoading: collectionsLoading, isError: collectionsError } = useQuery({
     queryKey: ['collections'],
     queryFn: fetchCollections,
     staleTime: 10 * 60 * 1000,
@@ -104,6 +105,7 @@ export default function TrendMostViewed() {
 
   const activeWatches = rangeSelections[activeRange];
   const isLoading = watchesLoading || brandsLoading || collectionsLoading;
+  const isError = watchesError || brandsError || collectionsError;
 
   return (
     <section className="border-t border-[#bfa68a]/12 pt-12">
@@ -111,13 +113,13 @@ export default function TrendMostViewed() {
         <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[0.45em] text-[#bfa68a]/80">
-              Most Viewed
+              أكتر الساعات مشاهدة
             </p>
             <h2
               className="mt-4 font-playfair font-light leading-tight text-[#f0e6d2]"
               style={{ fontSize: 'clamp(1.8rem, 3.5vw, 3rem)' }}
             >
-              What the room is watching.
+              شوف الساعات اللي الناس مهتمة بيها دلوقتي.
             </h2>
           </div>
         </div>
@@ -138,7 +140,7 @@ export default function TrendMostViewed() {
 
       <div className="mt-7 flex items-center justify-between border-b border-[#bfa68a]/10 pb-5">
         <p className="text-[10px] uppercase tracking-[0.3em] text-white/30">
-          Selected Window
+          الفترة اللي اخترتها
         </p>
         <p className="text-[10px] uppercase tracking-[0.32em] text-[#bfa68a]/72">
           {RANGE_LABELS[activeRange]}
@@ -153,11 +155,15 @@ export default function TrendMostViewed() {
         className="mt-12"
       >
         {isLoading ? (
-          <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div role="status" aria-label="بنحمّل الساعات..." className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {Array.from({ length: CARD_COUNT }).map((_, index) => (
               <CardSkeleton key={index} />
             ))}
           </div>
+        ) : isError ? (
+          <p role="alert" className="py-10 text-center text-sm text-white/55">
+            معرفناش نحمّل الساعات دلوقتي. حدّث الصفحة وجرّب تاني.
+          </p>
         ) : activeWatches.length > 0 ? (
           <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {activeWatches.map((watch, index) => (
@@ -175,11 +181,10 @@ export default function TrendMostViewed() {
         ) : (
           <div className="rounded-3xl border border-[#bfa68a]/12 bg-white/[0.02] px-6 py-12 text-center">
             <p className="font-playfair text-[1.35rem] text-[#f0e6d2]">
-              No watches available for this edit yet.
+              لسه مفيش ساعات متاحة في الفترة دي.
             </p>
             <p className="mt-3 text-[12px] leading-relaxed text-white/40">
-              Once the catalogue is populated, this section will rotate through a seeded set of
-              product cards for each time window.
+              اتفرج على باقي الساعات اللي عندنا، وارجع شوف الجديد بعدين.
             </p>
           </div>
         )}

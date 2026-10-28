@@ -357,7 +357,6 @@ const USER_EGYPTIAN_OVERRIDES: Array<[string, string]> = [
   ["بعض الأشياء فقط أشعر بأنك أنت.", "في حاجات أول ما تشوفها تحس إنها شبهك."],
   ["A material. A moment. An intuition. Tell us what draws you in.", "ممكن يعجبك شكل ساعة، أو خامتها، أو حتى تفاصيلها الصغيرة. قولنا إيه اللي بتحبه في الساعات."],
   ["ممكن خامة تعجبك، أو لحظة، أو مجرد إحساس. قولنا إيه اللي بيلفت نظرك.", "ممكن يعجبك شكل ساعة، أو خامتها، أو حتى تفاصيلها الصغيرة. قولنا إيه اللي بتحبه في الساعات."],
-  ["Grand Seiko Spring Drive", "جراند سيكو سبرينغ درايف"],
   ["Private Access", "تجربة معمولة مخصوص ليك"],
   ["تجربة خاصة لك", "تجربة معمولة مخصوص ليك"],
   ["Blue dial automatic", "ساعة أوتوماتيك بوش أزرق"],
@@ -567,9 +566,14 @@ function applyEgyptianTone(root: Node = document.body) {
   // Apply the chosen copy in one pass. A sequential replace would let an old
   // fallback rule rewrite part of the user's approved Egyptian translation.
   const replacementMap = new Map([...EGYPTIAN_OVERRIDES, ...USER_EGYPTIAN_OVERRIDES]);
-  const replacementKeys = [...replacementMap.keys()].sort((a, b) => b.length - a.length);
-  const replacementPattern = new RegExp(replacementKeys.map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
-  const replaceValue = (value: string) => value.replace(replacementPattern, match => replacementMap.get(match) ?? match);
+  // Legacy pages may still use the copy inventory. Match only complete labels:
+  // replacing fragments such as "or" corrupts editors, form and horology.
+  // Storefront copy lives in its React source; this is only a compatibility pass.
+  const replaceValue = (value: string) => {
+    const trimmed = value.trim();
+    const next = replacementMap.get(trimmed.replace(/\s+/g, ' '));
+    return next ? value.replace(trimmed, next) : value;
+  };
   let node: Node | null;
   while ((node = walker.nextNode())) {
     if (node.parentElement?.closest('script, style, noscript, [translate="no"], .notranslate')) continue;

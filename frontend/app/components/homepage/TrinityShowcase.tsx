@@ -97,15 +97,15 @@ const TrinityShowcase = ({ brand }: TrinityShowcaseProps) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <span className="text-white/40 text-sm font-medium">Coming soon</span>
+                    <span className="text-white/40 text-sm font-medium">قريب</span>
                 </div>
             </div>
             <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-[#f0e6d2] group-hover:text-white transition-colors">
-                    <span translate="no" className="notranslate">{brand.name}</span> Collection
+                    <span translate="no" className="notranslate">{brand.name}</span> المجموعة
                 </h3>
                 <p className="text-md text-white/60 group-hover:text-white/80 transition-colors">
-                    New models arriving soon
+                    موديلات جديدة جاية قريب
                 </p>
                 <p className="text-sm text-white/80 font-medium">Price on request</p>
             </div>
@@ -144,7 +144,7 @@ const TrinityShowcase = ({ brand }: TrinityShowcaseProps) => {
                         href={`/brands/${brand.slug}`}
                         className="inline-flex items-center text-[#f0e6d2] hover:text-white transition-colors duration-500 text-2xl font-playfair font-medium hover:scale-105"
                     >
-                        Explore More
+                        شوف أكتر
                     </Link>
                 </div>
             </div>

@@ -137,7 +137,7 @@ export const CollectionCard = memo(function CollectionCard({
             className="font-playfair text-[#f0e6d2] text-sm font-medium truncate pr-4
                        cursor-text hover:text-white transition-colors"
             onClick={e => { e.stopPropagation(); onRenameStart(); }}
-            title="Click to rename"
+            title="دوس عشان تغيّر الاسم"
           >
             <span translate="no" className="notranslate">{collection.name}</span>
           </p>
@@ -156,7 +156,7 @@ export const CollectionCard = memo(function CollectionCard({
                      flex items-center justify-center
                      opacity-0 group-hover/col:opacity-100 transition-opacity hover:bg-white/15
                      disabled:opacity-30"
-          title="Delete collection"
+          title="امسح المجموعة"
         >
           {isDeleting ? (
             <div className="w-2 h-2 border border-white/40 border-t-transparent rounded-full animate-spin" />
@@ -210,7 +210,7 @@ export function AddCollectionCard({
           </svg>
         </div>
         <span className="text-[11px] font-inter text-white/30 group-hover/add:text-white/50 transition-colors">
-          New collection
+          مجموعة جديدة
         </span>
       </div>
     );
@@ -220,7 +220,7 @@ export function AddCollectionCard({
     <div className="shrink-0 rounded-2xl border border-[#bfa68a]/30 bg-black/30
                     w-[180px] px-4 py-5 transition-all duration-200">
       <p className="text-[9px] font-inter text-white/30 mb-2.5 uppercase tracking-[0.12em]">
-        Name your collection
+        سمّي مجموعتك
       </p>
       <input
         autoFocus
@@ -233,7 +233,7 @@ export function AddCollectionCard({
         }}
         onBlur={() => { if (!newName.trim()) onCancel(); }}
         maxLength={100}
-        placeholder="e.g. Grail List"
+        placeholder="زي: ساعات نفسي أجيبها"
         className="w-full bg-transparent border-b border-white/20 outline-none
                    text-sm font-playfair text-[#f0e6d2] placeholder-white/20
                    pb-1 focus:border-[#bfa68a]/60 transition-colors"

@@ -1,6 +1,7 @@
 // Register page — split-panel layout matching login
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -141,19 +142,19 @@ export default function RegisterPage() {
 
   const validate = () => {
     if (!formData.firstName.trim() || !formData.lastName.trim())
-      return setError('Please enter your full name'), false;
+      return setError("اكتب اسمك كامل"), false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
-      return setError('Please enter a valid email'), false;
+      return setError("اكتب إيميل مظبوط"), false;
     if (!formData.phoneNumber.trim())
-      return setError('Please enter your phone number'), false;
+      return setError("اكتب رقم موبايلك"), false;
     if (!formData.password)
-      return setError('Please enter a password'), false;
+      return setError("اكتب باسورد"), false;
     if (formData.password.length < 12)
-      return setError('Password must be at least 12 characters'), false;
+      return setError("الباسورد لازم يكون 12 حرف على الأقل"), false;
     if (formData.password !== formData.confirmPassword)
-      return setError('Passwords do not match'), false;
+      return setError("الباسوردين مش زي بعض"), false;
     if (!formData.agreeToTerms)
-      return setError('Please agree to the Terms of Service'), false;
+      return setError("لازم توافق على شروط الاستخدام"), false;
     return true;
   };
 
@@ -171,7 +172,7 @@ export default function RegisterPage() {
       await login('new-account');
       router.push(redirect || '/tourbillon');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      setError(egyptianError(err, "حصلت مشكلة مش متوقعة. جرّب تاني."));
     } finally {
       setLoading(false);
     }
@@ -204,19 +205,19 @@ export default function RegisterPage() {
         >
           <motion.div variants={fadeUp} className="w-8 h-px bg-[#bfa68a]/50 mb-5" />
           <motion.p variants={fadeUp} className="text-[9px] uppercase tracking-[0.5em] text-[#bfa68a]/70 mb-3">
-            Register
+            سجّل
           </motion.p>
           <motion.h2 variants={fadeUp} className="font-playfair text-[2.75rem] font-light text-[#f0e6d2] leading-[1.1] mb-4 whitespace-nowrap">
-            Welcome
+            أهلاً بيك
           </motion.h2>
           <motion.p variants={fadeUp} className="text-white/38 text-[13px] leading-relaxed max-w-[240px] mb-6">
-            Explore exclusive collections, save favourites, and speak with our private advisors.
+            اكتشف ساعات مميزة، واحفظ اللي يعجبك وكلم فريقنا يساعدك تختار.
           </motion.p>
 
           <motion.div variants={fadeUp} className="space-y-3.5 mb-6">
             {[
-              ['Exclusive Access', 'Browse over 500 timepieces from 13 prestige manufactures'],
-              ['Watch DNA Profile', "Tell us your style — we'll curate pieces that match"],
+              ["اكتشف ساعات مميزة", "اتفرج على الساعات المتاحة من براندات معروفة"],
+              ["ذوقك في الساعات", "قولنا بتحب إيه ونرشحلك ساعات على ذوقك"],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-3">
                 <div className="w-px h-9 bg-[#bfa68a]/22 shrink-0 mt-0.5" />
@@ -230,7 +231,7 @@ export default function RegisterPage() {
 
           <motion.blockquote variants={fadeUp} className="border-l-2 border-[#bfa68a]/60 pl-6 py-1">
             <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-              &ldquo;A watch is more than a timepiece — it is a statement of values.&rdquo;
+              الساعة اللي بتختارها بتقول كتير عن ذوقك.
             </p>
           </motion.blockquote>
         </motion.div>
@@ -250,10 +251,10 @@ export default function RegisterPage() {
           className="w-full max-w-[460px]"
         >
           <motion.p variants={formItem} className="text-[9px] uppercase tracking-[0.4em] text-[#bfa68a]/80 mb-2">
-            Create Account
+            اعمل حساب جديد
           </motion.p>
           <motion.h1 variants={formItem} className="font-playfair text-[1.85rem] font-light text-[#f0e6d2] mb-5">
-            Your Details
+            بياناتك
           </motion.h1>
 
           {/* Smart flow: locked email chip — only shown when coming from /auth/start */}
@@ -264,7 +265,7 @@ export default function RegisterPage() {
                 href={changeEmailHref}
                 className="text-[9px] uppercase tracking-[0.22em] text-[#bfa68a]/55 hover:text-[#bfa68a] transition ml-4 shrink-0"
               >
-                ← Change
+                غيّر الإيميل
               </Link>
             </motion.div>
           )}
@@ -279,12 +280,12 @@ export default function RegisterPage() {
                   className="flex items-center justify-center gap-3 w-full py-[11px] border border-white/12 text-white/55 hover:border-[#bfa68a]/30 hover:text-white/75 transition text-[9.5px] uppercase tracking-[0.18em] mb-4"
                 >
                   <GoogleIcon />
-                  Continue with Google
+                  كمّل بحساب جوجل
                 </button>
               </motion.div>
               <motion.div variants={formItem} className="flex items-center gap-4 mb-4">
                 <div className="flex-1 h-px bg-white/8" />
-                <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/22">or</span>
+                <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/22">أو</span>
                 <div className="flex-1 h-px bg-white/8" />
               </motion.div>
             </>
@@ -292,22 +293,22 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-3.5" noValidate>
             <motion.div variants={formItem} className="grid grid-cols-2 gap-5">
-              <FocusInput label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First" />
-              <FocusInput label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last" />
+              <FocusInput label="اسمك الأول" name="firstName" value={formData.firstName} onChange={handleChange} placeholder="الاسم الأول" />
+              <FocusInput label="اسم العيلة" name="lastName" value={formData.lastName} onChange={handleChange} placeholder="اسم العيلة" />
             </motion.div>
             {isSmartFlow ? (
               <motion.div variants={formItem}>
-                <FocusInput label="Phone" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1 212 555 0192" inputMode="numeric" pattern="[0-9]*" />
+                <FocusInput label="رقم الموبايل" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1 212 555 0192" inputMode="numeric" pattern="[0-9]*" />
               </motion.div>
             ) : (
               <motion.div variants={formItem} className="grid grid-cols-2 gap-5">
-                <FocusInput label="Email" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" />
-                <FocusInput label="Phone" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1 212 555 0192" inputMode="numeric" pattern="[0-9]*" />
+                <FocusInput label="الإيميل" type="email" name="email" value={formData.email} onChange={handleChange} placeholder="your@email.com" />
+                <FocusInput label="رقم الموبايل" type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="+1 212 555 0192" inputMode="numeric" pattern="[0-9]*" />
               </motion.div>
             )}
             <motion.div variants={formItem} className="grid grid-cols-2 gap-5">
-              <FocusInput label="Password" type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" />
-              <FocusInput label="Confirm" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" />
+              <FocusInput label="الباسورد" type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" />
+              <FocusInput label="أكد" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" />
             </motion.div>
 
             {error && (
@@ -336,9 +337,9 @@ export default function RegisterPage() {
                 )}
               </button>
               <span className="text-[10.5px] text-white/28 leading-relaxed">
-                I agree to the{' '}
+                موافق على{' '}
                 <Link href="#" className="text-[#bfa68a]/60 hover:text-[#bfa68a] transition underline underline-offset-2">
-                  Terms of Service
+                  شروط الاستخدام
                 </Link>
               </span>
             </motion.div>
@@ -357,20 +358,20 @@ export default function RegisterPage() {
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '100% 0'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '0% 0'; }}
               >
-                {loading ? 'Creating account...' : 'Create Account'}
+                {loading ? "بنعمل حسابك..." : "اعمل حساب جديد"}
               </button>
             </motion.div>
           </form>
 
           <motion.p variants={formItem} className="mt-4 text-[10.5px] text-white/22 text-center">
-            Already a member?{' '}
+            عندك حساب؟{' '}
             <Link
               href={isSmartFlow
                 ? `/login?email=${encodeURIComponent(prefilledEmail)}${redirect ? `&redirect=${encodeURIComponent(redirect)}` : ''}`
                 : `/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`}
               className="text-[#bfa68a]/65 hover:text-[#bfa68a] transition"
             >
-              Sign in
+              سجّل دخول
             </Link>
           </motion.p>
         </motion.div>

@@ -101,8 +101,8 @@ export default function AuthStartPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) { setError('Please enter your email.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Please enter a valid email address.'); return; }
+    if (!email.trim()) { setError("اكتب إيميلك."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError("اكتب إيميل مظبوط."); return; }
     setError('');
     setLoading(true);
     try {
@@ -111,7 +111,7 @@ export default function AuthStartPage() {
       // enumeration oracle. The login page offers both sign-in and registration.
       router.push(`/login?email=${encodeURIComponent(email.trim())}${redirectParam}`);
     } catch {
-      setError('Unable to verify email. Please try again.');
+      setError("معرفناش نتأكد من الإيميل. جرّب تاني.");
       setLoading(false);
     }
   };
@@ -143,30 +143,30 @@ export default function AuthStartPage() {
             Tourbillon
           </motion.p>
           <motion.h2 variants={fadeUp} className="font-playfair text-[3.5rem] font-light text-[#f0e6d2] leading-[1.0] mb-5">
-            Welcome.
+            أهلًا بيك.
           </motion.h2>
           <motion.p variants={fadeUp} className="text-white/38 text-[13.5px] leading-[1.85] mb-8 max-w-[250px]">
-            A sanctuary for the discerning collector — where mastery, heritage, and precision converge.
+            مكان لكل اللي بيحبوا الساعات وبيقدّروا صنعتها وتفاصيلها.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex items-end gap-8 mb-8">
             <div>
               <p className="font-playfair text-[2.6rem] font-light text-[#f0e6d2] leading-none">500+</p>
-              <p className="text-[8.5px] uppercase tracking-[0.32em] text-[#bfa68a]/70 mt-2">Timepieces</p>
+              <p className="text-[8.5px] uppercase tracking-[0.32em] text-[#bfa68a]/70 mt-2">الساعات</p>
             </div>
             <div className="w-px h-10 bg-[#bfa68a]/15 mb-1" />
             <div>
               <p className="font-playfair text-[2.6rem] font-light text-[#f0e6d2] leading-none">13</p>
-              <p className="text-[8.5px] uppercase tracking-[0.32em] text-[#bfa68a]/70 mt-2">Maisons</p>
+              <p className="text-[8.5px] uppercase tracking-[0.32em] text-[#bfa68a]/70 mt-2">براندات</p>
             </div>
           </motion.div>
 
           <motion.blockquote variants={fadeUp} className="border-l-2 border-[#bfa68a]/60 pl-6 py-1">
             <p className="text-[#f0e6d2] font-playfair text-[1.4rem] leading-relaxed italic">
-              &ldquo;Time is the most valuable thing a man can spend.&rdquo;
+              الوقت أغلى حاجة ممكن تديها.
             </p>
             <cite className="block text-[9px] uppercase tracking-[0.28em] text-[#bfa68a]/70 mt-3 not-italic">
-              Theophrastus
+              ثيوفراستوس
             </cite>
           </motion.blockquote>
         </motion.div>
@@ -185,19 +185,19 @@ export default function AuthStartPage() {
           className="w-full max-w-[440px]"
         >
           <motion.p variants={formItem} className="text-[9px] uppercase tracking-[0.4em] text-[#bfa68a] mb-2.5">
-            Access
+            دخول الحساب
           </motion.p>
           <motion.h1 variants={formItem} className="font-playfair text-[1.85rem] font-light text-[#f0e6d2] mb-2">
-            Sign In or Register
+            سجّل دخولك أو اعمل حساب
           </motion.h1>
           <motion.p variants={formItem} className="text-white/35 text-[12px] mb-7 leading-relaxed">
-            Enter your email to continue
+            اكتب إيميلك عشان تكمّل
           </motion.p>
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <motion.div variants={formItem}>
               <label className="block text-[8.5px] uppercase tracking-[0.28em] text-[#bfa68a]/65 mb-2">
-                Email Address
+                الإيميل
               </label>
               <FocusInput
                 type="email"
@@ -205,7 +205,7 @@ export default function AuthStartPage() {
                 onChange={e => { setEmail(e.target.value); if (error) setError(''); }}
                 onBlur={() => {
                   if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-                    setError('Please enter a valid email address.');
+                    setError("اكتب إيميل مظبوط.");
                   }
                 }}
                 placeholder="your@email.com"
@@ -237,7 +237,7 @@ export default function AuthStartPage() {
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '100% 0'; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundPosition = '0% 0'; }}
               >
-                {loading ? 'Checking...' : 'Continue'}
+                {loading ? "بنتأكد..." : "كمّل"}
               </button>
             </motion.div>
           </form>
@@ -245,7 +245,7 @@ export default function AuthStartPage() {
           {/* OAuth divider */}
           <motion.div variants={formItem} className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-white/10" />
-            <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/28">or</span>
+            <span className="text-[8.5px] uppercase tracking-[0.22em] text-white/28">أو</span>
             <div className="flex-1 h-px bg-white/10" />
           </motion.div>
 
@@ -256,7 +256,7 @@ export default function AuthStartPage() {
               className="flex items-center justify-center gap-3 w-full py-3 border border-white/14 text-white/55 hover:border-[#bfa68a]/35 hover:text-white/75 transition text-[9.5px] uppercase tracking-[0.18em]"
             >
               <GoogleIcon />
-              Continue with Google
+              كمّل بحساب جوجل
             </button>
           </motion.div>
         </motion.div>

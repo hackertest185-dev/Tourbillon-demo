@@ -37,12 +37,12 @@ export const EMPTY_WATCH_FILTERS: WatchFilters = {
 // PoR watches (price = 0) come first; adjust order as desired
 export const PRICE_BUCKETS = [
   { label: 'Price on Request', test: (p: number) => p === 0 },
-  { label: 'Over $100k',       test: (p: number) => p >= 100_000 },
+  { label: "أكتر من 100 ألف دولار",       test: (p: number) => p >= 100_000 },
   { label: '$50k – $100k',     test: (p: number) => p >= 50_000 && p < 100_000 },
   { label: '$25k – $50k',      test: (p: number) => p >= 25_000 && p < 50_000 },
   { label: '$10k – $25k',      test: (p: number) => p >= 10_000 && p < 25_000 },
   { label: '$5k – $10k',       test: (p: number) => p >= 5_000  && p < 10_000 },
-  { label: 'Under $5k',        test: (p: number) => p > 0       && p < 5_000  },
+  { label: "أقل من 5 آلاف دولار",        test: (p: number) => p > 0       && p < 5_000  },
 ];
 
 export const CASE_MATERIAL_OPTIONS = ['Steel', 'Titanium', 'Gold', 'Platinum', 'Carbon', 'Ceramic', 'Other'];
@@ -283,7 +283,7 @@ export function FilterDropdown({
                       </svg>
                     )}
                   </span>
-                  <span className={`text-sm font-inter truncate ${active ? 'text-white' : 'text-white/60'}`}>{opt}</span>
+                  <span className={`text-sm font-inter truncate ${active ? 'text-white' : 'text-white/60'}`} dir="ltr" translate="no">{opt}</span>
                 </button>
               );
             })}
@@ -322,7 +322,7 @@ export function BrandDropdown({
   return (
     <div ref={ref} className="relative flex-shrink-0">
       <button onClick={() => setOpen(o => !o)} className={pillClass(selected.length > 0)}>
-        Brand
+        البراند
         <CountBadge count={selected.length} />
         <Chevron open={open} />
       </button>
@@ -386,7 +386,7 @@ export function CollectionDropdown({
   return (
     <div ref={ref} className="relative flex-shrink-0">
       <button onClick={() => setOpen(o => !o)} className={pillClass(selected.length > 0)}>
-        Collection
+        المجموعة
         <CountBadge count={selected.length} />
         <Chevron open={open} />
       </button>
@@ -449,7 +449,7 @@ export function WatchFilterBar({
       <div className="flex items-center gap-2 flex-wrap">
 
         <span className="text-xs font-inter text-white/30 uppercase tracking-widest mr-1 flex-shrink-0 self-center">
-          Filters
+          الفلاتر
         </span>
 
         <BrandDropdown
@@ -474,43 +474,43 @@ export function WatchFilterBar({
         />
 
         <FilterDropdown
-          label="Case Material"
+          label="خامة جسم الساعة"
           options={CASE_MATERIAL_OPTIONS}
           selected={filters.caseMaterials}
           onChange={v => onChange('caseMaterials', v)}
         />
         <FilterDropdown
-          label="Diameter"
+          label="قطر الساعة"
           options={diameterOptions}
           selected={filters.diameterBuckets}
           onChange={v => onChange('diameterBuckets', v)}
         />
         <FilterDropdown
-          label="Movement"
+          label="حركة الساعة"
           options={MOVEMENT_OPTIONS}
           selected={filters.movementTypes}
           onChange={v => onChange('movementTypes', v)}
         />
         <FilterDropdown
-          label="Water Resistance"
+          label="مقاومة المية"
           options={WATER_RESISTANCE_OPTIONS}
           selected={filters.waterResistances}
           onChange={v => onChange('waterResistances', v)}
         />
         <FilterDropdown
-          label="Power Reserve"
+          label="احتياطي التشغيل"
           options={POWER_RESERVE_OPTIONS}
           selected={filters.powerReserves}
           onChange={v => onChange('powerReserves', v)}
         />
         <FilterDropdown
-          label="Complications"
+          label="وظايف الساعة"
           options={COMPLICATION_LABELS}
           selected={filters.complications}
           onChange={v => onChange('complications', v)}
         />
         <FilterDropdown
-          label="Price"
+          label="السعر"
           options={PRICE_BUCKETS.map(b => b.label)}
           selected={filters.priceBuckets}
           onChange={v => onChange('priceBuckets', v)}
@@ -518,7 +518,7 @@ export function WatchFilterBar({
 
         {/* Wrist fit */}
         <div className="flex items-center gap-2 px-3.5 py-2.5 bg-transparent border border-white/12 rounded-full flex-shrink-0">
-          <span className="text-sm font-inter text-white/50 whitespace-nowrap">Wrist</span>
+          <span className="text-sm font-inter text-white/50 whitespace-nowrap">محيط إيدك</span>
           <input
             type="number"
             min={10}
@@ -537,7 +537,7 @@ export function WatchFilterBar({
             onClick={onClear}
             className="ml-2 text-xs font-inter text-white/35 hover:text-white/60 transition-colors flex-shrink-0"
           >
-            Clear all
+            امسح الكل
           </button>
         )}
       </div>

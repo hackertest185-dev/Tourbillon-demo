@@ -50,7 +50,7 @@ export default function ScrollArrow() {
     <button
       type="button"
       onClick={atEnd ? scrollTop : scrollDown}
-      aria-label={atEnd ? 'Back to top' : 'Scroll down'}
+      aria-label={atEnd ? "ارجع لفوق" : "انزل لتحت"}
       className="fixed right-1 md:right-3 bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-30 flex h-12 w-9 md:h-14 md:w-11 items-center justify-center rounded-full border border-[#bfa68a55] bg-[#1e1512]/60 text-[#f0e6d2] backdrop-blur-md shadow-[0_4px_18px_rgba(0,0,0,0.35)] transition-all duration-300 hover:border-[#bfa68a] hover:bg-[#1e1512]/85 active:scale-95"
     >
       <svg

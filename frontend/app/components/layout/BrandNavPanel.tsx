@@ -59,7 +59,7 @@ export default function BrandNavPanel({
               : 'border-transparent text-white/45 hover:text-white/80'
           }`}
         >
-          All Timepieces
+          كل الساعات
         </button>
 
         {hasActiveFilters && (
@@ -67,7 +67,7 @@ export default function BrandNavPanel({
             onClick={onClearAll}
             className="text-[9px] tracking-[0.1em] uppercase text-[#bfa68a] hover:text-[#f0e6d2] transition-colors pr-1"
           >
-            Clear all
+            امسح الكل
           </button>
         )}
       </div>

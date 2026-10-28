@@ -2,6 +2,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
+import { egyptianError } from '@/lib/egyptianError';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -32,15 +33,15 @@ import {
 const PAGE_SIZE = 20;
 
 const SORT_OPTIONS = [
-  { value: 'recent', label: 'Recently Saved' },
-  { value: 'brand', label: 'Brand A–Z' },
-  { value: 'price_desc', label: 'Price High–Low' },
-  { value: 'price_asc', label: 'Price Low–High' },
+  { value: 'recent', label: "اللي حفظتها قريب" },
+  { value: 'brand', label: "البراندات بالترتيب الأبجدي" },
+  { value: 'price_desc', label: "من الأغلى للأرخص" },
+  { value: 'price_asc', label: "من الأرخص للأغلى" },
 ];
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('ar-EG', { month: 'short', year: 'numeric' });
 };
 
 const SkeletonCard = () => (
@@ -57,17 +58,16 @@ const GuestView = () => (
       <ScrollFade>
         <div className="max-w-3xl border-l border-[#bfa68a]/35 pl-7 md:pl-10">
           <p className="text-[10px] uppercase tracking-[0.4em] text-[#bfa68a]/80">
-            Favourites
+            المفضلة
           </p>
           <h1
             className="mt-5 font-playfair font-light leading-tight text-[#f0e6d2]"
             style={{ fontSize: 'clamp(2rem, 4.5vw, 4rem)' }}
           >
-            Your shortlist, waiting for you.
+            ساعاتك المفضلة مستنياك.
           </h1>
           <p className="mt-6 max-w-2xl text-[14px] leading-relaxed text-white/48">
-            Sign in to keep the watches that move you. Build curated collections,
-            track your considerations, and return to them as your eye sharpens.
+            سجّل دخولك واحفظ الساعات اللي عجبتك. رتّبها في مجموعات وارجعلها براحتك لحد ما تختار ساعتك.
           </p>
         </div>
       </ScrollFade>
@@ -78,13 +78,13 @@ const GuestView = () => (
             href={ROUTES.AUTH_START}
             className="inline-flex items-center justify-center border border-[#bfa68a]/25 px-10 py-4 text-[10px] uppercase tracking-[0.3em] text-[#bfa68a] transition-all duration-500 hover:border-[#bfa68a]/40 hover:bg-[#bfa68a]/8"
           >
-            Sign in
+            سجّل دخول
           </Link>
           <Link
             href={ROUTES.WATCHES}
             className="text-[10px] uppercase tracking-[0.3em] text-white/35 transition-colors duration-300 hover:text-[#f0e6d2]"
           >
-            Explore the catalogue
+            اتفرج على الساعات
           </Link>
         </div>
       </ScrollFade>
@@ -187,7 +187,7 @@ export default function FavouritesPage() {
       setIsAddingCollection(false);
       setNewCollectionName('');
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Could not create collection');
+      setCreateError(egyptianError(err, "معرفناش نعمل المجموعة. جرّب تاني."));
     } finally {
       setIsCreating(false);
     }
@@ -238,21 +238,21 @@ export default function FavouritesPage() {
 
   const headingText =
     selectedCollectionIds.length === 1
-      ? `Saved in: ${getCollectionName(selectedCollectionIds[0])}`
+      ? `محفوظة في: ${getCollectionName(selectedCollectionIds[0])}`
       : selectedCollectionIds.length > 1
-        ? `${selectedCollectionIds.length} Collections Selected`
-        : 'All Saved Watches';
+        ? `${selectedCollectionIds.length} مجموعات مختارة`
+        : "كل الساعات اللي حفظتها";
 
   return (
     <main className="min-h-screen pt-32 pb-24 px-8 lg:px-16">
       <ScrollFade>
         <div className="mb-10">
           <h1 className="font-playfair text-4xl lg:text-5xl font-light text-[#f0e6d2] tracking-wide">
-            My Favourites
+            ساعاتي المفضلة
           </h1>
           {watchData && (
             <p className="mt-2 text-sm text-white/40 font-inter">
-              {watchData.totalCount} {watchData.totalCount === 1 ? 'piece' : 'pieces'} saved
+              {watchData.totalCount} ساعة محفوظة
             </p>
           )}
         </div>
@@ -261,7 +261,7 @@ export default function FavouritesPage() {
       <ScrollFade>
         <div className="mb-10">
           <h2 className="text-xs font-inter font-semibold text-[#bfa68a]/60 uppercase tracking-[0.15em] mb-4">
-            Collections
+            المجموعات
           </h2>
           <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
             {collections.map(col => (
@@ -270,7 +270,7 @@ export default function FavouritesPage() {
                 collection={col}
                 isSelected={selectedCollectionIds.includes(col.id)}
                 isRenaming={renamingId === col.id}
-                formattedDate={`Updated ${formatDate(col.updatedAt)}`}
+                formattedDate={`اتحدّثت في ${formatDate(col.updatedAt)}`}
                 onSelect={() => toggleCollectionFilter(col.id)}
                 onRenameStart={() => setRenamingId(col.id)}
                 onRenameCommit={name => handleRenameCommit(col.id, name)}
@@ -314,7 +314,7 @@ export default function FavouritesPage() {
               onClick={() => { setSelectedCollectionIds([]); router.push('/favourites', { scroll: false }); }}
               className="text-xs text-white/35 font-inter hover:text-white/60 transition-colors"
             >
-              Clear filter
+              شيل الفلتر
             </button>
           )}
         </div>
@@ -385,14 +385,14 @@ export default function FavouritesPage() {
       ) : !gridLoading ? (
         <div className="py-20 text-center">
           <p className="text-white/30 font-inter text-sm">
-            {hasWatchFilters ? 'No watches match your current filters.' : 'No saved watches yet.'}
+            {hasWatchFilters ? "مفيش ساعات مناسبة للفلاتر اللي اخترتها." : "لسه محفظتش أي ساعات."}
           </p>
           {hasWatchFilters && (
             <button
               onClick={clearWatchFilters}
               className="mt-3 text-sm text-white/50 hover:text-white underline underline-offset-2 font-inter transition-colors"
             >
-              Clear filters
+              شيل الفلاتر
             </button>
           )}
         </div>

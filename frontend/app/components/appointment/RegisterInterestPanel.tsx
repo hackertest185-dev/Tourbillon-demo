@@ -2,8 +2,10 @@
 // Single-scroll form with salutation, personal details, phone, request textarea, watch card.
 'use client';
 
+import { egyptianError } from '@/lib/egyptianError';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { phoneRegionName, salutationLabel } from '@/lib/egyptianLocale';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitRegisterInterest } from '@/lib/api';
 import SlidingPanel, { PANEL_EXIT_MS } from './SlidingPanel';
@@ -173,7 +175,7 @@ export default function RegisterInterestPanel({
       });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(egyptianError(err, "حصلت مشكلة. جرّب تاني."));
     } finally {
       setSubmitting(false);
     }
@@ -214,7 +216,7 @@ export default function RegisterInterestPanel({
                 fontWeight: salutation === s ? 600 : 400,
               }}
             >
-              {s}
+              {salutationLabel(s)}
             </button>
           ))}
         </div>
@@ -251,7 +253,7 @@ export default function RegisterInterestPanel({
               }}
             >
               <span style={{ fontWeight: 600 }}>{r.code}</span>{' '}
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>{r.label}</span>
+              <span style={{ color: 'rgba(255,255,255,0.5)' }}>{phoneRegionName(r.label)}</span>
             </button>
           ))}
         </div>
@@ -263,8 +265,8 @@ export default function RegisterInterestPanel({
     <SlidingPanel
       isOpen={isOpen}
       onClose={onClose}
-      title={submitted ? 'Interest Registered' : 'Register Your Interest'}
-      ariaLabel="Register your interest"
+      title={submitted ? "سجّلنا اهتمامك" : "سجّل اهتمامك بالساعة"}
+      ariaLabel="سجّل اهتمامك بالساعة"
       onPanelScroll={closeAllDropdowns}
       overlays={overlays}
     >
@@ -277,24 +279,24 @@ export default function RegisterInterestPanel({
             </svg>
           </div>
           <h3 className="text-white/90 text-lg font-medium mb-2">
-            Thank you, {firstName}
+            شكرًا ليك، {firstName}
           </h3>
           {brandName && (
             <p className="text-white/60 text-sm mb-1">
-              We have received your interest in <span className="text-white/80">{brandName}</span>.
+              وصلنا اهتمامك بـ <bdi dir="ltr" translate="no" className="text-white/80">{brandName}</bdi>.
             </p>
           )}
           <p className="text-white/40 text-sm mt-4">
-            A confirmation has been sent to {email}.
+            بعتنالك تأكيد على {email}.
           </p>
           <p className="text-white/40 text-sm mt-1">
-            Our advisors will personally reach out within 24–48 hours.
+            فريقنا هيكلمك خلال 24 لـ 48 ساعة.
           </p>
           <button
             onClick={onClose}
             className="mt-10 py-3.5 px-12 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors"
           >
-            Done
+            تم
           </button>
         </div>
       ) : (
@@ -302,12 +304,12 @@ export default function RegisterInterestPanel({
           {/* Sign-in prompt for guests */}
           {!authLoading && !isAuthenticated && (
             <div className="flex items-center gap-2 mb-6 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-white/50 text-sm">Already joined Tourbillon?</span>
+              <span className="text-white/50 text-sm">عندك حساب على Tourbillon؟</span>
               <Link
                 href={`/login?redirect=${encodeURIComponent(`/watches/${watchSlug || watchId}?panel=register-interest`)}`}
                 className="text-[#bfa68a] hover:text-[#d4c4a8] text-sm font-medium transition-colors"
               >
-                Sign in
+                سجّل دخول
               </Link>
             </div>
           )}
@@ -315,7 +317,7 @@ export default function RegisterInterestPanel({
           <div className="space-y-4">
             {/* Salutation */}
             <div>
-              <label className="block text-sm text-white/60 mb-2">Salutation *</label>
+              <label className="block text-sm text-white/60 mb-2">اللقب *</label>
               <button
                 ref={salutationBtnRef}
                 type="button"
@@ -327,7 +329,7 @@ export default function RegisterInterestPanel({
                 className="flex items-center justify-between gap-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm hover:border-white/20 focus:outline-none focus:border-[#bfa68a]/50 transition-colors"
               >
                 <span className={salutation ? 'text-white' : 'text-white/30'}>
-                  {salutation || 'Select salutation'}
+                  {salutation ? salutationLabel(salutation) : 'اختار اللقب'}
                 </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-white/40 flex-shrink-0">
                   <path d="M6 9l6 6 6-6"/>
@@ -338,28 +340,28 @@ export default function RegisterInterestPanel({
             {/* First / Last Name */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm text-white/60 mb-2">First Name *</label>
+                <label className="block text-sm text-white/60 mb-2">اسمك الأول *</label>
                 <input
                   type="text" value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors text-sm"
-                  placeholder="First name"
+                  placeholder="اسمك الأول"
                 />
               </div>
               <div>
-                <label className="block text-sm text-white/60 mb-2">Last Name *</label>
+                <label className="block text-sm text-white/60 mb-2">اسم العيلة *</label>
                 <input
                   type="text" value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors text-sm"
-                  placeholder="Last name"
+                  placeholder="اسم العيلة"
                 />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm text-white/60 mb-2">Email *</label>
+              <label className="block text-sm text-white/60 mb-2">الإيميل *</label>
               <input
                 type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -367,14 +369,14 @@ export default function RegisterInterestPanel({
                 className={`w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors text-sm ${
                   isAuthenticated && user?.email ? 'opacity-60 cursor-not-allowed' : ''
                 }`}
-                placeholder="Email address"
+                placeholder="الإيميل"
               />
             </div>
 
             {/* Phone */}
             <div>
               <label className="block text-sm text-white/60 mb-2">
-                Mobile Number <span className="text-white/30">(Optional)</span>
+                رقم الموبايل <span className="text-white/30">(اختياري)</span>
               </label>
               <div className="flex gap-2">
                 <button
@@ -396,21 +398,21 @@ export default function RegisterInterestPanel({
                   type="tel" value={phone}
                   onChange={e => setPhone(e.target.value)}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors text-sm"
-                  placeholder="Mobile number"
+                  placeholder="رقم الموبايل"
                 />
               </div>
             </div>
 
             {/* Your Request */}
             <div>
-              <label className="block text-sm text-white/60 mb-2">Your Request</label>
+              <label className="block text-sm text-white/60 mb-2">طلبك</label>
               <textarea
                 value={message}
                 onChange={e => setMessage(e.target.value)}
                 rows={5}
                 maxLength={2000}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 focus:outline-none focus:border-[#bfa68a]/50 transition-colors text-sm resize-none"
-                placeholder="Tell us what captivates you about this timepiece — its complications, craftsmanship, or the story behind its creation. Our advisors will personally reach out to assist you."
+                placeholder="قولنا إيه اللي عجبك في الساعة دي وإيه اللي حابب تعرفه عنها، وفريقنا هيكلمك ويساعدك."
               />
               <p className="text-white/20 text-xs text-right mt-1">{message.length}/2000</p>
             </div>
@@ -418,14 +420,14 @@ export default function RegisterInterestPanel({
             {/* Watch of Interest — read-only product card */}
             {(brandName || collectionName || watchReference) && (
               <div className="rounded-xl bg-gradient-to-br from-[#bfa68a]/10 to-transparent border border-[#bfa68a]/30 p-5 shadow-lg shadow-[#bfa68a]/5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#bfa68a] mb-3">Watch of Interest</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#bfa68a] mb-3">الساعة اللي مهتم بيها</p>
                 <div className="flex gap-4 items-center">
                   {(watchId || watchImageUrl) && (
                     <div className="w-16 h-16 rounded-lg flex-shrink-0 bg-white/5 border border-white/10 overflow-hidden">
                       <Watch3D watch={{ id: watchId || 0, slug: watchSlug, name: watchReference || '', specs: watchSpecs }} fallbackSrc={watchImageUrl} alt={watchReference || ''} index={watchId || 0} />
                     </div>
                   )}
-                  <div>
+                  <div dir="ltr" translate="no" className="notranslate text-start">
                     {brandName && <p className="text-[#f0e6d2] text-sm font-semibold tracking-wide">{brandName}</p>}
                     {collectionName && <p className="text-[#f0e6d2]/80 text-sm mt-0.5">{collectionName}</p>}
                     <div className="flex gap-3 mt-1.5 items-center">
@@ -440,7 +442,7 @@ export default function RegisterInterestPanel({
 
             {/* Confirmation note */}
             <p className="text-white/40 text-sm text-center pt-1">
-              A confirmation will be sent to your email address.
+              هنبعتلك تأكيد على إيميلك.
             </p>
 
             {error && (
@@ -454,7 +456,7 @@ export default function RegisterInterestPanel({
               disabled={!canSubmit || submitting}
               className="w-full py-3 rounded-xl font-semibold bg-[#bfa68a] text-black hover:bg-[#d4c4a8] transition-colors text-sm disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Submitting...' : 'Register Interest'}
+              {submitting ? "بنبعت طلبك..." : "سجّل اهتمامك"}
             </button>
           </div>
         </div>

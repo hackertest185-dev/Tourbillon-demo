@@ -94,7 +94,7 @@ export default function SlidingPanel({
                 <button
                   onClick={onClose}
                   className="text-white/20 hover:text-white/50 transition-colors p-1"
-                  aria-label="Close"
+                  aria-label="اقفل"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none">
                     <path d="M18 6L6 18M6 6l12 12"/>

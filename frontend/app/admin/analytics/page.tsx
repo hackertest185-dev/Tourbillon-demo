@@ -51,56 +51,56 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="p-6">
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-white">Analytics</h1>
-        <p className="text-[#555] text-xs mt-0.5">Platform health and content coverage at a glance</p>
+        <h1 className="text-xl font-semibold text-white">الإحصائيات</h1>
+        <p className="text-[#555] text-xs mt-0.5">نظرة سريعة على حالة الموقع والمحتوى</p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-        <Card title="Catalogue">
+        <Card title="الساعات المتاحة">
           {scrape ? (
             <>
-              <Stat label="Brands" value={scrape.totalBrands} accent />
-              <Stat label="Collections" value={scrape.totalCollections} />
-              <Stat label="Watches" value={scrape.totalWatches} accent />
+              <Stat label="البراندات" value={scrape.totalBrands} accent />
+              <Stat label="المجموعات" value={scrape.totalCollections} />
+              <Stat label="الساعات" value={scrape.totalWatches} accent />
               {scrape.lastScrapedAt && (
-                <Stat label="Last scraped" value={new Date(scrape.lastScrapedAt).toLocaleDateString()} />
+                <Stat label="آخر مرة اتسحبت فيها البيانات" value={new Date(scrape.lastScrapedAt).toLocaleDateString()} />
               )}
             </>
-          ) : <p className="text-[#333] text-xs">Loading…</p>}
+          ) : <p className="text-[#333] text-xs">بنحمّل...</p>}
         </Card>
 
-        <Card title="Editorial Coverage">
+        <Card title="نسبة تغطية المحتوى">
           {editorial ? (
             <>
-              <Stat label="Total watches" value={editorial.total} />
-              <Stat label="With editorial" value={editorial.withEditorial} accent />
-              <Stat label="Coverage" value={`${editorial.coveragePct.toFixed(1)}%`} accent />
+              <Stat label="إجمالي الساعات" value={editorial.total} />
+              <Stat label="ساعات ليها محتوى" value={editorial.withEditorial} accent />
+              <Stat label="نسبة التغطية" value={`${editorial.coveragePct.toFixed(1)}%`} accent />
               <CoverageBar pct={editorial.coveragePct} />
             </>
-          ) : <p className="text-[#333] text-xs">Loading…</p>}
+          ) : <p className="text-[#333] text-xs">بنحمّل...</p>}
         </Card>
 
-        <Card title="AI Embeddings">
+        <Card title="بيانات الذكاء الاصطناعي للبحث">
           {embedding ? (
             <>
-              <Stat label="Total watches" value={embedding.total} />
-              <Stat label="Embedded" value={embedding.embedded} accent />
-              <Stat label="Coverage" value={`${embedding.coveragePct.toFixed(1)}%`} accent />
+              <Stat label="إجمالي الساعات" value={embedding.total} />
+              <Stat label="اتجهزت للبحث الذكي" value={embedding.embedded} accent />
+              <Stat label="نسبة التغطية" value={`${embedding.coveragePct.toFixed(1)}%`} accent />
               <CoverageBar pct={embedding.coveragePct} />
             </>
-          ) : <p className="text-[#333] text-xs">Loading…</p>}
+          ) : <p className="text-[#333] text-xs">بنحمّل...</p>}
         </Card>
 
-        <Card title="Query Cache">
+        <Card title="البحث المتخزن مؤقتًا">
           {cache ? (
             <>
-              <Stat label="Total cached queries" value={cache.total} accent />
-              <Stat label="Watch Finder" value={cache.watch_finder} />
-              <Stat label="RAG Chat" value={cache.rag_chat} />
-              {cache.message && <Stat label="Status" value={cache.message} />}
+              <Stat label="إجمالي عمليات البحث المتخزنة" value={cache.total} accent />
+              <Stat label="البحث عن ساعة" value={cache.watch_finder} />
+              <Stat label="شات الذكاء الاصطناعي" value={cache.rag_chat} />
+              {cache.message && <Stat label="الحالة" value={cache.message} />}
             </>
-          ) : <p className="text-[#333] text-xs">Loading…</p>}
+          ) : <p className="text-[#333] text-xs">بنحمّل...</p>}
         </Card>
 
       </div>

@@ -1,6 +1,7 @@
 // Sign-in methods for the edit-details page.
 "use client";
 
+import { egyptianError } from '@/lib/egyptianError';
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -23,11 +24,11 @@ const panelMotion = {
 };
 
 function validateNewPassword(pw: string, confirm: string, current?: string): string | null {
-  if (pw.length < 12) return "Password must be at least 12 characters";
-  if (!/[A-Z]/.test(pw)) return "Must include an uppercase letter";
-  if (!/\d/.test(pw)) return "Must include a number";
-  if (current && pw === current) return "Choose a password different from your current password";
-  if (pw !== confirm) return "New passwords do not match";
+  if (pw.length < 12) return "الباسورد لازم يكون 12 حرف على الأقل";
+  if (!/[A-Z]/.test(pw)) return "لازم يكون فيه حرف إنجليزي كبير";
+  if (!/\d/.test(pw)) return "لازم يكون فيه رقم";
+  if (current && pw === current) return "اختار باسورد مختلف عن الحالي";
+  if (pw !== confirm) return "الباسوردين الجداد مش زي بعض";
   return null;
 }
 
@@ -217,7 +218,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
       setCooldown(RESEND_COOLDOWN);
       setChars(Array(CODE_LENGTH).fill(""));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      setError(egyptianError(err, "معرفناش نبعت الكود. جرّب تاني."));
     } finally {
       setSending(false);
     }
@@ -231,7 +232,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
       setCooldown(RESEND_COOLDOWN);
       setChars(Array(CODE_LENGTH).fill(""));
     } catch {
-      setError("Failed to resend. Please try again.");
+      setError("معرفناش نبعت الكود تاني. جرّب بعد شوية.");
     }
   };
 
@@ -248,7 +249,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
       await confirmPasswordSetup(code, newPw);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to set password");
+      setError(egyptianError(err, "معرفناش نحفظ الباسورد. جرّب تاني."));
       setChars(Array(CODE_LENGTH).fill(""));
     } finally {
       setSubmitting(false);
@@ -259,11 +260,11 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
     return (
       <motion.div {...panelMotion} className="space-y-4">
         <p className="max-w-md text-xs leading-relaxed text-white/35">
-          We will send a setup code to <span className="text-[#bfa68a]/85">{user.email}</span>.
+          هنبعتلك كود لتحديد الباسورد على <span className="text-[#bfa68a]/85">{user.email}</span>.
         </p>
         {error && <p className="text-xs text-[#e07575]">{error}</p>}
         <GoldButton onClick={sendCode} disabled={sending}>
-          {sending ? "Sending..." : "Send code"}
+          {sending ? "بنبعت..." : "ابعت الكود"}
         </GoldButton>
       </motion.div>
     );
@@ -273,7 +274,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
     <motion.form {...panelMotion} onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-3">
         <p className="text-xs text-white/35">
-          Code sent to <span className="text-[#bfa68a]/85">{user.email}</span>.
+          بعتنا الكود على <span className="text-[#bfa68a]/85">{user.email}</span>.
         </p>
         <OtpBoxes chars={chars} onChange={setChars} disabled={submitting} />
         <button
@@ -282,7 +283,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
           disabled={cooldown > 0}
           className="text-xs text-white/32 transition hover:text-[#bfa68a] disabled:cursor-not-allowed disabled:opacity-35"
         >
-          {cooldown > 0 ? `Resend code (${cooldown}s)` : "Resend code"}
+          {cooldown > 0 ? `ابعت الكود تاني بعد ${cooldown} ثانية` : "ابعت الكود تاني"}
         </button>
       </div>
 
@@ -290,33 +291,33 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
         {codeComplete && (
           <motion.div {...panelMotion} className="space-y-4">
             <FieldInput
-              label="New password"
+              label="الباسورد الجديد"
               type="password"
               value={newPw}
               onChange={(value) => {
                 setNewPw(value);
                 setError("");
               }}
-              placeholder="New password"
+              placeholder="الباسورد الجديد"
               autoComplete="new-password"
             />
             <div>
               <FieldInput
-                label="Confirm new password"
+                label="اكتب الباسورد الجديد تاني"
                 type="password"
                 value={confirmPw}
                 onChange={(value) => {
                   setConfirmPw(value);
                   setError("");
                 }}
-                placeholder="Confirm new password"
+                placeholder="اكتب الباسورد الجديد تاني"
                 autoComplete="new-password"
               />
               {passwordsMatch && (
-                <p className="mt-2 text-[10px] tracking-wide text-[#bfa68a]/70">Passwords match</p>
+                <p className="mt-2 text-[10px] tracking-wide text-[#bfa68a]/70">الباسوردين زي بعض</p>
               )}
               {passwordsMismatch && (
-                <p className="mt-2 text-[10px] text-[#e07575]/85">New passwords do not match</p>
+                <p className="mt-2 text-[10px] text-[#e07575]/85">الباسوردين الجداد مش زي بعض</p>
               )}
             </div>
           </motion.div>
@@ -327,7 +328,7 @@ function SetupFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) {
 
       {codeComplete && (
         <GoldButton type="submit" disabled={submitting || !newPw || !confirmPw}>
-          {submitting ? "Setting password..." : "Set password"}
+          {submitting ? "بنحفظ الباسورد..." : "حدد الباسورد"}
         </GoldButton>
       )}
     </motion.form>
@@ -350,7 +351,7 @@ function ChangeFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) 
     setSuccess("");
 
     if (!currentPw) {
-      setError("Enter your current password");
+      setError("اكتب الباسورد الحالي");
       return;
     }
 
@@ -364,13 +365,13 @@ function ChangeFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) 
     setError("");
     try {
       await changePassword(currentPw, newPw);
-      setSuccess("Password updated.");
+      setSuccess("الباسورد اتغيّر.");
       setCurrentPw("");
       setNewPw("");
       setConfirmPw("");
       await onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update password");
+      setError(egyptianError(err, "معرفناش نغيّر الباسورد. جرّب تاني."));
     } finally {
       setSubmitting(false);
     }
@@ -384,46 +385,46 @@ function ChangeFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) 
   return (
     <motion.form {...panelMotion} onSubmit={handleSubmit} className="space-y-5">
       <FieldInput
-        label="Current password"
+        label="الباسورد الحالي"
         type="password"
         value={currentPw}
         onChange={(value) => {
           setCurrentPw(value);
           clearFeedback();
         }}
-        placeholder="Current password"
+        placeholder="الباسورد الحالي"
         autoComplete="current-password"
         autoFocus
       />
       <div className="grid gap-5 md:grid-cols-2">
         <FieldInput
-          label="New password"
+          label="الباسورد الجديد"
           type="password"
           value={newPw}
           onChange={(value) => {
             setNewPw(value);
             clearFeedback();
           }}
-          placeholder="New password"
+          placeholder="الباسورد الجديد"
           autoComplete="new-password"
         />
         <div>
           <FieldInput
-            label="Confirm new password"
+            label="اكتب الباسورد الجديد تاني"
             type="password"
             value={confirmPw}
             onChange={(value) => {
               setConfirmPw(value);
               clearFeedback();
             }}
-            placeholder="Confirm new password"
+            placeholder="اكتب الباسورد الجديد تاني"
             autoComplete="new-password"
           />
           {passwordsMatch && (
-            <p className="mt-2 text-[10px] tracking-wide text-[#bfa68a]/70">Passwords match</p>
+            <p className="mt-2 text-[10px] tracking-wide text-[#bfa68a]/70">الباسوردين زي بعض</p>
           )}
           {passwordsMismatch && (
-            <p className="mt-2 text-[10px] text-[#e07575]/85">New passwords do not match</p>
+            <p className="mt-2 text-[10px] text-[#e07575]/85">الباسوردين الجداد مش زي بعض</p>
           )}
         </div>
       </div>
@@ -433,10 +434,10 @@ function ChangeFlow({ user, onSuccess }: { user: User; onSuccess: () => void }) 
           href={`/forgot-password?email=${encodeURIComponent(user.email)}`}
           className="text-xs text-white/35 transition hover:text-[#bfa68a]"
         >
-          Forgot your password?
+          نسيت الباسورد؟
         </Link>
         <GoldButton type="submit" disabled={submitting || !currentPw || !newPw || !confirmPw}>
-          {submitting ? "Checking current password..." : "Update password"}
+          {submitting ? "بنتأكد من الباسورد الحالي..." : "غيّر الباسورد"}
         </GoldButton>
       </div>
 
@@ -466,45 +467,45 @@ export default function SignInMethodsCard({ user }: Props) {
   return (
     <section className="border-t border-white/10 pt-9">
       <div className="mb-6">
-        <p className="text-[9px] uppercase tracking-[0.36em] text-[#bfa68a]">Security</p>
-        <h2 className="mt-2 font-playfair text-2xl font-light text-[#f0e6d2]">Sign-in Methods</h2>
+        <p className="text-[9px] uppercase tracking-[0.36em] text-[#bfa68a]">الأمان</p>
+        <h2 className="mt-2 font-playfair text-2xl font-light text-[#f0e6d2]">طرق تسجيل الدخول</h2>
       </div>
 
       <div className="divide-y divide-white/10">
         {user.hasGoogle && (
           <div className="flex items-center justify-between gap-5 py-4">
             <div>
-              <p className="text-sm font-medium text-[#f0e6d2]">Google</p>
-              <p className="mt-1 text-xs text-white/32">Sign in with your Google account</p>
+              <p className="text-sm font-medium text-[#f0e6d2]">جوجل</p>
+              <p className="mt-1 text-xs text-white/32">ادخل بحساب جوجل بتاعك</p>
             </div>
-            <StatusBadge label="Connected" />
+            <StatusBadge label="متوصل" />
           </div>
         )}
 
         <div className="flex items-center justify-between gap-5 py-4">
           <div>
-            <p className="text-sm font-medium text-[#f0e6d2]">Magic Link</p>
-            <p className="mt-1 text-xs text-white/32">One-time code sent to your email</p>
+            <p className="text-sm font-medium text-[#f0e6d2]">لينك الدخول المباشر</p>
+            <p className="mt-1 text-xs text-white/32">كود بيتبعت على إيميلك وبتستخدمه مرة واحدة</p>
           </div>
-          <StatusBadge label="Active" />
+          <StatusBadge label="شغال" />
         </div>
 
         <div className="py-4">
           <div className="flex items-start justify-between gap-5">
             <div>
-              <p className="text-sm font-medium text-[#f0e6d2]">Password</p>
+              <p className="text-sm font-medium text-[#f0e6d2]">الباسورد</p>
               <p className="mt-1 text-xs text-white/32">
-                {hasPassword ? "Change your password after confirming the current one" : "Set a password with an email code"}
+                {hasPassword ? "غيّر الباسورد بعد ما تأكد الباسورد الحالي" : "حدد باسورد بكود على الإيميل"}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              {hasPassword && !expanded && <StatusBadge label="Active" tone="quiet" />}
+              {hasPassword && !expanded && <StatusBadge label="شغال" tone="quiet" />}
               <button
                 type="button"
                 onClick={() => setExpanded((value) => !value)}
                 className="text-xs text-[#bfa68a]/70 transition hover:text-[#bfa68a]"
               >
-                {expanded ? "Cancel" : hasPassword ? "Change" : "Set up"}
+                {expanded ? "إلغاء" : hasPassword ? "غيّر" : "ظبّط"}
               </button>
             </div>
           </div>

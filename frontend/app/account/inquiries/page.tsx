@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
+import { inquiryLabel } from "@/lib/egyptianLocale";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { DYNAMIC_ROUTES, ROUTES } from "@/app/constants/routes";
@@ -30,7 +31,7 @@ const fadeUp = {
 };
 
 function prettifyEnum(value: string): string {
-  return value.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  return inquiryLabel(value);
 }
 
 function statusBorderStyle(status: string): CSSProperties {
@@ -49,13 +50,13 @@ function StatusBadge({ status }: { status: string }) {
   if (s === "cancelled" || s === "rejected") cls = "bg-red-400/10 text-red-400/75 border-red-400/25";
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[9.5px] font-medium uppercase tracking-[0.06em] ${cls}`}>
-      {status}
+      {inquiryLabel(status)}
     </span>
   );
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+  return new Date(iso).toLocaleDateString("ar-EG", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -125,24 +126,24 @@ export default function InquiriesPage() {
         >
           <motion.div variants={fadeUp} className="mb-5 h-px w-8 bg-[#bfa68a]/50" />
           <motion.p variants={fadeUp} className="mb-3 text-[9px] uppercase tracking-[0.5em] text-[#bfa68a]">
-            Account
+            حسابك
           </motion.p>
           <motion.h1 variants={fadeUp} className="font-playfair text-[3rem] font-light leading-none text-[#f0e6d2]">
-            My Inquiries
+            استفساراتي
           </motion.h1>
           <motion.p variants={fadeUp} className="mt-5 max-w-[280px] text-[13px] leading-[1.85] text-white/38">
-            Track your boutique appointments and watch interest registrations.
+            تابع مواعيدك والساعات اللي سجّلت اهتمامك بيها.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 space-y-5 border-l border-[#bfa68a]/22 pl-6">
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">Appointments</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">مواعيدك المحجوزة</p>
               <p className="mt-1.5 font-playfair text-[2rem] font-light leading-none text-[#f0e6d2]">
                 {fetching ? "-" : appointments.length}
               </p>
             </div>
             <div>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">Watch Interests</p>
+              <p className="text-[9px] uppercase tracking-[0.3em] text-[#bfa68a]/60">الساعات اللي مهتم بيها</p>
               <p className="mt-1.5 font-playfair text-[2rem] font-light leading-none text-[#f0e6d2]">
                 {fetching ? "-" : interests.length}
               </p>
@@ -170,7 +171,7 @@ export default function InquiriesPage() {
                 transition={{ duration: 0.2 }}
                 className="pt-2 text-sm text-[#bfa68a]/60"
               >
-                Loading...
+                بنحمّل...
               </motion.p>
             ) : (
               <motion.div
@@ -181,15 +182,15 @@ export default function InquiriesPage() {
               >
                 {empty && (
                   <div className="py-12 text-center">
-                    <p className="text-sm text-white/30">No inquiries yet.</p>
+                    <p className="text-sm text-white/30">لسه مبعتش أي استفسارات.</p>
                     <p className="mt-1 text-xs text-white/20">
-                      Browse timepieces and contact our advisors to get started.
+                      اتفرج على الساعات وكلم فريقنا عشان نساعدك تختار.
                     </p>
                   </div>
                 )}
 
                 {appointments.length > 0 && (
-                  <Section title="Appointments" icon={<CalendarIcon />}>
+                  <Section title="مواعيدك المحجوزة" icon={<CalendarIcon />}>
                     {appointments.map(a => (
                       <InquiryCard key={a.id} status={a.status}>
                         <CardPrimary
@@ -199,9 +200,9 @@ export default function InquiriesPage() {
                         />
                         <CardMeta
                           items={[
-                            { label: "Boutique", value: a.boutiqueName },
-                            { label: "Date", value: formatDate(a.appointmentDate) },
-                            { label: "Submitted", value: formatDate(a.createdAt) },
+                            { label: "المعرض", value: a.boutiqueName },
+                            { label: "التاريخ", value: formatDate(a.appointmentDate) },
+                            { label: "اتبعت", value: formatDate(a.createdAt) },
                           ]}
                         />
                       </InquiryCard>
@@ -210,7 +211,7 @@ export default function InquiriesPage() {
                 )}
 
                 {interests.length > 0 && (
-                  <Section title="Register Interest" icon={<BookmarkIcon />}>
+                  <Section title="سجّل اهتمامك" icon={<BookmarkIcon />}>
                     {interests.map(r => (
                       <InquiryCard key={r.id} status={r.status}>
                         <div className="flex gap-3">
@@ -218,13 +219,13 @@ export default function InquiriesPage() {
                             <Link
                               href={withReturnTo(DYNAMIC_ROUTES.WATCH_DETAIL(r.watchSlug), returnTo)}
                               className="group shrink-0"
-                              title="View timepiece"
+                              title="شوف الساعة"
                             >
                               <div className="h-[60px] w-[60px] overflow-hidden rounded-lg border border-[#bfa68a]/20 bg-white/[0.04] transition-colors group-hover:border-[#bfa68a]/50">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={imageTransformations.thumbnail(r.watchImage)}
-                                  alt={r.watchDescription || r.watchReference || "Watch"}
+                                  alt={r.watchDescription || r.watchReference || "الساعة"}
                                   className="h-full w-full object-contain p-1"
                                 />
                               </div>
@@ -247,7 +248,7 @@ export default function InquiriesPage() {
                               watchSlug={r.watchSlug}
                               returnTo={returnTo}
                             />
-                            <CardMeta items={[{ label: "Submitted", value: formatDate(r.createdAt) }]} />
+                            <CardMeta items={[{ label: "اتبعت", value: formatDate(r.createdAt) }]} />
                           </div>
                         </div>
                       </InquiryCard>
@@ -339,7 +340,7 @@ function BrandCollectionLinks({
   collectionSlug?: string | null;
   returnTo: string;
 }) {
-  if (!brandName && !collectionName) return <>Watch Interest</>;
+  if (!brandName && !collectionName) return <>اهتمام بساعة</>;
 
   return (
     <>

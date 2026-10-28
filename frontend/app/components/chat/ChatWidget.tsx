@@ -40,7 +40,7 @@ export default function ChatWidget() {
           </svg>
 
           <span className="text-[#ecddc8] text-sm font-medium tracking-wide font-inter">
-            Concierge
+            مساعدك الشخصي
           </span>
         </motion.button>
       </div>
@@ -49,7 +49,7 @@ export default function ChatWidget() {
       <SlidingPanel
         isOpen={isOpen}
         onClose={closeChat}
-        title="Chat Concierge"
+        title="كلم مساعدك الشخصي"
         maxWidth={624}
       >
         <ChatPanel />

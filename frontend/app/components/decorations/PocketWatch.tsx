@@ -217,7 +217,7 @@ export default function PocketWatch({ size = 200, className = '', variant = 'cha
       height={Math.round(size * 1.2)}
       viewBox="0 0 200 240"
       className={className}
-      aria-label="Animated luxury pocket watch"
+      aria-label="ساعة جيب متحركة"
       role="img"
     >
       {/* ── BOW RING ─────────────────────────────── */}

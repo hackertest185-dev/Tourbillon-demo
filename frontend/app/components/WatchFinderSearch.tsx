@@ -6,12 +6,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export const SUGGESTIONS = [
-  'Vacheron Dress Watch 39 to 40mm Dial below 200k',
-  'Omega and Rolex with good water resistance',
-  'AP Royal Oak steel',
-  'JLC Reverso under $50k',
-  'Perpetual calendar watch',
-  'Tourbillon watches',
+  "ساعة كلاسيك من Vacheron، مقاس 39 لـ 40 مم وأقل من 200 ألف",
+  "ساعات Omega وRolex بمقاومة كويسة للمية",
+  "ساعة AP Royal Oak من الستيل",
+  "ساعة JLC Reverso بأقل من 50 ألف دولار",
+  "ساعة بتقويم دائم",
+  "ساعات بميكانيزم Tourbillon",
 ];
 
 export default function WatchFinderSearch() {
@@ -71,7 +71,7 @@ export default function WatchFinderSearch() {
         {!query && (
           <div className="absolute left-0 bottom-[22px] pointer-events-none flex items-center pr-14 w-full">
             <span className={`font-inter text-lg transition-opacity duration-300 ${isFocused ? 'text-white/10' : 'text-white/30'}`}>
-              {isFocused ? "Describe what you're looking for..." : displayText}
+              {isFocused ? "قولنا بتدور على ساعة شكلها إيه..." : displayText}
               {!isFocused && <span className="inline-block w-px h-[1.1em] bg-[#bfa68a]/40 ml-0.5 align-middle animate-pulse" />}
             </span>
           </div>

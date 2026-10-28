@@ -63,10 +63,10 @@ export default function AdminMediaPage() {
       });
       setUpload(s => ({ ...s, message: 'Confirming…', progress: 100 }));
       await adminConfirmVideoUpload(key, file.name, file.type, file.size);
-      setUpload({ phase: 'done', progress: 100, message: 'Uploaded successfully' });
+      setUpload({ phase: 'done', progress: 100, message: "اترفع بنجاح" });
       await load();
     } catch (err: unknown) {
-      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : 'Upload failed' });
+      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : "الرفع منفعش" });
     }
   };
 
@@ -80,7 +80,7 @@ export default function AdminMediaPage() {
       setConfirmModal({ cloudinaryUrl, publicId: cloudinaryPublicId, fileName: file.name, size: file.size });
       setUpload({ phase: 'idle', progress: 0, message: '' });
     } catch (err: unknown) {
-      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : 'Stage failed' });
+      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : "الرفع المؤقت منفعش" });
     }
   };
 
@@ -90,10 +90,10 @@ export default function AdminMediaPage() {
     try {
       await adminConfirmMediaImageUpload(confirmModal.cloudinaryUrl, confirmModal.publicId, confirmModal.fileName, confirmModal.size);
       setConfirmModal(null);
-      setUpload({ phase: 'done', progress: 100, message: 'Image saved' });
+      setUpload({ phase: 'done', progress: 100, message: "الصورة اتحفظت" });
       await load();
     } catch (err: unknown) {
-      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : 'Confirm failed' });
+      setUpload({ phase: 'error', progress: 0, message: err instanceof Error ? err.message : "التأكيد منفعش" });
     }
   };
 
@@ -104,7 +104,7 @@ export default function AdminMediaPage() {
     await load();
   };
 
-  if (loading) return <div className="p-8 text-white text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-white text-sm">بنحمّل...</div>;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -113,8 +113,8 @@ export default function AdminMediaPage() {
         {/* Toolbar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1a1a] flex-shrink-0">
           <div>
-            <h1 className="text-xl font-semibold text-white">Media Library</h1>
-            <p className="text-[#555] text-xs mt-0.5">{filtered.length} assets</p>
+            <h1 className="text-xl font-semibold text-white">مكتبة الصور والفيديوهات</h1>
+            <p className="text-[#555] text-xs mt-0.5">{filtered.length} ملف</p>
           </div>
           <div className="flex items-center gap-3">
             {upload.phase !== 'idle' && (
@@ -137,11 +137,11 @@ export default function AdminMediaPage() {
             <button
               className="bg-white/10 text-gray-300 px-3 py-1.5 rounded text-sm hover:bg-white/20 transition-colors"
               onClick={() => imageRef.current?.click()}
-            >+ Image</button>
+            >+ صورة</button>
             <button
               className="bg-[#c9a96e] text-black px-3 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors"
               onClick={() => videoRef.current?.click()}
-            >+ Video</button>
+            >+ فيديو</button>
           </div>
         </div>
 
@@ -152,14 +152,14 @@ export default function AdminMediaPage() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1 rounded text-xs transition-colors capitalize ${filter === f ? 'bg-[#1e1e1e] text-white' : 'text-[#555] hover:text-[#888]'}`}
-            >{f === 'all' ? 'All' : f + 's'}</button>
+            >{f === 'all' ? "الكل" : f + 's'}</button>
           ))}
         </div>
 
         {/* Grid */}
         <div className="flex-1 overflow-y-auto p-6">
           {filtered.length === 0 ? (
-            <div className="text-[#444] text-sm text-center pt-16">No assets yet. Upload an image or video to get started.</div>
+            <div className="text-[#444] text-sm text-center pt-16">لسه مفيش ملفات. ارفع صورة أو فيديو عشان تبدأ.</div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {filtered.map(a => (
@@ -195,7 +195,7 @@ export default function AdminMediaPage() {
       {selected && (
         <div className="w-64 flex-shrink-0 border-l border-[#1a1a1a] bg-[#0d0d0d] flex flex-col overflow-y-auto">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
-            <span className="text-white text-xs font-medium">Details</span>
+            <span className="text-white text-xs font-medium">التفاصيل</span>
             <button onClick={() => setSelected(null)} className="text-[#444] hover:text-[#888] text-sm">✕</button>
           </div>
 
@@ -218,28 +218,28 @@ export default function AdminMediaPage() {
 
             <div className="space-y-2 text-xs">
               <div>
-                <div className="text-[#444] mb-0.5">Filename</div>
+                <div className="text-[#444] mb-0.5">اسم الملف</div>
                 <div className="text-[#888] break-all">{selected.fileName}</div>
               </div>
               <div>
-                <div className="text-[#444] mb-0.5">Type</div>
+                <div className="text-[#444] mb-0.5">النوع</div>
                 <div className="text-[#888]">{selected.mimeType}</div>
               </div>
               <div>
-                <div className="text-[#444] mb-0.5">Size</div>
+                <div className="text-[#444] mb-0.5">الحجم</div>
                 <div className="text-[#888]">{formatBytes(selected.sizeBytes)}</div>
               </div>
               <div>
-                <div className="text-[#444] mb-0.5">Uploaded</div>
+                <div className="text-[#444] mb-0.5">اترفع في</div>
                 <div className="text-[#888]">{formatDate(selected.uploadedAt)}</div>
               </div>
               <div>
-                <div className="text-[#444] mb-0.5">Key</div>
+                <div className="text-[#444] mb-0.5">المعرّف</div>
                 <div className="text-[#666] break-all font-mono text-[10px]">{selected.key}</div>
               </div>
               {selected.cloudinaryPublicId && (
                 <div>
-                  <div className="text-[#444] mb-0.5">Cloudinary ID</div>
+                  <div className="text-[#444] mb-0.5">معرّف Cloudinary</div>
                   <div className="text-[#666] break-all font-mono text-[10px]">{selected.cloudinaryPublicId}</div>
                 </div>
               )}
@@ -252,12 +252,12 @@ export default function AdminMediaPage() {
                   target="_blank"
                   rel="noreferrer"
                   className="block w-full text-center bg-white/10 text-gray-300 px-3 py-1.5 rounded text-xs hover:bg-white/20 transition-colors"
-                >Open original</a>
+                >افتح النسخة الأصلية</a>
               )}
               <button
                 onClick={() => handleDelete(selected)}
                 className="w-full bg-red-900/60 text-red-300 px-3 py-1.5 rounded text-xs hover:bg-red-800 transition-colors"
-              >Delete</button>
+              >امسح</button>
             </div>
           </div>
         </div>
@@ -267,15 +267,15 @@ export default function AdminMediaPage() {
       {confirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-[#111] border border-[#1e1e1e] rounded-lg w-full max-w-lg p-6">
-            <h2 className="text-white text-base font-semibold mb-3">Edit & Confirm Image</h2>
-            <p className="text-[#666] text-xs mb-4">The image has been staged on Cloudinary. Open it to crop/adjust, then confirm to save the asset to the media library.</p>
+            <h2 className="text-white text-base font-semibold mb-3">عدّل الصورة وأكدها</h2>
+            <p className="text-[#666] text-xs mb-4">الصورة اترفعت مؤقتًا على Cloudinary. افتحها وعدّل الكادر، وبعدين أكد عشان تتحفظ في مكتبة الصور.</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={confirmModal.cloudinaryUrl} alt={confirmModal.fileName} className="w-full max-h-64 object-contain rounded bg-[#0a0a0a] mb-4" />
             <div className="flex justify-between items-center">
-              <a href={confirmModal.cloudinaryUrl} target="_blank" rel="noreferrer" className="text-[#c9a96e] text-xs hover:underline">Edit on Cloudinary</a>
+              <a href={confirmModal.cloudinaryUrl} target="_blank" rel="noreferrer" className="text-[#c9a96e] text-xs hover:underline">عدّل على Cloudinary</a>
               <div className="flex gap-2">
-                <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={() => setConfirmModal(null)}>Cancel</button>
-                <button className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors" onClick={handleConfirmImage}>Save to library</button>
+                <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={() => setConfirmModal(null)}>إلغاء</button>
+                <button className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors" onClick={handleConfirmImage}>احفظ في المكتبة</button>
               </div>
             </div>
           </div>

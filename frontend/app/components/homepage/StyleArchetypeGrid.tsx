@@ -35,9 +35,9 @@ interface Archetype {
 
 const ARCHETYPES: Archetype[] = [
   {
-    label: 'The Complications',
-    subLabel: 'Every mechanism a poem',
-    phrase: 'Centuries of craft. One wrist.',
+    label: "تفاصيل الميكانيزم",
+    subLabel: "كل حركة جوا الساعة وراها حكاية",
+    phrase: "سنين من الخبرة، في ساعة على إيدك.",
     collectionSlugs: [
       'patek-philippe-grand-complications',
       'audemars-piguet-royal-oak-concept',
@@ -50,9 +50,9 @@ const ARCHETYPES: Archetype[] = [
     animConfig: { stagger: 0.055 },
   },
   {
-    label: 'Sport Watches',
-    subLabel: 'Precision under pressure',
-    phrase: 'Built for performance. Worn with conviction.',
+    label: "ساعات رياضية",
+    subLabel: "دقة تتحمل معاك",
+    phrase: "ساعات عملية، وشكل يليق بيك.",
     collectionSlugs: [
       'audemars-piguet-royal-oak',
       'vacheron-constantin-overseas',
@@ -67,9 +67,9 @@ const ARCHETYPES: Archetype[] = [
     animConfig: { stagger: 0.04 },
   },
   {
-    label: 'Dress Watches',
-    subLabel: 'Restraint as a statement',
-    phrase: 'Nothing is more powerful than refinement.',
+    label: "ساعات كلاسيك",
+    subLabel: "بساطة تلفت النظر",
+    phrase: "الشياكة باينة في التفاصيل.",
     collectionSlugs: [
       'patek-philippe-calatrava',
       'a-lange-sohne-lange-1',
@@ -84,9 +84,9 @@ const ARCHETYPES: Archetype[] = [
     animConfig: { stagger: 0.05 },
   },
   {
-    label: "Métiers d'Arts",
-    subLabel: 'Horology as canvas',
-    phrase: 'Where the dial becomes a world.',
+    label: "فن صناعة الساعات",
+    subLabel: "وش الساعة لوحة فنية",
+    phrase: "تفاصيل تاخدك لعالم تاني.",
     collectionSlugs: [
       'vacheron-constantin-metiers-d-art',
     ],
@@ -220,7 +220,7 @@ function ArchetypeTile({ archetype, index }: { archetype: Archetype; index: numb
           className="relative inline-flex items-center justify-center text-[10px] uppercase tracking-[0.3em] text-[#bfa68a] border border-[#bfa68a]/25 px-12 py-4 hover:bg-[#bfa68a]/8 hover:border-[#bfa68a]/40 transition-all duration-500 group overflow-hidden mt-4"
         >
           <span className="transform transition-transform duration-500 group-hover:-translate-x-3">
-            Explore collection
+            اكتشف المجموعة
           </span>
           <span className="absolute right-8 opacity-0 -translate-x-4 transition-all duration-500 group-hover:opacity-100 group-hover:translate-x-0 text-[14px]">
             →

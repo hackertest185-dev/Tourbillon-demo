@@ -465,8 +465,8 @@ export default function SmartSearchClient() {
     return (
       <div className="px-8 lg:px-16 py-28 text-center">
         <p className="text-white/50 font-inter">
-          No query provided.{' '}
-          <Link href="/tourbillon" className="text-white/70 underline underline-offset-2">Go back.</Link>
+          اكتب اللي بتدور عليه الأول.{' '}
+          <Link href="/tourbillon" className="text-white/70 underline underline-offset-2">ارجع لورا</Link>
         </p>
       </div>
     );
@@ -486,7 +486,7 @@ export default function SmartSearchClient() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          ارجع
         </button>
 
         <div className="flex items-start gap-3 flex-wrap">
@@ -500,7 +500,7 @@ export default function SmartSearchClient() {
               }
             }}
             className="text-3xl font-playfair font-bold text-[#f0e6d2] bg-transparent border-none outline-none focus:border-b focus:border-[#f0e6d2]/30 min-w-0 flex-1"
-            aria-label="Edit search query"
+            aria-label="عدّل كلام البحث"
           />
           <span className="mt-1.5 px-2 py-0.5 text-xs font-inter font-medium bg-white/10 border border-white/20 rounded-full text-white/60 uppercase tracking-wider self-start flex-shrink-0">
             AI
@@ -509,7 +509,7 @@ export default function SmartSearchClient() {
 
         {status === 'success' && result && (
           <p className="text-sm font-inter text-white/40 mt-1.5">
-            {topWatches.length + otherWatches.length} Watches found
+            {topWatches.length + otherWatches.length} ساعة لقيناها
             {hasActiveFilters && ' · with filtered'}
           </p>
         )}
@@ -525,7 +525,7 @@ export default function SmartSearchClient() {
           <ScrollFade>
           <div className="flex items-center gap-2 flex-wrap mb-5">
             <span className="text-xs font-inter text-white/30 uppercase tracking-widest mr-1 flex-shrink-0">
-              Jump to
+              روح لـ
             </span>
             {jumpBrands.map(b => (
               <a
@@ -587,7 +587,7 @@ export default function SmartSearchClient() {
       {/* ── "Timepieces you may also be interested in" label on page 2+ ── */}
       {status === 'success' && showOthersLabel && (
         <p className="text-xs font-inter text-white/35 uppercase tracking-widest mb-6">
-          Timepieces you may also be interested in
+          ساعات تانية ممكن تعجبك
         </p>
       )}
 
@@ -596,7 +596,7 @@ export default function SmartSearchClient() {
         <>
           <div className="flex items-center gap-2 mb-6">
             <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white/55 animate-spin flex-shrink-0" />
-            <span className="text-xs font-inter text-white/35">AI analysis running…</span>
+            <span className="text-xs font-inter text-white/35">الذكاء الاصطناعي بيحلل النتايج دلوقتي...</span>
           </div>
           <SkeletonGrid count={20} />
         </>
@@ -606,14 +606,14 @@ export default function SmartSearchClient() {
         <div className="text-center py-20">
           <p className="text-white/40 font-inter text-sm">
             {errorMessage || (!result
-              ? 'AI service unavailable or still warming up. Please try again in a moment.'
-              : 'Something went wrong.')}
+              ? "البحث الذكي مش متاح دلوقتي. جرّب تاني بعد شوية."
+              : "حصلت مشكلة. جرّب تاني.")}
           </p>
           <button
             onClick={() => router.push(`/smart-search?q=${encodeURIComponent(query)}`)}
             className="mt-4 text-sm text-white/50 hover:text-white underline underline-offset-2 font-inter transition-colors"
           >
-            Retry
+            جرّب تاني
           </button>
         </div>
       )}
@@ -634,13 +634,13 @@ export default function SmartSearchClient() {
             </div>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-white/40 font-inter text-sm">No watches match your current filters.</p>
+              <p className="text-white/40 font-inter text-sm">مفيش ساعات مناسبة للفلاتر اللي اخترتها.</p>
               {hasActiveFilters && (
                 <button
                   onClick={clearFilters}
                   className="mt-3 text-sm text-white/50 hover:text-white underline underline-offset-2 font-inter transition-colors"
                 >
-                  Clear filters
+                  شيل الفلاتر
                 </button>
               )}
             </div>

@@ -76,25 +76,25 @@ export default function AdminWatchesPage() {
 
   const handleRefreshCache = async () => {
     const brandId = selectedBrand || undefined;
-    const scope = brandId ? brands.find(b => b.id === brandId)?.name : 'all brands';
+    const scope = brandId ? brands.find(b => b.id === brandId)?.name : "كل البراندات";
     if (!confirm(`Bump image cache version for ${scope}?`)) return;
     setRefreshingCache(true); setCacheMsg('');
     try {
       const r = await adminRefreshImageCache(brandId);
       setCacheMsg(`Updated ${r.updated} watches (v${r.version})`);
     } catch (e: unknown) {
-      setCacheMsg(e instanceof Error ? e.message : 'Failed');
+      setCacheMsg(e instanceof Error ? e.message : "منفعش");
     } finally { setRefreshingCache(false); }
   };
 
-  if (metaLoading) return <div className="p-8 text-white text-sm">Loading...</div>;
+  if (metaLoading) return <div className="p-8 text-white text-sm">بنحمّل...</div>;
 
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Watches</h1>
-          <p className="text-[#555] text-xs mt-0.5">{filtered.length} of {watches.length} entries</p>
+          <h1 className="text-xl font-semibold text-white">الساعات</h1>
+          <p className="text-[#555] text-xs mt-0.5">{filtered.length} من {watches.length} عنصر</p>
         </div>
         <div className="flex items-center gap-2">
           {cacheMsg && <span className="text-xs text-green-400">{cacheMsg}</span>}
@@ -102,20 +102,20 @@ export default function AdminWatchesPage() {
             className="bg-white/10 text-gray-300 px-4 py-1.5 rounded text-sm hover:bg-white/20 transition-colors disabled:opacity-50"
             onClick={handleRefreshCache} disabled={refreshingCache}
           >
-            {refreshingCache ? 'Refreshing...' : 'Refresh Cache'}
+            {refreshingCache ? "بنحدّث..." : "حدّث البيانات المؤقتة"}
           </button>
           <button
             className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors"
             onClick={() => setAddingWatch(true)}
           >
-            + Add Watch
+            + ضيف ساعة
           </button>
         </div>
       </div>
 
       <div className="flex gap-2 mb-4">
         <input
-          type="text" placeholder="Search watches..."
+          type="text" placeholder="دوّر على ساعة..."
           className="bg-[#111] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 flex-1 focus:outline-none focus:border-[#c9a96e]"
           value={search} onChange={e => setSearch(e.target.value)}
         />
@@ -124,7 +124,7 @@ export default function AdminWatchesPage() {
           value={selectedBrand}
           onChange={e => setSelectedBrand(e.target.value ? Number(e.target.value) : '')}
         >
-          <option value="">All Brands (slow)</option>
+          <option value="">كل البراندات (ممكن ياخد وقت)</option>
           {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <select
@@ -133,7 +133,7 @@ export default function AdminWatchesPage() {
           onChange={e => setSelectedCollection(e.target.value ? Number(e.target.value) : '')}
           disabled={!selectedBrand}
         >
-          <option value="">All Collections</option>
+          <option value="">كل المجموعات</option>
           {collections.filter(c => !selectedBrand || c.brandId === selectedBrand).map(c =>
             <option key={c.id} value={c.id}>{c.name}</option>
           )}
@@ -142,16 +142,16 @@ export default function AdminWatchesPage() {
 
       <div className="overflow-x-auto rounded border border-[#1a1a1a]">
         {watchesLoading ? (
-          <div className="p-6 text-[#555] text-sm">Loading watches...</div>
+          <div className="p-6 text-[#555] text-sm">بنحمّل الساعات...</div>
         ) : (
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="border-b border-[#1e1e1e] bg-[#111]">
-                <th className="px-3 py-2 text-[#555] font-normal w-14">Image</th>
-                <th className="px-3 py-2 text-[#555] font-normal">Reference</th>
-                <th className="px-3 py-2 text-[#555] font-normal">Collection</th>
-                <th className="px-3 py-2 text-[#555] font-normal w-32">Price</th>
-                <th className="px-3 py-2 text-[#555] font-normal w-24">Actions</th>
+                <th className="px-3 py-2 text-[#555] font-normal w-14">الصورة</th>
+                <th className="px-3 py-2 text-[#555] font-normal">رقم المرجع</th>
+                <th className="px-3 py-2 text-[#555] font-normal">المجموعة</th>
+                <th className="px-3 py-2 text-[#555] font-normal w-32">السعر</th>
+                <th className="px-3 py-2 text-[#555] font-normal w-24">التحكم</th>
               </tr>
             </thead>
             <tbody>
@@ -180,11 +180,11 @@ export default function AdminWatchesPage() {
                       <button
                         className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors"
                         onClick={() => setEditingWatch(w)}
-                      >Edit</button>
+                      >عدّل</button>
                       <button
                         className="bg-red-900/60 text-red-300 px-3 py-1 rounded text-xs hover:bg-red-800 transition-colors"
                         onClick={() => handleDelete(w)}
-                      >Delete</button>
+                      >امسح</button>
                     </div>
                   </td>
                 </tr>

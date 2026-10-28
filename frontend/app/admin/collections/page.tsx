@@ -53,7 +53,7 @@ export default function AdminCollectionsPage() {
       closePanel();
       await load();
     } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : 'Save failed');
+      setErr(e instanceof Error ? e.message : "الحفظ منفعش");
     } finally { setSaving(false); }
   };
 
@@ -63,31 +63,31 @@ export default function AdminCollectionsPage() {
       await adminDeleteCollection(c.id);
       await load();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : 'Delete failed');
+      alert(e instanceof Error ? e.message : "المسح منفعش");
     }
   };
 
   const set = (key: keyof typeof EMPTY, val: string | number) =>
     setPanel(p => p ? { ...p, data: { ...p.data, [key]: val } } : p);
 
-  if (loading) return <div className="p-8 text-white text-sm">Loading...</div>;
+  if (loading) return <div className="p-8 text-white text-sm">بنحمّل...</div>;
 
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white">Collections</h1>
-          <p className="text-[#555] text-xs mt-0.5">{filtered.length} of {collections.length} entries</p>
+          <h1 className="text-xl font-semibold text-white">المجموعات</h1>
+          <p className="text-[#555] text-xs mt-0.5">{filtered.length} من {collections.length} عنصر</p>
         </div>
         <button
           className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors"
           onClick={openAdd}
-        >+ Add Collection</button>
+        >+ ضيف مجموعة</button>
       </div>
 
       <div className="flex gap-2 mb-4">
         <input
-          type="text" placeholder="Search collections..."
+          type="text" placeholder="دوّر على مجموعة..."
           className="bg-[#111] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 flex-1 focus:outline-none focus:border-[#c9a96e]"
           value={search} onChange={e => setSearch(e.target.value)}
         />
@@ -96,7 +96,7 @@ export default function AdminCollectionsPage() {
           value={filterBrand}
           onChange={e => setFilterBrand(e.target.value ? Number(e.target.value) : '')}
         >
-          <option value="">All Brands</option>
+          <option value="">كل البراندات</option>
           {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
       </div>
@@ -105,11 +105,11 @@ export default function AdminCollectionsPage() {
         <table className="w-full text-left text-sm border-collapse">
           <thead>
             <tr className="border-b border-[#1e1e1e] bg-[#111]">
-              <th className="px-3 py-2 text-[#555] font-normal">Name</th>
-              <th className="px-3 py-2 text-[#555] font-normal">Brand</th>
-              <th className="px-3 py-2 text-[#555] font-normal">Style</th>
-              <th className="px-3 py-2 text-[#555] font-normal">Slug</th>
-              <th className="px-3 py-2 text-[#555] font-normal w-24">Actions</th>
+              <th className="px-3 py-2 text-[#555] font-normal">الاسم</th>
+              <th className="px-3 py-2 text-[#555] font-normal">البراند</th>
+              <th className="px-3 py-2 text-[#555] font-normal">ستايل الساعة</th>
+              <th className="px-3 py-2 text-[#555] font-normal">جزء اللينك</th>
+              <th className="px-3 py-2 text-[#555] font-normal w-24">التحكم</th>
             </tr>
           </thead>
           <tbody>
@@ -121,8 +121,8 @@ export default function AdminCollectionsPage() {
                 <td className="px-3 py-2 text-[#444] text-[10px] font-mono">{c.slug}</td>
                 <td className="px-3 py-2">
                   <div className="flex gap-1.5">
-                    <button className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors" onClick={() => openEdit(c)}>Edit</button>
-                    <button className="bg-red-900/60 text-red-300 px-3 py-1 rounded text-xs hover:bg-red-800 transition-colors" onClick={() => handleDelete(c)}>Delete</button>
+                    <button className="bg-[#c9a96e] text-black px-3 py-1 rounded text-xs font-medium hover:bg-[#d4b97e] transition-colors" onClick={() => openEdit(c)}>عدّل</button>
+                    <button className="bg-red-900/60 text-red-300 px-3 py-1 rounded text-xs hover:bg-red-800 transition-colors" onClick={() => handleDelete(c)}>امسح</button>
                   </div>
                 </td>
               </tr>
@@ -134,41 +134,41 @@ export default function AdminCollectionsPage() {
       {panel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-[#111] border border-[#1e1e1e] rounded-lg w-full max-w-md p-6">
-            <h2 className="text-white text-base font-semibold mb-4">{panel.mode === 'add' ? 'Add Collection' : 'Edit Collection'}</h2>
+            <h2 className="text-white text-base font-semibold mb-4">{panel.mode === 'add' ? "ضيف مجموعة" : "عدّل المجموعة"}</h2>
             <div className="space-y-3">
               <div>
-                <label className="text-[#555] text-xs block mb-1">Name *</label>
+                <label className="text-[#555] text-xs block mb-1">الاسم *</label>
                 <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e]" value={panel.data.name} onChange={e => set('name', e.target.value)} />
               </div>
               {panel.mode === 'add' && (
                 <div>
-                  <label className="text-[#555] text-xs block mb-1">Brand *</label>
+                  <label className="text-[#555] text-xs block mb-1">البراند *</label>
                   <select className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-[#888] text-sm rounded px-3 py-1.5 focus:outline-none" value={panel.data.brandId} onChange={e => set('brandId', Number(e.target.value))}>
-                    <option value={0}>Select brand…</option>
+                    <option value={0}>اختار البراند…</option>
                     {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
               )}
               <div>
-                <label className="text-[#555] text-xs block mb-1">Style</label>
-                <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e]" placeholder="e.g. dress, sport, complication" value={panel.data.style ?? ''} onChange={e => set('style', e.target.value)} />
+                <label className="text-[#555] text-xs block mb-1">ستايل الساعة</label>
+                <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e]" placeholder="زي كلاسيك، رياضي، أو وظايف إضافية" value={panel.data.style ?? ''} onChange={e => set('style', e.target.value)} />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1">Description</label>
+                <label className="text-[#555] text-xs block mb-1">الوصف</label>
                 <textarea className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e] resize-none" rows={3} value={panel.data.description} onChange={e => set('description', e.target.value)} />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1">Image key</label>
+                <label className="text-[#555] text-xs block mb-1">معرّف الصورة</label>
                 <input className="w-full bg-[#0d0d0d] border border-[#1e1e1e] text-white text-sm rounded px-3 py-1.5 focus:outline-none focus:border-[#c9a96e] font-mono" value={panel.data.image} onChange={e => set('image', e.target.value)} />
               </div>
             </div>
             {err && <p className="text-red-400 text-xs mt-3">{err}</p>}
             <div className="flex justify-end gap-2 mt-5">
-              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={closePanel}>Cancel</button>
+              <button className="px-4 py-1.5 text-sm text-[#666] hover:text-white transition-colors" onClick={closePanel}>إلغاء</button>
               <button
                 className="bg-[#c9a96e] text-black px-4 py-1.5 rounded text-sm font-medium hover:bg-[#d4b97e] transition-colors disabled:opacity-50"
                 onClick={handleSave} disabled={saving}
-              >{saving ? 'Saving…' : 'Save'}</button>
+              >{saving ? "بنحفظ..." : "احفظ"}</button>
             </div>
           </div>
         </div>

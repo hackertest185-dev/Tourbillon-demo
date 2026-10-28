@@ -50,7 +50,7 @@ const EditorialSpacer = ({ count }: { count: number }) => (
       className="font-inter text-[9px] font-semibold tracking-[0.35em] text-[#f0e6d2]/30 uppercase mt-4"
       style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
     >
-      compare
+      قارن
     </span>
   </div>
 );
@@ -135,10 +135,10 @@ const ComparePage = () => {
           <path d="M6 7l-3 9a5 5 0 0 0 6 0L6 7" />
           <path d="M18 7l-3 9a5 5 0 0 0 6 0L18 7" />
         </svg>
-        <h1 className="text-3xl font-playfair font-bold text-[#f0e6d2] mb-3">No Watches to Compare</h1>
-        <p className="text-white/50 font-inter mb-8">Browse our collection and add watches to compare their specifications side by side.</p>
+        <h1 className="text-3xl font-playfair font-bold text-[#f0e6d2] mb-3">مفيش ساعات للمقارنة</h1>
+        <p className="text-white/50 font-inter mb-8">اتفرج على الساعات اللي عندنا، واختار اللي عايز تقارن بينهم عشان تشوف فرق المواصفات.</p>
         <Link href="/watches" className="inline-block py-3 px-8 rounded-xl font-semibold bg-[#f0e6d2] text-[#1e1512] hover:bg-[#e6d9c2] transition-colors">
-          Browse Watches
+          اتفرج على الساعات
         </Link>
       </div>
     );
@@ -147,10 +147,10 @@ const ComparePage = () => {
   if (watchCount === 1) {
     return (
       <div className="container mx-auto px-4 sm:px-8 py-24 pt-48 max-w-5xl text-center">
-        <h1 className="text-3xl font-playfair font-bold text-[#f0e6d2] mb-3">Add One More Watch</h1>
-        <p className="text-white/50 font-inter mb-8">Select at least 2 watches to compare. You currently have 1 selected.</p>
+        <h1 className="text-3xl font-playfair font-bold text-[#f0e6d2] mb-3">ضيف ساعة كمان</h1>
+        <p className="text-white/50 font-inter mb-8">لازم تختار ساعتين على الأقل عشان تقارن بينهم. إنت مختار ساعة واحدة دلوقتي.</p>
         <Link href="/watches" className="inline-block py-3 px-8 rounded-xl font-semibold bg-[#f0e6d2] text-[#1e1512] hover:bg-[#e6d9c2] transition-colors">
-          Browse Watches
+          اتفرج على الساعات
         </Link>
       </div>
     );
@@ -168,19 +168,19 @@ const ComparePage = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
           </svg>
-          Back
+          ارجع
         </button>
       </div>
 
       {/* Page title + Clear all */}
       <ScrollFade>
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-playfair font-bold text-[#f0e6d2]">Compare Watches</h1>
+          <h1 className="text-4xl font-playfair font-bold text-[#f0e6d2]">قارن الساعات</h1>
           <button
             onClick={() => { clearCompare(); router.push('/watches'); }}
             className="text-base text-white/40 hover:text-white/70 transition-colors font-inter"
           >
-            Clear all
+            امسح الكل
           </button>
         </div>
       </ScrollFade>
@@ -218,7 +218,7 @@ const ComparePage = () => {
                 {/* Remove button */}
                 <button
                   onClick={() => removeFromCompare(watch.id)}
-                  aria-label="Remove from compare"
+                  aria-label="شيل من المقارنة"
                   className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-white/20"
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round">
@@ -227,7 +227,7 @@ const ComparePage = () => {
                 </button>
 
                 {/* Watch image */}
-                <Link translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
+                <Link dir="ltr" translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
                   <div className="w-36 h-36 mx-auto bg-black/30 rounded-xl mb-3 overflow-hidden border border-white/5">
                     <Watch3D watch={watch} fallbackSrc={watch.imageUrl || (watch.image ? imageTransformations.card(watch.image) : undefined)} alt={watch.name} index={watch.id} />
                   </div>
@@ -236,20 +236,20 @@ const ComparePage = () => {
                 {/* Brand — WatchCard style scaled down for narrow grid */}
                 <div className="mb-0.5 text-center min-h-[1rem]">
                   {brandName && (
-                    <p translate="no" className="notranslate text-[10px] font-inter text-white/50 uppercase tracking-widest">{brandName}</p>
+                    <p dir="ltr" translate="no" className="notranslate text-[10px] font-inter text-white/50 uppercase tracking-widest">{brandName}</p>
                   )}
                 </div>
 
                 {/* Collection — WatchCard font family, one step smaller than name */}
                 <div className="mb-2 text-center min-h-[1.25rem]">
                   {collectionName && (
-                    <p translate="no" className="notranslate text-xs text-white/70 font-playfair font-medium">{collectionName}</p>
+                    <p dir="ltr" translate="no" className="notranslate text-xs text-white/70 font-playfair font-medium">{collectionName}</p>
                   )}
                 </div>
 
                 {/* Watch name — primary identity, clearly larger than brand/collection */}
-                <Link translate="no" className="notranslate group-hover:text-white transition-colors" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
-                  <h3 translate="no" className="notranslate text-sm font-playfair font-semibold text-[#f0e6d2] mb-3 line-clamp-2">{watch.name}</h3>
+                <Link dir="ltr" translate="no" className="notranslate group-hover:text-white transition-colors" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
+                  <h3 dir="ltr" translate="no" className="notranslate text-sm font-playfair font-semibold text-[#f0e6d2] mb-3 line-clamp-2">{watch.name}</h3>
                 </Link>
 
                 {/* Spec pills — centered */}
@@ -265,7 +265,7 @@ const ComparePage = () => {
                 </div>
 
                 {/* Price — matches WatchCard: text-lg font-playfair font-medium text-white/90 */}
-                <p className="text-lg text-white/90 font-playfair font-medium mt-auto pt-4">
+                <p dir="ltr" translate="no" className="notranslate text-lg text-white/90 font-playfair font-medium mt-auto pt-4">
                   {watch.currentPrice === 0 ? 'Price on Request' : `$${watch.currentPrice.toLocaleString()}`}
                 </p>
               </div>
@@ -278,7 +278,7 @@ const ComparePage = () => {
       {/* Differences toggle */}
       <div className="flex items-center justify-end mb-6 mt-2">
         <label className="flex items-center gap-3 cursor-pointer select-none">
-          <span className="text-sm text-white/50 font-inter">Show differences only</span>
+          <span className="text-sm text-white/50 font-inter">وريني الاختلافات بس</span>
           <button
             onClick={() => setShowDifferencesOnly(!showDifferencesOnly)}
             className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${
@@ -300,7 +300,7 @@ const ComparePage = () => {
           keeps it a horizontal-only scroller; scrollbar-hide matches the site's hidden-scrollbar look. */}
       <div className="overflow-x-auto overflow-y-clip space-y-8 scrollbar-hide">
         {parsedSpecs.some(s => s?.productionStatus) && (
-          <div>
+          <div dir="ltr" translate="no" className="notranslate">
             <h2 className="text-[13px] font-semibold uppercase tracking-[0.35em] text-[#bfa68a] mb-3 font-inter">Status</h2>
             <div className="border border-white/8 rounded-xl overflow-hidden">
               <div className="grid items-stretch" style={{ gridTemplateColumns: colTemplate }}>
@@ -336,7 +336,7 @@ const ComparePage = () => {
 
           return (
             <ScrollFade key={section.key}>
-              <div>
+              <div dir="ltr" translate="no" className="notranslate">
                 <h2 className="text-[13px] font-semibold uppercase tracking-[0.35em] text-[#bfa68a] mb-3 font-inter">
                   {section.title}
                 </h2>

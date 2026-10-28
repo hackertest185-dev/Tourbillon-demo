@@ -26,7 +26,7 @@ import LanguageSwitcher from "./components/layout/LanguageSwitcher";
 
 export const metadata: Metadata = {
   title: "Tourbillon",
-  description: "A timeless collection of luxury watches",
+  description: "ساعات فخمة، اختارناها للي بيقدّروا التفاصيل",
   icons: {
     icon: "/icon.svg",
   },

@@ -32,6 +32,7 @@ const HeartNavLink = () => {
     <div className="relative">
       <Link
         href="/favourites"
+        aria-label="ساعاتك المفضلة"
         className="hover:opacity-70 transition-all duration-300 block"
       >
         {/* Stacked outline + solid, crossfade on hasSaved */}
@@ -150,7 +151,7 @@ const UserMenu = () => {
     // Unauthenticated: direct link to auth entry point, no dropdown
     if (!isAuthenticated) {
       return (
-        <Link href="/auth/start" className="hover:opacity-70 transition-all duration-300 cursor-pointer">
+        <Link href="/auth/start" aria-label="سجّل دخول" className="hover:opacity-70 transition-all duration-300 cursor-pointer">
           <UserIcon />
         </Link>
       );
@@ -165,7 +166,7 @@ const UserMenu = () => {
       >
         <button
           type="button"
-          aria-label="Account menu"
+          aria-label="قايمة حسابك"
           aria-expanded={isOpen}
           onClick={() => setIsOpen((value) => !value)}
           className="hover:opacity-70 transition-all duration-300 cursor-pointer bg-transparent border-none p-0"
@@ -180,21 +181,21 @@ const UserMenu = () => {
             onMouseLeave={handleMouseLeave}
           >
             <div className="px-3 py-2 text-sm text-[#bfa68a] border-b border-[#bfa68a]/30 font-medium text-center">
-              Welcome, {user?.firstName}
+              أهلًا بيك، {user?.firstName}
             </div>
             <Link href="/account/edit-details" onClick={() => setIsOpen(false)} className="block px-3 py-2 mt-1 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
-              Edit Details
+              عدّل بياناتك
             </Link>
             <Link href="/account/inquiries" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
-              My Inquiries
+              استفساراتي
             </Link>
             {isAdmin && (
               <Link href="/scrape" onClick={() => setIsOpen(false)} className="block px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
-                Scrape
+                سحب بيانات الساعات
               </Link>
             )}
             <button onClick={() => { setIsOpen(false); void logout(); }} className="block w-full px-3 py-2 text-sm text-[#F9F6F2] hover:bg-[#bfa68a]/10 hover:text-[#bfa68a] transition-all duration-300 text-center">
-              Logout
+              خروج
             </button>
           </div>
         )}
@@ -299,15 +300,15 @@ const UserMenu = () => {
         {/* Left: desktop nav links, or the mobile menu trigger */}
         <div className="min-w-0 flex items-center justify-start">
           <div className="hidden md:flex items-center justify-start gap-[clamp(16px,2.8vw,50px)] pl-8 font-playfair font-light tracking-[0.08em] text-white uppercase">
-            <Link href="/watches" className="hover:opacity-10 transition-opacity">Timepieces</Link>
-            <Link href="/trend" className="hover:opacity-10 transition-opacity">Trend</Link>
-            <Link href="/stories" className="hover:opacity-10 transition-opacity">Stories</Link>
-            <Link href="/contact" className="hover:opacity-10 transition-opacity">Contact</Link>
+            <Link href="/watches" className="hover:opacity-10 transition-opacity">الساعات</Link>
+            <Link href="/trend" className="hover:opacity-10 transition-opacity">الرائج دلوقتي</Link>
+            <Link href="/stories" className="hover:opacity-10 transition-opacity">حكايات</Link>
+            <Link href="/contact" className="hover:opacity-10 transition-opacity">كلمنا</Link>
           </div>
           <button
             type="button"
             onClick={() => setIsMenuOpen(true)}
-            aria-label="Open menu"
+            aria-label="افتح القايمة"
             className="md:hidden flex items-center justify-center bg-transparent border-none p-0 -ml-1 cursor-pointer hover:opacity-70 transition-opacity"
           >
             <MenuIcon />
@@ -334,6 +335,7 @@ const UserMenu = () => {
           {/* Search icon - opens overlay */}
           <button
             onClick={() => setIsSearchOpen(true)}
+            aria-label="دوّر على ساعة"
             className="hover:opacity-70 transition-opacity cursor-pointer bg-transparent border-none p-0"
           >
             <SearchIcon />
@@ -371,7 +373,7 @@ const UserMenu = () => {
               <button
                 type="button"
                 onClick={() => setIsMenuOpen(false)}
-                aria-label="Close menu"
+                aria-label="اقفل القايمة"
                 className="bg-transparent border-none p-0 cursor-pointer hover:opacity-70 transition-opacity"
               >
                 <CloseIcon />
@@ -381,10 +383,10 @@ const UserMenu = () => {
             {/* Primary links — 2×2 grid on small screens, staggered entrance */}
             <nav className="grid flex-1 grid-cols-2 content-center gap-3 px-5">
               {[
-                { label: 'Timepieces', href: '/watches' },
-                { label: 'Trend', href: '/trend' },
-                { label: 'Stories', href: '/stories' },
-                { label: 'Contact', href: '/contact' },
+                { label: "الساعات", href: '/watches' },
+                { label: "الرائج دلوقتي", href: '/trend' },
+                { label: "حكايات", href: '/stories' },
+                { label: "كلمنا", href: '/contact' },
               ].map((item, i) => (
                 <motion.div
                   key={item.href}
@@ -415,14 +417,14 @@ const UserMenu = () => {
                 onClick={() => setIsMenuOpen(false)}
                 className="transition-colors hover:text-[#bfa68a]"
               >
-                {isAuthenticated ? 'Account' : 'Sign in'}
+                {isAuthenticated ? "حسابك" : "سجّل دخول"}
               </Link>
               <Link
                 href="/favourites"
                 onClick={() => setIsMenuOpen(false)}
                 className="transition-colors hover:text-[#bfa68a]"
               >
-                Favourites
+                المفضلة
               </Link>
             </motion.div>
           </motion.div>

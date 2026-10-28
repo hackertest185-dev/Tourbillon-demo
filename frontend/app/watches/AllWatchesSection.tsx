@@ -46,10 +46,10 @@ function SortDropdown({ sortOrder, onSelect }: {
   }, [open, handleOutside]);
 
   const options: { key: SortOrder; label: string }[] = [
-    { key: 'default', label: 'Featured' },
-    { key: 'personalized', label: 'Personalized for You' },
-    { key: 'price-asc', label: 'Price: Low to High' },
-    { key: 'price-desc', label: 'Price: High to Low' },
+    { key: 'default', label: "ساعات مميزة" },
+    { key: 'personalized', label: "مترشحة ليك على ذوقك" },
+    { key: 'price-asc', label: "السعر: من الأقل للأعلى" },
+    { key: 'price-desc', label: "السعر: من الأعلى للأقل" },
   ];
 
   const active = options.find(option => option.key === sortOrder)!;
@@ -60,7 +60,7 @@ function SortDropdown({ sortOrder, onSelect }: {
         onClick={() => setOpen(value => !value)}
         className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase transition-colors duration-200 text-white/40 hover:text-white/70 group"
       >
-        <span className="text-white/20">Sort</span>
+        <span className="text-white/20">رتّب حسب</span>
         <span className="text-[#bfa68a]">{active.label}</span>
         <svg
           className={`w-2.5 h-2.5 text-white/20 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
@@ -206,11 +206,11 @@ const AllWatchesSection = ({
   });
 
   useEffect(() => {
-    if (watchesError) toast.error('Could not load watches. Please refresh the page.');
+    if (watchesError) toast.error("معرفناش نحمّل الساعات. حدّث الصفحة وجرّب تاني.");
   }, [watchesError]);
 
   useEffect(() => {
-    if (collectionsError) toast.error('Could not load filters. Please refresh the page.');
+    if (collectionsError) toast.error("معرفناش نحمّل الفلاتر. حدّث الصفحة وجرّب تاني.");
   }, [collectionsError]);
 
   const { data: tasteProfile } = useQuery({
@@ -274,17 +274,17 @@ const AllWatchesSection = ({
   }, [filteredWatches, sortOrder]);
 
   const headingLabel = useMemo(() => {
-    if (collectionFilters.length === 1) return collections.find(item => item.id === collectionFilters[0])?.name ?? 'All Timepieces';
-    if (collectionFilters.length > 1) return `${collectionFilters.length} Collections`;
-    if (brandFilters.length === 1) return brands.find(item => item.id === brandFilters[0])?.name ?? 'All Timepieces';
-    if (brandFilters.length > 1) return `${brandFilters.length} Brands`;
-    return 'All Timepieces';
+    if (collectionFilters.length === 1) return collections.find(item => item.id === collectionFilters[0])?.name ?? "كل الساعات";
+    if (collectionFilters.length > 1) return `${collectionFilters.length} مجموعات`;
+    if (brandFilters.length === 1) return brands.find(item => item.id === brandFilters[0])?.name ?? "كل الساعات";
+    if (brandFilters.length > 1) return `${brandFilters.length} براندات`;
+    return "كل الساعات";
   }, [brandFilters, collectionFilters, brands, collections]);
 
   const showPersonalizedHint = sortOrder === 'personalized' && !hasPersonalizedTaste;
   const personalizedHintCopy = isAuthenticated
-    ? 'Keep browsing to form your Watch DNA.'
-    : 'Sign in to save your browsing and form your Watch DNA.';
+    ? "كمّل تتفرج على الساعات عشان نعرف ذوقك أكتر."
+    : "سجّل دخولك عشان نحفظ اختياراتك ونرشحلك ساعات على ذوقك.";
 
   const isReady = featuredWatches.length > 0 || (!watchesLoading && featuredWatches.length === 0);
   const catalogueEntry = useRef(false);
@@ -321,7 +321,7 @@ const AllWatchesSection = ({
       <ScrollFade>
         <div className="text-center mb-10">
           <h2 className="text-5xl font-playfair font-bold text-[#f0e6d2]">
-            {currentPage === 1 ? headingLabel : `${headingLabel} - Page ${currentPage}`}
+            {currentPage === 1 ? headingLabel : `${headingLabel} - صفحة ${currentPage}`}
           </h2>
         </div>
       </ScrollFade>
@@ -370,16 +370,16 @@ const AllWatchesSection = ({
       {watchesLoading ? (
         <div className="text-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/40 mx-auto mb-4" />
-          <p className="text-white/60 font-playfair">Loading watches...</p>
+          <p className="text-white/60 font-playfair">بنحمّل الساعات...</p>
         </div>
       ) : sortedWatches.length === 0 ? (
         <div className="text-center py-24">
-          <p className="text-white/40 font-playfair text-xl mb-6">No watches match your current filters.</p>
+          <p className="text-white/40 font-playfair text-xl mb-6">مفيش ساعات مناسبة للفلاتر اللي اخترتها.</p>
           <button
             onClick={() => router.push('/watches')}
             className="inline-block text-[10px] tracking-[0.18em] uppercase text-[#bfa68a] border border-[#bfa68a]/30 px-6 py-2.5 hover:border-[#bfa68a]/70 transition-colors duration-200"
           >
-            Clear filters
+            شيل الفلاتر
           </button>
         </div>
       ) : (
@@ -411,7 +411,7 @@ const AllWatchesSection = ({
                   >
                     {!showAllWatches ? (
                       <div className="flex flex-col items-center">
-                        <span>Show More</span>
+                        <span>وريني أكتر</span>
                         <div className="flex flex-col mt-0">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -431,7 +431,7 @@ const AllWatchesSection = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                           </svg>
                         </div>
-                        <span>Show Less</span>
+                        <span>وريني أقل</span>
                       </div>
                     )}
                   </button>

@@ -68,13 +68,13 @@ const CollectionPage = () => {
   };
 
   if (collectionLoading) {
-    return <div className="flex justify-center items-center min-h-screen text-white/80">Loading...</div>;
+    return <div className="flex justify-center items-center min-h-screen text-white/80">بنحمّل...</div>;
   }
   if (error) {
-    return <div className="flex justify-center items-center min-h-screen text-red-500">Error loading collection.</div>;
+    return <div className="flex justify-center items-center min-h-screen text-red-500">معرفناش نحمّل المجموعة. جرّب تاني.</div>;
   }
   if (!collection) {
-    return <div className="flex justify-center items-center min-h-screen text-white/80">Collection not found.</div>;
+    return <div className="flex justify-center items-center min-h-screen text-white/80">مش لاقيين المجموعة دي.</div>;
   }
 
   // Same lede/body split as brand page
@@ -128,10 +128,10 @@ const CollectionPage = () => {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
           </svg>
-          {returnTo || navigationState ? 'Back' : 'All Watches'}
+          {returnTo || navigationState ? "ارجع" : "كل الساعات"}
         </button>
         <nav className="text-white/35 text-xs flex items-center gap-1.5">
-          <Link href={brand ? `/watches?brand=${brand.slug}` : '/watches'} className="hover:text-white/60 transition-colors">Watches</Link>
+          <Link href={brand ? `/watches?brand=${brand.slug}` : '/watches'} className="hover:text-white/60 transition-colors">الساعات</Link>
           <span>/</span>
           {brand && <Link href={withReturnTo(`/brands/${brand.slug}`, returnTo)} className="hover:text-white/60 transition-colors"><span translate="no" className="notranslate">{brand.name}</span></Link>}
           {brand && <span>/</span>}
@@ -153,7 +153,7 @@ const CollectionPage = () => {
                 href={withReturnTo(`/brands/${brand.slug}`, returnTo)}
                 className="text-lg font-playfair font-light text-white/60 hover:text-white/90 italic transition-colors"
               >
-                by <span translate="no" className="notranslate">{brand.name}</span>
+                من <span translate="no" className="notranslate">{brand.name}</span>
               </Link>
             )}
           </div>
@@ -181,14 +181,14 @@ const CollectionPage = () => {
       <section>
         <ScrollFade>
           <h2 className="text-2xl font-playfair font-semibold text-[#f0e6d2] mb-12">
-            Timepieces
+            الساعات
           </h2>
         </ScrollFade>
 
         {watchesLoading ? (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white/40 mx-auto mb-4" />
-            <p className="text-white/50 text-sm font-playfair">Loading watches...</p>
+            <p className="text-white/50 text-sm font-playfair">بنحمّل الساعات...</p>
           </div>
         ) : watches.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-16">
@@ -205,7 +205,7 @@ const CollectionPage = () => {
             ))}
           </div>
         ) : (
-          <p className="text-white/50 text-sm font-playfair">No watches available in this collection yet.</p>
+          <p className="text-white/50 text-sm font-playfair">لسه مفيش ساعات متاحة في المجموعة دي.</p>
         )}
       </section>
 

@@ -95,7 +95,7 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
     controls.current.velocity = 0; controls.current.resumeAt = performance.now() + RESUME_DELAY_MS; handle.current?.invalidate();
   };
   return <div ref={root} translate="no" className={`notranslate ${styles.viewport} ${ready ? styles.ready : ''}`}
-    role="img" aria-label={`${alt} — interactive 3D preview. Drag or use left and right arrows to rotate.`} aria-busy={!ready && !failed} tabIndex={ready ? 0 : undefined}
+    role="img" aria-label={`${alt} — عرض تفاعلي ثلاثي الأبعاد. اسحب أو استخدم سهم اليمين والشمال عشان تلف الساعة.`} aria-busy={!ready && !failed} tabIndex={ready ? 0 : undefined}
     onPointerEnter={e => { if (e.pointerType === 'mouse') controls.current.hovered = true; }}
     onPointerLeave={e => { if (e.pointerType === 'mouse') controls.current.hovered = false; }}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} onKeyDown={key}
