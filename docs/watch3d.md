@@ -6,7 +6,7 @@ watch gets a deterministic configuration from its existing case, dial and
 strap specifications. Missing specifications use neutral defaults.
 A neutral loading indicator appears until the first 3D frame is ready. Each
 visible watch completes an eight-second 360-degree turn, crossfades to its real
-product photograph for three seconds, then repeats. The photograph is preloaded
+product photograph for six seconds, then repeats. The photograph is preloaded
 near the viewport and stays hidden during initial loading and the first turn.
 No database changes, external models or new dependencies are required.
 
@@ -19,7 +19,7 @@ No database changes, external models or new dependencies are required.
   hands, curved straps, instanced bracelet links and disposal.
 - `runtime.ts`: one shared WebGL renderer, one animation loop, generated
   RoomEnvironment/PMREM lighting, model pooling and lifecycle diagnostics.
-- `settings.ts`: eight-second rotation, three-second photo hold, tilt, frame cap, DPR and preload settings.
+- `settings.ts`: eight-second rotation, six-second photo hold, tilt, frame cap, DPR and preload settings.
 - `presentation.ts`: deterministic turn/photo timing and late-image handling.
 - `Watch3D.module.css`: reserved image area, visible-only loading animation and 3D fade-in.
 - Existing card, comparison, chat, homepage, staff pick and detail components
@@ -40,7 +40,7 @@ Hidden tabs stop the animation loop. Rendering is capped at 60 fps, reduced to
 30 fps on modest devices or when more than four cards are visible. DPR is at
 most 2 (1.5 on modest devices). There are no shadow maps or external HDR files.
 The shared visible-time clock controls both stages. WebGL drawing is skipped
-during the photograph hold. Hover, pointer press, dragging and arrow keys do
+during the six-second photograph hold. Hover, pointer press, dragging and arrow keys do
 not pause or control the viewer. Parent product links still open details.
 Reduced motion keeps a static model. A missing/failed photo leaves automatic
 3D turns running; missing WebGL shows the photograph instead.
@@ -50,9 +50,9 @@ Reduced motion keeps a static model. A missing/failed photo leaves automatic
 All 12 catalogue assets were downloaded again from the manufacturer image URLs
 recorded in `data/catalogue.json`. The actual models are used, not AI images or
 lookalike watches. PNG originals were encoded as lossless WebP at their original
-dimensions, preserving alpha. Pixel checks confirm all visible RGB values and
-alpha values match the downloaded originals; RGB values behind fully transparent
-pixels may be cleared by WebP encoding.
+dimensions, preserving alpha at import. Pixel checks confirmed visible RGB and
+alpha matched the downloaded originals before the background cleanup described
+below. RGB values behind fully transparent pixels may be cleared by WebP encoding.
 
 - Tissot: 1680 × 1680, four models.
 - Grand Seiko: 1102 × 1102, four models.
@@ -60,7 +60,7 @@ pixels may be cleared by WebP encoding.
 
 The UI requests responsive, retina-sized Next.js images at quality 95. A source
 revision in the photo URL bypasses previously cached conversions of the older
-lossy files. Original files are larger (about 10.3 MB total); only near-viewport
+lossy files. Current lossless assets are about 9.8 MB total; only near-viewport
 photos are mounted, and responsive images avoid sending every original in full
 to a phone. There is no enlargement of the source assets or blur filter.
 
@@ -68,6 +68,33 @@ Source product pages: [Tissot PRX](https://www.tissotwatches.com/en-us/T13741011
 [Grand Seiko SBGW301](https://www.grand-seiko.com/us-en/collections/SBGW301G),
 [Seiko SRPE93](https://seikousa.com/products/srpe93). The full per-model source
 and image URL inventory remains in the catalogue manifest.
+
+### White-shadow cleanup, 2026-10-29
+
+Reviewing all 12 images over the actual dark card background identified a pale
+cast shadow in all four Tissot source assets. Those backgrounds were cleaned
+with the built-in **imagegen** tool (background-extraction mode, transparent
+output). Its output was used as an alpha-matte proposal, not as replacement
+watch artwork. Native 1680 × 1680 manufacturer RGB pixels were retained in the
+final lossless WebP assets, with the original opaque watch pixels protected.
+Comparison after encoding found zero changed opaque product pixels and zero
+changed RGB values in retained visible pixels. Only exterior alpha changed.
+
+Final workspace assets, relative to the repository root:
+
+- `frontend/public/catalogue/tissot-prx-powermatic-80-blue-t1374071104100.webp`
+- `frontend/public/catalogue/tissot-prx-quartz-blue-t1374101104100.webp`
+- `frontend/public/catalogue/tissot-gentleman-powermatic-80-silicium-blue-t1274071104100.webp`
+- `frontend/public/catalogue/tissot-seastar-1000-powermatic-80-blue-t1204071104103.webp`
+
+The photo URL revision is `clean-cutout-20261029`, so cached older shadows are
+not reused. The six-second duration is shared by rendering and accessible copy.
+
+Prompt set: the following prompt was used once per reference, substituting
+`T1374071104100`, `T1374101104100`, `T1274071104100`, and `T1204071104103`.
+Inputs were manufacturer photos composited over the card colour for inspection.
+
+> Use case: background-extraction. Edit target: the attached real Tissot {reference} product photograph. Remove ONLY the entire dark brown backdrop AND the pale white-grey shadow/blob cast toward the lower right of the bracelet. Deliver a clean fully transparent PNG containing only the original complete watch. Keep the exact watch, full bracelet, crown, dial, hands, date 8, all logos and dial lettering, materials and colours. Do not invent, redraw, simplify or retouch watch details. Preserve its scale, proportions and precise centered placement on the same square canvas, with the same margins; no zoom or crop, no added shadow, glow, white fringe, checkerboard or background. High resolution, preserve the input's native 1680x1680 composition (output 2048x2048 if needed). This is for an accurate product catalogue; only the alpha/background should change.
 
 ## Add or refine a watch
 
@@ -120,10 +147,13 @@ The cold 3D payload is downloaded only when a watch approaches the viewport,
 and may already be cached if another 3D feature loaded Three.js first.
 
 The automatic photo cycle also has explicit boundary checks: photo begins after
-the full turn, holds until 11 seconds of visible time, then starts the next turn.
+the full turn, holds until 14 seconds of visible time, then starts the next turn.
 Late/missing images skip a photo slot instead of exposing a blank area.
 Browser checks at 390 px (DPR 2) and 1280 px requested quality-95 images at
 828 px and 640 px respectively. Both exceed the displayed image's retina needs.
-The measured photo holds were 3000 ms and 2999 ms with a pointer held over the
-viewer. Reduced motion, failed-photo continuation, no-WebGL photo fallback and
+The original three-second version measured 3000 ms and 2999 ms with a pointer held over the
+viewer. The current hold is six seconds. Reduced motion, failed-photo continuation, no-WebGL photo fallback and
 clicking a photo to open product details also pass without browser exceptions.
+The six-second update measured 6023 ms at 390 px and 6000 ms at 1280 px, with
+hover/held-pointer input throughout. The cleaned PRX photo and product-link
+navigation passed on both viewports, with no browser exceptions.

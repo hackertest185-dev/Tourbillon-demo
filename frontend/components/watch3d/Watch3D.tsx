@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { configForWatch, type WatchVisualSource } from './config';
-import { PRELOAD_MARGIN, type WatchControls } from './settings';
+import { PHOTO_SECONDS, PRELOAD_MARGIN, type WatchControls } from './settings';
 import type { mountWatch } from './runtime';
 import styles from './Watch3D.module.css';
 
@@ -20,7 +20,7 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
   // A revision bypasses previously optimized copies made from the old lossy
   // catalogue images. Keep the API's image field and model data unchanged.
   const photoSrc = fallbackSrc?.startsWith('/catalogue/')
-    ? `${fallbackSrc}${fallbackSrc.includes('?') ? '&' : '?'}v=original-hq-20261028` : fallbackSrc;
+    ? `${fallbackSrc}${fallbackSrc.includes('?') ? '&' : '?'}v=clean-cutout-20261029` : fallbackSrc;
   const visibleRef = useRef(visible);
   visibleRef.current = visible;
   const { id, name, slug, specs } = watch;
@@ -72,7 +72,7 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
   useEffect(() => { handle.current?.setActive(visible); }, [visible, near]);
   const photoVisible = photoReady && !posterError && (failed || (ready && showPhoto));
   return <div ref={root} translate="no" className={`notranslate ${styles.viewport} ${ready ? styles.ready : ''} ${photoVisible ? styles.photoVisible : ''}`}
-    role="img" aria-label={`${alt} — الساعة بتلف تلقائيًا، وبعد لفة كاملة بتظهر صورتها الحقيقية 3 ثواني.`} aria-busy={!ready && !failed}
+    role="img" aria-label={`${alt} — الساعة بتلف تلقائيًا، وبعد لفة كاملة بتظهر صورتها الحقيقية ${PHOTO_SECONDS} ثواني.`} aria-busy={!ready && !failed}
     data-presentation={photoVisible ? (failed ? 'fallback' : 'photo') : ready ? 'model' : failed ? 'unavailable' : 'loading'}>
     {!ready && !failed && <span className={`${styles.loading} ${visible ? styles.loadingActive : ''}`} aria-hidden="true"><i /></span>}
     {(near || failed) && photoSrc && !posterError && <div className={styles.poster} aria-hidden="true"><Image src={photoSrc} alt="" fill quality={95} sizes="(min-width: 1280px) 40vw, (min-width: 768px) 50vw, 100vw" priority={priority} loading={priority ? undefined : 'lazy'} draggable={false}
