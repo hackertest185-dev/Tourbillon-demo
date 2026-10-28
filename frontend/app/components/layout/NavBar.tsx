@@ -378,8 +378,8 @@ const UserMenu = () => {
               </button>
             </div>
 
-            {/* Primary links */}
-            <nav className="flex flex-1 flex-col justify-center gap-1 px-7">
+            {/* Primary links — 2×2 grid on small screens, staggered entrance */}
+            <nav className="grid flex-1 grid-cols-2 content-center gap-3 px-5">
               {[
                 { label: 'Timepieces', href: '/watches' },
                 { label: 'Trend', href: '/trend' },
@@ -388,14 +388,14 @@ const UserMenu = () => {
               ].map((item, i) => (
                 <motion.div
                   key={item.href}
-                  initial={{ opacity: 0, x: -24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.08 + i * 0.06, duration: 0.5, ease: EASE_ENTER }}
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.12 + i * 0.09, duration: 0.55, ease: EASE_ENTER }}
                 >
                   <Link
                     href={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className="block py-2.5 font-playfair text-[2.6rem] font-light leading-tight tracking-[0.01em] text-[#f0e6d2] transition-colors hover:text-[#bfa68a]"
+                    className="flex h-full min-h-[110px] items-center justify-center rounded-lg border border-white/10 bg-white/[0.02] px-3 text-center font-playfair text-[1.55rem] font-light leading-snug tracking-[0.01em] text-[#f0e6d2] transition-colors hover:border-[#bfa68a]/30 hover:text-[#bfa68a]"
                   >
                     {item.label}
                   </Link>

@@ -1,6 +1,8 @@
 // Site-wide footer with a stronger editorial brand lead and restrained utility navigation.
 // Keeps the warm metallic palette, avoids dead links, and leaves visual room for the concierge pill.
+'use client';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { ROUTES } from '@/app/constants/routes';
 
 const navigationColumns = [
@@ -28,19 +30,28 @@ function FooterNavLink({
   href,
   label,
   description,
+  delay = 0,
 }: {
   href: string;
   label: string;
   description: string;
+  delay?: number;
 }) {
   const isExternal = href.startsWith('http');
 
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+      className="group border-b border-white/6 pb-4 transition-colors duration-300 hover:border-[#bfa68a]/18"
+    >
     <Link
       href={href}
       target={isExternal ? '_blank' : undefined}
       rel={isExternal ? 'noopener noreferrer' : undefined}
-      className="group block border-b border-white/6 pb-4 transition-colors duration-300 hover:border-[#bfa68a]/18"
+      className="group block"
     >
       <span className="relative inline-flex w-fit text-[1.02rem] font-inter text-white/68 transition-colors duration-300 group-hover:text-[#f0e6d2]">
         {label}
@@ -50,6 +61,7 @@ function FooterNavLink({
         {description}
       </span>
     </Link>
+    </motion.div>
   );
 }
 
@@ -123,23 +135,31 @@ export default function Footer() {
           </div>
 
           <div className="border-t border-white/[0.06] py-11 sm:py-12 lg:border-l lg:border-t-0 lg:pl-14 xl:pl-16">
-            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-12 xl:gap-x-16">
-            {navigationColumns.map(column => (
-              <div key={column.title}>
+            {/* Two columns side by side on phones too, per design request. */}
+            <div className="grid grid-cols-2 gap-x-5 gap-y-10 sm:gap-x-12 xl:gap-x-16">
+            {navigationColumns.map((column, columnIndex) => (
+              <motion.div
+                key={column.title}
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.55, delay: columnIndex * 0.12, ease: [0.22, 1, 0.36, 1] }}
+              >
                 <p className="mb-6 text-[9px] uppercase tracking-[0.38em] text-[#bfa68a] font-inter">
                   {column.title}
                 </p>
                 <div className="flex flex-col gap-5">
-                  {column.links.map(link => (
+                  {column.links.map((link, linkIndex) => (
                     <FooterNavLink
                       key={link.label}
                       href={link.href}
                       label={link.label}
                       description={link.description}
+                      delay={columnIndex * 0.12 + linkIndex * 0.08}
                     />
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))}
             </div>
           </div>

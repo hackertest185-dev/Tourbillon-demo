@@ -193,7 +193,8 @@ export default function CinematicExperience() {
       <div ref={stage} className={styles.stage}>
         <div className={styles.artwork} aria-hidden="true">
           {(!enhanced || !sceneReady) && <StaticWatch />}
-          {enhanced && (!mobile || inView || sceneReady) && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
+          {/* Cinematic scene mounts at once on phones like desktop — frames pause off-screen. */}
+          {enhanced && <SceneBoundary onFailure={onFailure}><WatchScene motion={motion} mobile={mobile}
             active={tabVisible && inView} onFailure={onFailure} onReady={onReady} /></SceneBoundary>}
         </div>
         <div className={styles.shade} aria-hidden="true" />
