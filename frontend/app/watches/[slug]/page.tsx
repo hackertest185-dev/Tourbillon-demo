@@ -143,7 +143,7 @@ const WatchDetailPage = () => {
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white/30 mx-auto mb-6"></div>
-                    <p className="text-white/80 text-lg">Loading watch details...</p>
+                    <p translate="no" className="notranslate text-white/80 text-lg">بنحمّل تفاصيل الساعة...</p>
                 </div>
             </div>
         );

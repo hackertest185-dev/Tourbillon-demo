@@ -558,6 +558,10 @@ const EGYPTIAN_OVERRIDES: Array<[string, string]> = [
   ['التوريد الخاص، وسرد القصص المدروس، وطريقة أكثر هدوءًا لاكتشاف صناعة الساعات الحديثة.', 'اختيارات خاصة، حكايات متحكية بحب، وطريقة أهدى تكتشف بيها عالم الساعات.'],
 ];
 
+const appliedText = new WeakMap<Node, string>();
+const appliedAttributes = new WeakMap<Element, Map<string, string>>();
+let appliedTitle: string | undefined;
+
 function applyEgyptianTone(root: Node = document.body) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   // Apply the chosen copy in one pass. A sequential replace would let an old
@@ -568,23 +572,34 @@ function applyEgyptianTone(root: Node = document.body) {
   const replaceValue = (value: string) => value.replace(replacementPattern, match => replacementMap.get(match) ?? match);
   let node: Node | null;
   while ((node = walker.nextNode())) {
-    if (node.parentElement?.closest('[translate="no"], .notranslate')) continue;
+    if (node.parentElement?.closest('script, style, noscript, [translate="no"], .notranslate')) continue;
     const value = node.nodeValue;
     if (!value?.trim()) continue;
+    if (appliedText.get(node) === value) continue;
     const nextValue = replaceValue(value);
+    appliedText.set(node, nextValue);
     if (nextValue !== value) node.nodeValue = nextValue;
   }
 
   // Keep labels and the document title in the same Egyptian voice too, while
   // leaving proper names explicitly marked as notranslate untouched.
   if (typeof document !== 'undefined') {
-    document.title = replaceValue(document.title);
+    if (document.title !== appliedTitle) {
+      appliedTitle = replaceValue(document.title);
+      if (document.title !== appliedTitle) document.title = appliedTitle;
+    }
     const elementRoot = root as ParentNode;
     elementRoot.querySelectorAll('[aria-label], [title], [placeholder], [alt]').forEach(element => {
-      if (element.closest('[translate="no"], .notranslate')) return;
+      if (element.closest('script, style, noscript, [translate="no"], .notranslate')) return;
+      let previous = appliedAttributes.get(element);
+      if (!previous) { previous = new Map(); appliedAttributes.set(element, previous); }
       for (const attribute of ['aria-label', 'title', 'placeholder', 'alt']) {
         const value = element.getAttribute(attribute);
-        if (value) element.setAttribute(attribute, replaceValue(value));
+        if (value && previous.get(attribute) !== value) {
+          const next = replaceValue(value);
+          previous.set(attribute, next);
+          if (next !== value) element.setAttribute(attribute, next);
+        }
       }
     });
   }
@@ -594,10 +609,18 @@ export default function LanguageSwitcher() {
   useEffect(() => {
     document.documentElement.lang = 'ar';
     document.documentElement.dir = 'rtl';
-    applyEgyptianTone();
-    const toneObserver = new MutationObserver(() => applyEgyptianTone());
-    toneObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const toneTimers = [0, 250, 900].map(delay => window.setTimeout(applyEgyptianTone, delay));
+    const options = { childList: true, subtree: true, characterData: true };
+    const applyTone = () => {
+      // Own writes must not trigger another translation pass. Some replacements
+      // contain matching source fragments, so observing them can starve the page.
+      toneObserver.disconnect();
+      if (!document.body) return;
+      applyEgyptianTone();
+      toneObserver.observe(document.body, options);
+    };
+    const toneObserver = new MutationObserver(applyTone);
+    applyTone();
+    const toneTimers = [0, 250, 900].map(delay => window.setTimeout(applyTone, delay));
     return () => {
       toneObserver.disconnect();
       toneTimers.forEach(timer => window.clearTimeout(timer));

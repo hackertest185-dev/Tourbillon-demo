@@ -5,11 +5,13 @@ The four named reference models have explicit presets. Every other catalogue
 watch gets a deterministic configuration from its existing case, dial and
 strap specifications. Missing specifications use neutral defaults.
 No database changes, new image downloads, external models, or new dependencies
-are required. Existing image files and API image values remain the fallback.
+are required. A neutral loading indicator appears until the first 3D frame is
+ready. Existing image files and API image values are loaded only if 3D fails,
+so the original product photo never flashes before the model.
 
 ## Files and architecture
 
-- `frontend/components/watch3d/Watch3D.tsx`: lightweight poster, lazy import,
+- `frontend/components/watch3d/Watch3D.tsx`: loading indicator, failure fallback, lazy import,
   visibility observers, pointer/keyboard interaction and reduced motion.
 - `config.ts`: presets plus inference for all other watches.
 - `buildWatch.ts`: procedural case, dial/bezel textures, applied indices,
@@ -17,7 +19,7 @@ are required. Existing image files and API image values remain the fallback.
 - `runtime.ts`: one shared WebGL renderer, one animation loop, generated
   RoomEnvironment/PMREM lighting, model pooling and lifecycle diagnostics.
 - `settings.ts`: rotation speed, tilt, frame cap, DPR, input and preload settings.
-- `Watch3D.module.css`: reserved image area and poster crossfade.
+- `Watch3D.module.css`: reserved image area, visible-only loading animation and 3D fade-in.
 - Existing card, comparison, chat, homepage, staff pick and detail components
   supply their watch and original image to the shared viewer.
 

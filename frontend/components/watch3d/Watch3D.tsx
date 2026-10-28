@@ -22,7 +22,9 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
   visibleRef.current = visible;
   const { id, name, slug, specs } = watch;
   const config = useMemo(() => configForWatch({ id, name, slug, specs }), [id, name, slug, specs]);
-  useEffect(() => { setFailed(false); setPosterError(false); setReady(false); controls.current.rotation = (index % 8) * .13 - .35; }, [config, fallbackSrc, index]);
+  useEffect(() => { setFailed(false); setReady(false); }, [config]);
+  useEffect(() => { setPosterError(false); }, [fallbackSrc]);
+  useEffect(() => { controls.current.rotation = (index % 8) * .13 - .35; handle.current?.invalidate(); }, [index]);
   useEffect(() => {
     const node = root.current;
     if (!node) return;
@@ -93,12 +95,13 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
     controls.current.velocity = 0; controls.current.resumeAt = performance.now() + RESUME_DELAY_MS; handle.current?.invalidate();
   };
   return <div ref={root} translate="no" className={`notranslate ${styles.viewport} ${ready ? styles.ready : ''}`}
-    role="img" aria-label={`${alt} — interactive 3D preview. Drag or use left and right arrows to rotate.`} tabIndex={ready ? 0 : undefined}
+    role="img" aria-label={`${alt} — interactive 3D preview. Drag or use left and right arrows to rotate.`} aria-busy={!ready && !failed} tabIndex={ready ? 0 : undefined}
     onPointerEnter={e => { if (e.pointerType === 'mouse') controls.current.hovered = true; }}
     onPointerLeave={e => { if (e.pointerType === 'mouse') controls.current.hovered = false; }}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} onKeyDown={key}
     onClickCapture={e => { if (suppressClick.current) { e.preventDefault(); e.stopPropagation(); suppressClick.current = false; } }}>
-    {fallbackSrc && !posterError && <div className={styles.poster}><Image src={fallbackSrc} alt="" fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw" priority={priority} loading={priority ? undefined : 'lazy'} onError={() => setPosterError(true)} /></div>}
+    {!ready && !failed && <span className={`${styles.loading} ${visible ? styles.loadingActive : ''}`} aria-hidden="true"><i /></span>}
+    {failed && fallbackSrc && !posterError && <div className={styles.poster}><Image src={fallbackSrc} alt="" fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw" priority={priority} loading={priority ? undefined : 'lazy'} onError={() => setPosterError(true)} /></div>}
     <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
   </div>;
 }
