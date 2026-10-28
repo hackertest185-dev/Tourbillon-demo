@@ -11,7 +11,7 @@ import { imageTransformations } from '@/lib/cloudinary';
 import { useNavigation } from '@/contexts/NavigationContext';
 import CompareToggle from '../../components/compare/CompareToggle';
 import FavouriteToggle from '../../components/favourites/FavouriteToggle';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 
 interface WatchCardProps {
@@ -24,40 +24,15 @@ interface WatchCardProps {
   collectionName?: string;         // when provided, skips internal fetchCollectionsByBrand call
 }
 
-const WatchCard = ({ watch, className = "", hrefSuffix = "", imageFit = 'contain', collectionLabels, brandName, collectionName: collectionNameProp }: WatchCardProps) => {
+const WatchCard = ({ watch, className = "", hrefSuffix = "", collectionLabels, brandName, collectionName: collectionNameProp }: WatchCardProps) => {
   const baseImageSrc = watch.imageUrl || imageTransformations.showcase(watch.image);
-  const [imageError, setImageError] = useState(false);
-  const [imageLoading, setImageLoading] = useState(true);
   // Only used when collectionNameProp is not provided (i.e., outside the favourites page)
   const [collection, setCollection] = useState<Collection | null>(null);
-  const [imgSrc, setImgSrc] = useState<string>(baseImageSrc);
-  const [retryCount, setRetryCount] = useState<number>(0);
   const router = useRouter();
 
   const { saveNavigationState } = useNavigation();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page') ?? '1');
-
-  useEffect(() => {
-    setImgSrc(baseImageSrc);
-    setRetryCount(0);
-    setImageError(false);
-    setImageLoading(true);
-  }, [baseImageSrc]);
-
-  const handleImageError = () => {
-    if (retryCount === 0) {
-      setRetryCount(1);
-      setImgSrc((watch.imageUrl || imageTransformations.showcase(watch.image)) + `?r=${Date.now()}`);
-      return;
-    }
-    setImageError(true);
-    setImageLoading(false);
-  };
-
-  const handleImageLoad = () => {
-    setImageLoading(false);
-  };
 
   const handleCollectionClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -103,35 +78,7 @@ const WatchCard = ({ watch, className = "", hrefSuffix = "", imageFit = 'contain
       <div className="relative mb-4">
         <Link translate="no" className="notranslate block" href={watchHref} onClick={handleWatchClick}>
           <div className="w-full h-80 bg-black/40 rounded-xl flex items-center justify-center relative overflow-hidden">
-            {!imageError ? (
-              <>
-                {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white/40"></div>
-                  </div>
-                )}
-                <Image
-                  src={imgSrc}
-                  alt={watch.name}
-                  translate="no"
-                  width={600}
-                  height={600}
-                  sizes="(min-width: 1024px) 300px, 80vw"
-                  className={`w-full h-full ${imageFit === 'cover' ? 'object-cover' : 'object-contain'} rounded-xl transition-opacity duration-500 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                />
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center p-8">
-                <div className="w-20 h-20 bg-white/15 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-10 h-10 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <span className="text-white/30 text-sm font-playfair">Image unavailable</span>
-              </div>
-            )}
+            <Watch3D watch={watch} fallbackSrc={watch.image || watch.imageUrl ? baseImageSrc : undefined} alt={watch.name} index={watch.id} />
           </div>
         </Link>
         {/* Action button field — bottom-right of image, visible on hover. Extend with more buttons here. */}

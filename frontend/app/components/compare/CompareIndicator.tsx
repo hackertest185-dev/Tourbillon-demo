@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useCompare } from '@/stores/compareStore';
 import { imageTransformations } from '@/lib/cloudinary';
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 const CompareIndicator = () => {
   const { compareWatches, removeFromCompare, clearCompare } = useCompare();
@@ -85,20 +85,7 @@ const CompareIndicator = () => {
                   {compareWatches.map((watch) => (
                     <div key={watch.id} className="relative group/thumb">
                       <div className="aspect-square rounded-xl overflow-hidden border border-white/8 bg-black/40 relative">
-                        {watch.image ? (
-                          <Image
-                            src={watch.imageUrl || imageTransformations.card(watch.image)}
-                            alt={watch.name}
-                            translate="no"
-                            width={80}
-                            height={80}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/20 text-[8px] font-inter p-1 text-center">
-                            <span translate="no" className="notranslate">{watch.name}</span>
-                          </div>
-                        )}
+                        <Watch3D watch={watch} fallbackSrc={watch.imageUrl || (watch.image ? imageTransformations.card(watch.image) : undefined)} alt={watch.name} index={watch.id} />
                         {/* Hover overlay with remove */}
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center">
                           <button

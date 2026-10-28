@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { submitRegisterInterest } from '@/lib/api';
 import SlidingPanel, { PANEL_EXIT_MS } from './SlidingPanel';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 interface RegisterInterestPanelProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface RegisterInterestPanelProps {
   watchDescription?: string;
   watchReference?: string;
   watchImageUrl?: string;
+  watchSpecs?: string | null;
   watchPrice?: number;
 }
 
@@ -88,7 +90,7 @@ const PHONE_REGIONS = [
 
 export default function RegisterInterestPanel({
   isOpen, onClose,
-  watchId, watchSlug, brandName, collectionName, watchReference, watchImageUrl, watchPrice,
+  watchId, watchSlug, brandName, collectionName, watchReference, watchImageUrl, watchSpecs, watchPrice,
 }: RegisterInterestPanelProps) {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
 
@@ -418,9 +420,10 @@ export default function RegisterInterestPanel({
               <div className="rounded-xl bg-gradient-to-br from-[#bfa68a]/10 to-transparent border border-[#bfa68a]/30 p-5 shadow-lg shadow-[#bfa68a]/5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#bfa68a] mb-3">Watch of Interest</p>
                 <div className="flex gap-4 items-center">
-                  {watchImageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={watchImageUrl} alt={watchReference || ''} className="w-16 h-16 object-cover rounded-lg flex-shrink-0 bg-white/5 border border-white/10" />
+                  {(watchId || watchImageUrl) && (
+                    <div className="w-16 h-16 rounded-lg flex-shrink-0 bg-white/5 border border-white/10 overflow-hidden">
+                      <Watch3D watch={{ id: watchId || 0, slug: watchSlug, name: watchReference || '', specs: watchSpecs }} fallbackSrc={watchImageUrl} alt={watchReference || ''} index={watchId || 0} />
+                    </div>
                   )}
                   <div>
                     {brandName && <p className="text-[#f0e6d2] text-sm font-semibold tracking-wide">{brandName}</p>}

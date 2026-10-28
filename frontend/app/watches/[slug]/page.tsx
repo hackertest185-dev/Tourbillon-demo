@@ -21,7 +21,7 @@ import WristFitWidget from '../../components/wristfit/WristFitWidget';
 import AppointmentPanel from '../../components/appointment/AppointmentPanel';
 import RegisterInterestPanel from '../../components/appointment/RegisterInterestPanel';
 import ScrollFade from '../../scrollMotion/ScrollFade';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 /** Solid gold CTAs on the watch detail hero — keep in sync with CompareToggle variant="button" (rounded-xl, py-4 px-8). */
 const watchDetailSolidCtaClassName =
@@ -33,10 +33,6 @@ const WatchDetailPage = () => {
     const searchParams = useSearchParams();
     const slug = params.slug as string;
 
-    const [imageError, setImageError] = useState(false);
-    const [imageLoading, setImageLoading] = useState(true);
-    const [imgSrc, setImgSrc] = useState<string | null>(null);
-    const [retryCount, setRetryCount] = useState<number>(0);
     const [appointmentOpen, setAppointmentOpen] = useState(false);
     const [registerInterestOpen, setRegisterInterestOpen] = useState(false);
     const { navigationState } = useNavigation();
@@ -58,11 +54,6 @@ const WatchDetailPage = () => {
         queryKey: ['collections'],
         queryFn: fetchCollections,
     });
-
-    // Sync image source when watch data arrives (or changes)
-    useEffect(() => {
-        if (watch?.imageUrl) setImgSrc(watch.imageUrl);
-    }, [watch?.imageUrl]);
 
     // Track watch view for Watch DNA behavior profiling
     useEffect(() => {
@@ -118,22 +109,6 @@ const WatchDetailPage = () => {
         } else {
             router.push('/watches');
         }
-    };
-
-    const handleImageError = () => {
-        // One-time retry with explicit JPG and cache-busting to mitigate transient failures
-        if (watch && retryCount < 1) {
-            setRetryCount(1);
-            const fallback = (watch.imageUrl || imageTransformations.detail(watch.image)) + `?r=${Date.now()}`;
-            setImgSrc(fallback.replace('/f_auto', '/f_jpg'));
-            return;
-        }
-        setImageError(true);
-        setImageLoading(false);
-    };
-
-    const handleImageLoad = () => {
-        setImageLoading(false);
     };
 
     if (!slug) {
@@ -201,36 +176,7 @@ const WatchDetailPage = () => {
                     <ScrollFade>
                         <div className="sticky top-32 w-full max-w-md bg-black/20 p-4 md:p-8 rounded-xl border border-white/10">
                             <div className="aspect-square bg-white/5 flex items-center justify-center rounded-lg relative overflow-hidden">
-                                {watch.image && !imageError ? (
-                                    <>
-                                        {imageLoading && (
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/30"></div>
-                                            </div>
-                                        )}
-                                        <Image
-                                          src={imgSrc || watch.imageUrl || imageTransformations.detail(watch.image)}
-                                          alt={watch.name}
-                                          translate="no"
-                                          width={1200}
-                                          height={1200}
-                                          sizes="(min-width: 1024px) 600px, 90vw"
-                                          className={`w-full h-full object-contain rounded-lg transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
-                                          onError={handleImageError}
-                                          onLoad={handleImageLoad}
-                                          priority
-                                          fetchPriority="high"
-                                        />
-                                    </>
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center text-center p-8">
-                                        <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center mb-4">
-                                            <svg className="w-10 h-10 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">                                        </svg>
-                                        </div>
-                                        <span translate="no" className="notranslate text-white/40 text-lg font-medium">{watch.name}</span>
-                                        <span className="text-white/20 text-sm mt-2">Image unavailable</span>
-                                    </div>
-                                )}
+                                <Watch3D watch={watch} fallbackSrc={watch.imageUrl || (watch.image ? imageTransformations.detail(watch.image) : undefined)} alt={watch.name} index={watch.id} priority />
                             </div>
                         </div>
                     </ScrollFade>
@@ -421,6 +367,7 @@ const WatchDetailPage = () => {
             collectionName={collectionName}
             watchReference={watch.name}
             watchImageUrl={watch.imageUrl}
+            watchSpecs={watch.specs}
             watchPrice={watch.currentPrice}
         />
         </>

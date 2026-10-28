@@ -5,7 +5,7 @@
 // Each stage fires its own scroll-triggered performance: text ScrollFades, watches appear one by one.
 import { useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 import { motion, useInView } from 'framer-motion';
 import { useQueries } from '@tanstack/react-query';
 import { fetchWatchesByCollectionSlug, Watch } from '@/lib/api';
@@ -143,7 +143,6 @@ function WatchRow({
     <div className="flex items-center justify-center gap-2 md:gap-3 lg:gap-5">
       {watches.map((watch, i) => {
         const src = getImageSrc(watch);
-        if (!src) return null;
         const offset = i - center;
         const scale = 1 - Math.abs(offset) * 0.07;
         const wOpacity =
@@ -162,13 +161,7 @@ function WatchRow({
               style={{ scale }}
               className={`relative ${sizeClass}`}
             >
-              <Image
-                src={src}
-                alt={watch.description ?? 'watch'}
-                fill
-                sizes="(max-width: 768px) 100px, (max-width: 1024px) 130px, 160px"
-                className="object-contain drop-shadow-[0_16px_40px_rgba(0,0,0,0.7)]"
-              />
+              <Watch3D watch={watch} fallbackSrc={src} alt={watch.name} index={watch.id} />
             </motion.div>
           </motion.div>
         );
@@ -179,7 +172,7 @@ function WatchRow({
 
 function ArchetypeTile({ archetype, index }: { archetype: Archetype; index: number }) {
   const watches = useArchetypeWatches(archetype.collectionSlugs, 6);
-  const displayWatches = watches.filter(w => getImageSrc(w)).slice(0, 6);
+  const displayWatches = watches.slice(0, 6);
   const indexLabel = String(index + 1).padStart(2, '0');
 
   // Single scroll trigger per stage — fires the whole performance when the section enters view

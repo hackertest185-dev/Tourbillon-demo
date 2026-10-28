@@ -5,7 +5,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 import { useCompare } from '@/stores/compareStore';
 import { fetchWatchBySlug, Watch } from '@/lib/api';
 import { imageTransformations } from '@/lib/cloudinary';
@@ -229,20 +229,7 @@ const ComparePage = () => {
                 {/* Watch image */}
                 <Link translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
                   <div className="w-36 h-36 mx-auto bg-black/30 rounded-xl mb-3 overflow-hidden border border-white/5">
-                    {watch.image ? (
-                      <Image
-                        src={watch.imageUrl || imageTransformations.card(watch.image)}
-                        alt={watch.name}
-                        translate="no"
-                        width={200}
-                        height={200}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-white/30 text-[10px] font-inter p-2">
-                        <span translate="no" className="notranslate">{watch.name}</span>
-                      </div>
-                    )}
+                    <Watch3D watch={watch} fallbackSrc={watch.imageUrl || (watch.image ? imageTransformations.card(watch.image) : undefined)} alt={watch.name} index={watch.id} />
                   </div>
                 </Link>
 

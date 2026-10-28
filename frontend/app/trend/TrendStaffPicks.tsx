@@ -9,6 +9,7 @@ import { fetchWatchBySlug, Watch } from '@/lib/api';
 import { imageTransformations } from '@/lib/cloudinary';
 import { STAFF_PICKS, StaffPick } from './trendData';
 import ScrollFade from '@/app/scrollMotion/ScrollFade';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 function FeaturedCardSkeleton() {
   return (
@@ -34,14 +35,7 @@ function FeaturedWatchCard({ watch }: { watch: Watch }) {
   return (
     <Link translate="no" className="notranslate group flex flex-col h-full" href={`/watches/${watch.slug}`}>
       <div className="relative flex-1 min-h-[260px] bg-black/30 overflow-hidden">
-        <Image
-          src={imageSrc}
-          alt={watch.name}
-          translate="no"
-          fill
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          className="object-contain p-8 transition-transform duration-700 group-hover:scale-105"
-        />
+        <div className="absolute inset-0 p-8"><Watch3D watch={watch} fallbackSrc={imageSrc} alt={watch.name} index={watch.id} /></div>
       </div>
       <div className="p-6 border-t border-[#bfa68a]/10 flex items-end justify-between gap-4">
         <div>

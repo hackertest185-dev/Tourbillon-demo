@@ -3,11 +3,11 @@
 // Phase 10D: near-3D tilt on mousemove (useTilt) + gold shimmer stripe on hover.
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+import Watch3D from '@/components/watch3d/Watch3D';
 import { Watch, Collection, Brand } from '@/lib/api';
 import { imageTransformations } from '@/lib/cloudinary';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -28,16 +28,9 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
   const { rotateX, rotateY, handleMouseMove, handleMouseLeave } = useTilt();
   const baseImageSrc = watch.imageUrl || imageTransformations.card(watch.image);
 
-  const [src, setSrc] = useState<string>(baseImageSrc);
-  const [retryCount, setRetryCount] = useState(0);
   const [shimmer, setShimmer] = useState(false);
 
   const router = useRouter();
-
-  useEffect(() => {
-    setSrc(baseImageSrc);
-    setRetryCount(0);
-  }, [baseImageSrc]);
 
   const handleWatchClick = () => {
     saveNavigationState({
@@ -46,13 +39,6 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
       path: window.location.pathname + window.location.search,
       timestamp: Date.now(),
     });
-  };
-
-  const handleImgError = () => {
-    if (retryCount < 1) {
-      setRetryCount(1);
-      setSrc(baseImageSrc + `?r=${Date.now()}`);
-    }
   };
 
   const handleBrandClick = (e: React.MouseEvent) => {
@@ -93,22 +79,7 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
       <div className="relative mb-4" style={{ transform: 'translateZ(20px)' }}>
         <Link translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
           <div className="w-full aspect-square bg-gradient-to-br from-black/40 to-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden cursor-pointer">
-            {watch.image ? (
-              <Image
-                src={src}
-                alt={watch.name}
-                translate="no"
-                width={400}
-                height={400}
-                sizes="(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 50vw"
-                className="w-full h-full object-contain rounded-xl"
-                priority={isPriority}
-                fetchPriority={isPriority ? 'high' as const : 'auto'}
-                onError={handleImgError}
-              />
-            ) : (
-              <span translate="no" className="notranslate text-white/60 text-xs font-light">{watch.name}</span>
-            )}
+            <Watch3D watch={watch} fallbackSrc={watch.image || watch.imageUrl ? baseImageSrc : undefined} alt={watch.name} index={watch.id} priority={isPriority} />
           </div>
         </Link>
         {/* Action buttons — always visible on touch screens, hover-only on desktop */}

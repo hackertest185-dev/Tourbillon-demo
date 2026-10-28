@@ -13,6 +13,7 @@ import type { ChatWatchCard, ChatAction } from '@/lib/api';
 import { fetchWatchBySlug } from '@/lib/api';
 import { useCompare } from '@/stores/compareStore';
 import ThinkingIndicator from './ThinkingIndicator';
+import Watch3D from '@/components/watch3d/Watch3D';
 
 // Kept identical to StarterPrompts in ChatService.cs — the backend pre-warms exactly this list,
 // so a prompt that differs by a character is a cache miss and answers slowly on first click.
@@ -420,19 +421,7 @@ function WatchCardRow({ cards }: { cards: ChatWatchCard[] }) {
             style={{ background: 'rgba(255,255,255,0.04)', width: 100 }}
           >
             <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-white/5">
-              {card.imageUrl || card.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={card.imageUrl || imageTransformations.thumbnail(card.image!)}
-                  alt={card.name}
-                  draggable={false}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-white/20">
-                  No image
-                </div>
-              )}
+              <Watch3D watch={card} fallbackSrc={card.imageUrl || (card.image ? imageTransformations.thumbnail(card.image) : undefined)} alt={card.name} index={card.id} />
             </div>
             <p className="w-full line-clamp-2 text-center text-[10px] leading-tight text-[#ecddc8]/80">
               {card.name}
