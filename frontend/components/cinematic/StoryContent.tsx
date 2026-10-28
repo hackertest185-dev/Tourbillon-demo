@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchBrands } from '@/lib/api';
 import { CHAPTERS } from './config';
+import { clearScrollRestore } from '@/lib/navigationDirection';
 import styles from './cinematic.module.css';
 
 export function MaisonLinks({ orbit = false }: { orbit?: boolean }) {
@@ -21,7 +22,15 @@ export function MaisonLinks({ orbit = false }: { orbit?: boolean }) {
 }
 
 function WatchCollectionCta() {
-  return <Link href="/watches" prefetch={false} className={styles.watchCta} aria-label="شوف ساعاتنا">
+  return <Link href="/watches#watch-catalogue" prefetch={false} className={styles.watchCta} aria-label="شوف ساعاتنا"
+    onClick={event => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      clearScrollRestore();
+      // Leave the pinned cinematic document before aligning the destination.
+      // Its asynchronous pin cleanup can otherwise push a client transition to the footer.
+      window.location.assign('/watches#watch-catalogue');
+    }}>
     <span className={styles.watchCtaDial} aria-hidden="true">
       <i className={styles.watchCtaHandHour} />
       <i className={styles.watchCtaHandMinute} />

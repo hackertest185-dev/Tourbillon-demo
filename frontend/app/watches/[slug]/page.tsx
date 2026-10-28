@@ -173,7 +173,7 @@ const WatchDetailPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24">
                 {/* Left Column: Watch Image */}
                 <div className="flex justify-center items-start">
-                    <ScrollFade>
+                    <ScrollFade className="w-full max-w-md">
                         <div className="sticky top-32 w-full max-w-md bg-black/20 p-4 md:p-8 rounded-xl border border-white/10">
                             <div className="aspect-square bg-white/5 flex items-center justify-center rounded-lg relative overflow-hidden">
                                 <Watch3D watch={watch} fallbackSrc={watch.imageUrl || (watch.image ? imageTransformations.detail(watch.image) : undefined)} alt={watch.name} index={watch.id} priority />

@@ -10,6 +10,7 @@ import { useLenis } from 'lenis/react';
 import { toast } from 'sonner';
 import { fetchOrderedWatches, fetchPersonalizedWatches, fetchCollections, fetchFilterOptions, getTasteProfile, Brand } from '@/lib/api';
 import { useScrollRestore } from '@/hooks/useScrollRestore';
+import { isScrollRestore } from '@/lib/navigationDirection';
 import { useAuth } from '@/contexts/AuthContext';
 import { WatchCard } from '../components/cards/WatchCard';
 import { SortOrder, WatchOrderingService } from './WatchOrderingService';
@@ -286,7 +287,25 @@ const AllWatchesSection = ({
     : 'Sign in to save your browsing and form your Watch DNA.';
 
   const isReady = featuredWatches.length > 0 || (!watchesLoading && featuredWatches.length === 0);
+  const catalogueEntry = useRef(false);
+  useEffect(() => {
+    catalogueEntry.current = window.location.hash === '#watch-catalogue' && !isScrollRestore();
+  }, []);
   useScrollRestore(isReady);
+  useEffect(() => {
+    if (!isReady || watchesLoading || !catalogueEntry.current) return;
+    catalogueEntry.current = false;
+    const align = () => {
+      const target = document.getElementById('watch-catalogue');
+      if (!target) return;
+      lenis?.resize();
+      if (lenis) lenis.scrollTo(target, { immediate: true, offset: -110, force: true });
+      else window.scrollTo({ top: window.scrollY + target.getBoundingClientRect().top - 110, behavior: 'instant' });
+    };
+    const frame = requestAnimationFrame(align);
+    const settled = window.setTimeout(align, 250);
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(settled); };
+  }, [isReady, watchesLoading, lenis]);
 
 
   const initialWatches = sortedWatches.slice(0, 12);
@@ -347,6 +366,7 @@ const AllWatchesSection = ({
         </div>
       )}
 
+      <div id="watch-catalogue" className="scroll-mt-28" aria-hidden="true" />
       {watchesLoading ? (
         <div className="text-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/40 mx-auto mb-4" />
