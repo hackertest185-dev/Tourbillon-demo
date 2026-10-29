@@ -29,6 +29,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
     const [productionStatus, setProductionStatus] = useState('');
     const [specsJson, setSpecsJson] = useState('{}');
     const [imagePublicId, setImagePublicId] = useState('');
+    const [storedImageUrl, setStoredImageUrl] = useState('');
     // After upload, store Cloudinary version to bust CDN cache via versioned URL (/v{version}/ path)
     const [imageVersion, setImageVersion] = useState<number | null>(null);
     // Local blob URL for instant preview after upload (bypasses CDN cache entirely)
@@ -72,6 +73,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                     setProductionStatus(parsed.productionStatus ?? '');
                 } catch { /* leave blank on bad JSON */ }
                 setImagePublicId(data.image || '');
+                setStoredImageUrl(data.imageUrl || '');
                 setImageVersion(data.imageVersion ?? null);
 
                 setOriginalName(data.name);
@@ -129,6 +131,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
                 setImageVersion(result.version ?? null);
+                setStoredImageUrl((await adminFetchWatchById(watch.id)).imageUrl || '');
                 setLocalBlobUrl(null);
                 await invalidatePublicWatchQueries();
             }
@@ -162,6 +165,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
                 setImageVersion(result.version ?? null);
+                setStoredImageUrl(result.imageUrl || '');
                 setLocalBlobUrl(blobUrl);
                 await invalidatePublicWatchQueries();
             } else {
@@ -210,6 +214,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
                 setImageVersion(result.version ?? null);
+                setStoredImageUrl(result.imageUrl || '');
                 setLocalBlobUrl(blobUrl);
                 await invalidatePublicWatchQueries();
             } else {
@@ -321,7 +326,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                             <div className="bg-black/50 p-4 border border-white/10 rounded-lg flex flex-col items-center justify-center mb-6 h-[400px]">
                                 {imagePublicId ? (
                                     <img
-                                        src={localBlobUrl || (() => {
+                                        src={localBlobUrl || storedImageUrl || (() => {
                                             if (imagePublicId.startsWith('http')) return imagePublicId;
                                             const base = getOptimizedImageUrl(imagePublicId, { width: 1200, height: 1200, crop: 'fit' });
                                             return imageVersion ? base.replace('/image/upload/', `/image/upload/v${imageVersion}/`) : base;

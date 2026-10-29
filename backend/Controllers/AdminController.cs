@@ -996,7 +996,7 @@ public class AdminController : ControllerBase
                 && !previousImage.Equals(publicId, StringComparison.OrdinalIgnoreCase))
                 await storageService.DeleteImageAsync(previousImage);
 
-            return Ok(new { Success = true, PublicId = publicId, Version = version });
+            return Ok(new { Success = true, PublicId = publicId, Version = version, ImageUrl = storageService.GetPublicUrl(publicId, version) });
         }
         catch (Exception ex)
         {
@@ -1033,7 +1033,7 @@ public class AdminController : ControllerBase
             if (string.IsNullOrEmpty(publicId))
                 return StatusCode(500, new { Message = "Failed to upload image to storage" });
 
-            return Ok(new { Success = true, PublicId = publicId, Version = version });
+            return Ok(new { Success = true, PublicId = publicId, Version = version, ImageUrl = storageService.GetPublicUrl(publicId, version) });
         }
         catch (Exception ex)
         {

@@ -863,7 +863,7 @@ export const generateTasteProfile = async (): Promise<TasteProfile> => {
 };
 
 // Upload image for an existing watch — backend builds canonical public ID and updates DB.
-export const adminUploadWatchImage = async (watchId: number, file: File): Promise<{ success: boolean; publicId: string; version: number }> => {
+export const adminUploadWatchImage = async (watchId: number, file: File): Promise<{ success: boolean; publicId: string; version: number; imageUrl?: string }> => {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -887,7 +887,7 @@ export const adminUploadWatchImage = async (watchId: number, file: File): Promis
 
 // Upload image without a watch ID — used when creating a new watch before it has been saved.
 // Returns a temporary public ID; caller should rename after the watch is created.
-export const adminUploadWatchImageTemp = async (file: File, slug: string): Promise<{ success: boolean; publicId: string }> => {
+export const adminUploadWatchImageTemp = async (file: File, slug: string): Promise<{ success: boolean; publicId: string; imageUrl?: string }> => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('slug', slug);

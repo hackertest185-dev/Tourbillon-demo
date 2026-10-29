@@ -23,6 +23,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
     const [price, setPrice] = useState('0');
     const [specsJson, setSpecsJson] = useState(DEFAULT_SPECS);
     const [imagePublicId, setImagePublicId] = useState('');
+    const [uploadedImageUrl, setUploadedImageUrl] = useState('');
 
     const [pendingFile, setPendingFile] = useState<File | null>(null);
     const [cropMode, setCropMode] = useState(false);
@@ -70,6 +71,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
             const result = await adminUploadWatchImageTemp(safeFile, slugifiedName);
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
+                setUploadedImageUrl(result.imageUrl || '');
             }
         } catch (err: unknown) {
             setUploadError(err instanceof Error ? err.message : "رفع الصورة منفعش");
@@ -86,6 +88,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
             const result = await adminTempFromUrl(cloudinaryUrlInput.trim());
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
+                setUploadedImageUrl('');
                 setCloudinaryUrlInput('');
             }
         } catch (err: unknown) {
@@ -174,7 +177,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
                             <div className="bg-black/50 p-4 border border-white/10 rounded-lg flex flex-col items-center justify-center mb-6 h-[400px]">
                                 {imagePublicId ? (
                                     <img
-                                        src={imagePublicId.startsWith('http') ? imagePublicId : imageTransformations.detail(imagePublicId)}
+                                        src={uploadedImageUrl || (imagePublicId.startsWith('http') ? imagePublicId : imageTransformations.detail(imagePublicId))}
                                         alt="Preview"
                                         className="object-contain max-h-full max-w-full rounded"
                                     />
