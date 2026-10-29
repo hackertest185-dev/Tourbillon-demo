@@ -53,4 +53,6 @@ Frontend Vercel and backend Hostless both deployed `8cdf496` successfully. Googl
 
 The final database read confirmed 12 original watches, 3 original brands, zero QA accounts, and one Admin: the owner's existing account. No real owner account was deleted and no original watch was altered.
 
-Owner-controlled MFA enrollment and persistent image upload verification remain open. The temporary Admin and its authenticator were removed, so the owner must enroll their own authenticator before using admin write operations. Downloaded server-secret exports and local temporary test credentials were removed after cleanup; non-secret test reports and screenshots are retained locally.
+Owner-controlled MFA enrollment and persistent image upload verification remain open. The temporary Admin and its authenticator were removed from the server, so the owner must enroll their own authenticator before using admin write operations.
+
+Automatic approval review blocked deletion of local temporary secret files without a detailed reason. Server-side cleanup succeeded, but these local files still need manual cleanup (do not commit or share them): `C:\Users\noura\Downloads\velora-api.env`, `C:\Users\noura\Downloads\velora-api (1).env`, and the files `state.json`, `pg.env`, `mfa-test.json`, `browser.json`, `qa-admin-browser.json`, `permission-fixture.json`, and `reset-otp.txt` inside `C:\Users\noura\AppData\Local\Temp\velora-production-qa-20261029`. Non-secret test reports and screenshots in that directory may be retained.
