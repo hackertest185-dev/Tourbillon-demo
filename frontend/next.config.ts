@@ -11,6 +11,7 @@ const nextConfig = (phase: string): NextConfig => ({
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: '*.cloudfront.net', pathname: '/**' },
+      { protocol: 'https', hostname: 'res.cloudinary.com', pathname: '/*/image/upload/**' },
       { protocol: 'http', hostname: 'localhost', port: '5248', pathname: '/images/**' },
       { protocol: 'http', hostname: 'backend', port: '8080', pathname: '/images/**' },
     ],

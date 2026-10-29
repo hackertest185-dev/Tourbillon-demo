@@ -41,14 +41,19 @@ public class CloudinaryStorageService : IStorageService
     /// Reproduces the logic in Watch.GetImageUrl so callers can use IStorageService directly.
     public string? GetPublicUrl(string? publicId, long? version = null)
     {
-        if (string.IsNullOrEmpty(publicId))
+        if (string.IsNullOrWhiteSpace(publicId))
             return null;
+
+        // The demo catalogue is bundled with the frontend, independent of the upload provider.
+        if (publicId.StartsWith("/catalogue/", StringComparison.Ordinal))
+            return publicId;
 
         // External URLs are returned unchanged (already absolute)
         if (publicId.StartsWith("http"))
             return publicId;
 
-        var baseUrl = $"https://res.cloudinary.com/{_cloudName}/image/upload/dpr_auto/q_auto/f_auto/w_800,h_800,c_fit";
+        // Keep the uploaded original intact; the frontend generates responsive renditions.
+        var baseUrl = $"https://res.cloudinary.com/{_cloudName}/image/upload";
 
         if (version.HasValue)
             return $"{baseUrl}/v{version}/{publicId}";

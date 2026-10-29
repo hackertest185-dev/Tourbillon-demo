@@ -418,11 +418,11 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // A password reset/change rotates the Identity security stamp. Validate it
-// frequently so stolen cookies are revoked promptly without disabling the
-// normal authenticated browser flow.
+// on every authenticated request so old cookies fail immediately, rather than
+// retaining a window of access after changing or resetting a password.
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
-    options.ValidationInterval = TimeSpan.FromMinutes(1);
+    options.ValidationInterval = TimeSpan.Zero;
     options.OnRefreshingPrincipal = AdminMfaSessionClaims.PreserveOnValidatedRefresh;
 });
 
