@@ -29,15 +29,32 @@ This is a record of observed results, not a guarantee that every feature or ever
 - Admin MFA proof now survives validated Identity principal refresh only for the same still-authorized Admin identity. Public watch-finder search is excluded from the admin mutation gate.
 - Image upload and editor responses now use the storage provider's actual image URL. Cloudinary keeps uploaded originals and leaves bundled `/catalogue/` images unchanged.
 
-## Remaining image-storage blocker
+## Image-storage follow-up — resolved
 
-Production currently uses local image storage on Hostless's read-only application filesystem. A valid WebP upload failed with HTTP 500 (`/app/Images/watches` is read-only). Cloudinary support and frontend image allowlist are prepared, but the owner's Free account and server-side credentials are still needed. No successful cloud upload is claimed yet.
+The initial valid WebP upload failed because local storage tried to write to Hostless's read-only `/app/Images/watches`. Production now uses the owner's Cloudinary Free account. Cloud name, API key, and API secret were configured on Hostless; both credential fields are write-only. The API secret was not committed or added to frontend configuration.
 
-To complete: connect the owner's Cloudinary account, change the server storage provider, deploy, upload a valid image, check its public URL and the admin/list/detail previews, then remove only the disposable cloud asset.
+Backend `391ca3b` and frontend `1ce6fad` were deployed and tested. URL imports no longer duplicate the storage folder, processed-image saves retain the actual provider key, and admin previews use provider URLs. An actual UI upload revealed the former 10-second browser deadline; image operations now allow 60 seconds, and the Vercel proxy explicitly allows 60 seconds too. The deployed UI upload, save, and reopen flow then succeeded.
+
+| Image acceptance check | Result |
+| --- | --- |
+| Existing-watch WebP upload | HTTP 200 |
+| Fake PNG content, missing CSRF, negative price | HTTP 400 |
+| Cloud original download | HTTP 200; SHA-256 and all 886,724 bytes identical to original |
+| Original dimensions after UI upload and reopening editor | 1680 × 1680; loaded from Cloudinary |
+| Responsive frontend image optimizer | HTTP 200 |
+| Detail-page image | Loaded through frontend image optimizer |
+| Finalize processed Cloudinary image | HTTP 200; correct provider key |
+| Import approved public Cloudinary URL | HTTP 200 |
+| Upload before creating a watch | HTTP 200; public preview HTTP 200 |
+| Stage image for Cloudinary editing | HTTP 200; public preview HTTP 200 |
+| UI upload and subsequent data save | Succeeded; public API reflected saved description; downloaded image remained byte-identical |
+| Cleanup | Four exact test cloud assets deleted successfully; disposable watch, collection, brand, and Admin account deleted |
+
+The final database read again confirmed 12 original watches, 3 original brands, zero QA accounts, and only the owner's Admin role. All 12 original image URLs still point to the bundled catalogue. Owner MFA remains disabled and the write policy remains enforced.
 
 ## Verification
 
-- Backend suite: 2,737 passed, 5 existing skips; two additional provider-URL/original-byte upload regression tests passed separately.
+- Latest backend suite: 2,740 passed, 5 existing skips.
 - Frontend production build: passed. Existing image-optimization warnings remain.
 - No production schema migration was run.
 
@@ -53,6 +70,6 @@ Frontend Vercel and backend Hostless both deployed `8cdf496` successfully. Googl
 
 The final database read confirmed 12 original watches, 3 original brands, zero QA accounts, and one Admin: the owner's existing account. No real owner account was deleted and no original watch was altered.
 
-Owner-controlled MFA enrollment and persistent image upload verification remain open. The temporary Admin and its authenticator were removed from the server, so the owner must enroll their own authenticator before using admin write operations.
+Owner-controlled MFA enrollment remains open. Persistent image upload verification is complete. The temporary Admin and its authenticator were removed from the server, so the owner must enroll their own authenticator before using admin write operations.
 
 Automatic approval review blocked deletion of local temporary secret files without a detailed reason. Server-side cleanup succeeded, but these local files still need manual cleanup (do not commit or share them): `C:\Users\noura\Downloads\velora-api.env`, `C:\Users\noura\Downloads\velora-api (1).env`, and the files `state.json`, `pg.env`, `mfa-test.json`, `browser.json`, `qa-admin-browser.json`, `permission-fixture.json`, and `reset-otp.txt` inside `C:\Users\noura\AppData\Local\Temp\velora-production-qa-20261029`. Non-secret test reports and screenshots in that directory may be retained.
