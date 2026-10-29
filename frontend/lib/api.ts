@@ -867,11 +867,12 @@ export const adminUploadWatchImage = async (watchId: number, file: File): Promis
   const formData = new FormData();
   formData.append('file', file);
 
-  // We intentionally do not use fetchWithTimeout here since uploads can be slow
+  // Cloud uploads include transfer time and a remote storage round trip.
   const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/${watchId}/image`, {
     method: 'POST',
     body: formData,
-    credentials: 'include'
+    credentials: 'include',
+    timeoutMs: 60000,
   });
   if (!response.ok) {
     if (response.status === 404) {
@@ -895,7 +896,8 @@ export const adminUploadWatchImageTemp = async (file: File, slug: string): Promi
   const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/upload-image`, {
     method: 'POST',
     body: formData,
-    credentials: 'include'
+    credentials: 'include',
+    timeoutMs: 60000,
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -913,6 +915,7 @@ export const adminStageOnCloudinary = async (file: File): Promise<{ success: boo
     method: 'POST',
     body: formData,
     credentials: 'include',
+    timeoutMs: 60000,
   });
   if (!response.ok) {
     const text = await response.text();
@@ -927,7 +930,7 @@ export const adminStageOnCloudinary = async (file: File): Promise<{ success: boo
 export const adminFinalizeFromCloudinary = async (watchId: number, cloudinaryPublicId: string): Promise<{ success: boolean; publicId: string; version: number }> => {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/admin/watches/${watchId}/image/from-cloudinary?publicId=${encodeURIComponent(cloudinaryPublicId)}`,
-    { method: 'POST', credentials: 'include' }
+    { method: 'POST', credentials: 'include', timeoutMs: 60000 }
   );
   if (!response.ok) {
     const text = await response.text();
@@ -946,6 +949,7 @@ export const adminTempFromUrl = async (imageUrl: string): Promise<{ success: boo
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ imageUrl }),
     credentials: 'include',
+    timeoutMs: 60000,
   });
   if (!response.ok) {
     const text = await response.text();

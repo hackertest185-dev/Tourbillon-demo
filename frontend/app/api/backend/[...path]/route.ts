@@ -3,6 +3,9 @@
 // all backend traffic is relayed server-side so visitors never need direct access to port 5248.
 import { NextRequest, NextResponse } from 'next/server';
 
+// Storage uploads can outlast the short default on older Vercel projects.
+export const maxDuration = 60;
+
 const BACKEND = process.env.BACKEND_INTERNAL_URL ?? 'http://localhost:5248/api';
 
 // Headers that must not be forwarded to the upstream backend
