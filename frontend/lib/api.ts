@@ -940,7 +940,7 @@ export const adminFinalizeFromCloudinary = async (watchId: number, cloudinaryPub
 
 // Downloads an image from any URL (e.g. a Cloudinary URL) and stages it in S3.
 // Used in AddWatchModal to import a processed image before a watch record exists.
-export const adminTempFromUrl = async (imageUrl: string): Promise<{ success: boolean; publicId: string }> => {
+export const adminTempFromUrl = async (imageUrl: string): Promise<{ success: boolean; publicId: string; imageUrl?: string }> => {
   const response = await fetchWithTimeout(`${API_BASE_URL}/admin/watches/image-from-url`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

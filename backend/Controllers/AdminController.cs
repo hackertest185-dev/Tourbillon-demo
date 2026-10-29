@@ -1110,24 +1110,24 @@ public class AdminController : ControllerBase
             var collectionPart = watch.Collection != null ? SanitizeSegment(watch.Collection.Name) : "NoCollection";
             var canonical = $"watches/{GetBrandAcronym(watch.Brand.Name)}_{collectionPart}_{SanitizeWatchName(watch.Name)}";
 
-            var currentIsOrphan = !string.IsNullOrEmpty(watch.Image)
-                && watch.Image.StartsWith("watches/", StringComparison.OrdinalIgnoreCase)
-                && !watch.Image.Equals(canonical, StringComparison.OrdinalIgnoreCase);
+            var previousImage = watch.Image;
 
             var cloudinaryUrl = $"https://res.cloudinary.com/{cloudName}/image/upload/{publicId}";
             var uploadedKey = await storageService.UploadImageFromUrlAsync(cloudinaryUrl, canonical);
 
             if (string.IsNullOrEmpty(uploadedKey))
-                return StatusCode(500, new { Message = "Failed to download from Cloudinary or upload to S3" });
+                return StatusCode(500, new { Message = "Failed to download or store the processed image" });
 
-            if (currentIsOrphan)
-                await storageService.DeleteImageAsync(watch.Image!);
+            if (!string.IsNullOrEmpty(previousImage)
+                && previousImage.StartsWith("watches/", StringComparison.OrdinalIgnoreCase)
+                && !previousImage.Equals(uploadedKey, StringComparison.OrdinalIgnoreCase))
+                await storageService.DeleteImageAsync(previousImage);
 
-            watch.Image = canonical;
+            watch.Image = uploadedKey;
             watch.ImageVersion = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             await context.SaveChangesAsync();
 
-            return Ok(new { Success = true, PublicId = canonical, Version = watch.ImageVersion });
+            return Ok(new { Success = true, PublicId = uploadedKey, Version = watch.ImageVersion, ImageUrl = storageService.GetPublicUrl(uploadedKey, watch.ImageVersion) });
         }
         catch (Exception ex)
         {
@@ -1159,7 +1159,7 @@ public class AdminController : ControllerBase
             if (string.IsNullOrEmpty(uploadedKey))
                 return StatusCode(500, new { Message = "Failed to download or upload image" });
 
-            return Ok(new { Success = true, PublicId = uploadedKey });
+            return Ok(new { Success = true, PublicId = uploadedKey, ImageUrl = storageService.GetPublicUrl(uploadedKey) });
         }
         catch (Exception ex)
         {

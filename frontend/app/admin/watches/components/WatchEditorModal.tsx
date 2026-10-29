@@ -349,7 +349,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                     className="flex-1 border border-dashed border-white/30 rounded-lg p-4 text-center hover:bg-white/5 transition-colors cursor-pointer text-sm"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
-                                    {uploadingImage ? "بنرفع..." : "ارفع على S3 مباشرة"}
+                                    {uploadingImage ? "بنرفع..." : "ارفع صورة جديدة"}
                                     <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
                                 </div>
                                 <div
@@ -374,7 +374,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                                     onClick={handleFinalizeFromCloudinary}
                                     disabled={finalizingFromCloudinary || !cloudinaryPublicIdInput.trim()}
                                 >
-                                    {finalizingFromCloudinary ? "بنحفظ..." : "احفظ على S3"}
+                                    {finalizingFromCloudinary ? "بنحفظ..." : "احفظ الصورة"}
                                 </button>
                             </div>
                             {uploadError && <p className="text-red-400 text-sm mt-2">{uploadError}</p>}

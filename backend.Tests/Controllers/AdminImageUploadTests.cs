@@ -7,6 +7,7 @@ using backend.Tests.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -14,6 +15,35 @@ namespace backend.Tests.Controllers;
 
 public class AdminImageUploadTests
 {
+    [Fact]
+    public async Task FinalizingProcessedImageStoresTheProvidersActualKey()
+    {
+        using var context = TestContextFactory.Create();
+        var watch = new Watch
+        {
+            Name = "QA Reference", Slug = "qa-reference", Image = "/catalogue/original.webp",
+            Brand = new Brand { Name = "QA Brand", Slug = "qa-brand" }
+        };
+        context.Watches.Add(watch);
+        await context.SaveChangesAsync();
+        var storage = new Mock<IStorageService>();
+        storage.Setup(s => s.UploadImageFromUrlAsync(It.IsAny<string>(), It.IsAny<string>(), "watches"))
+            .ReturnsAsync("watches/provider-actual.png");
+        using var services = new ServiceCollection().AddSingleton<TourbillonContext>(context)
+            .AddSingleton(storage.Object)
+            .AddSingleton<IConfiguration>(new ConfigurationBuilder().Build()).BuildServiceProvider();
+        var controller = new AdminController(null!, null!, null!, null!, null!, null!, null!,
+            NullLogger<AdminController>.Instance)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { RequestServices = services } }
+        };
+        var ok = Assert.IsType<OkObjectResult>(await controller.AdminFinalizeFromCloudinary(watch.Id, "qa/staged-image"));
+        Assert.Equal("watches/provider-actual.png", watch.Image);
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Equal(watch.Image, json.RootElement.GetProperty("publicId").GetString());
+        storage.Verify(s => s.DeleteImageAsync(It.IsAny<string>()), Times.Never);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

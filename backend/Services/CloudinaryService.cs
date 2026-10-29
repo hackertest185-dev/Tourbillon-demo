@@ -86,7 +86,8 @@ public class CloudinaryService : ICloudinaryService
                 var imageContent = await response.Content.ReadAsStreamAsync();
 
                 // Upload to Cloudinary
-                var fullPublicId = string.IsNullOrEmpty(folder) ? publicId : $"{folder}/{publicId}";
+                var fullPublicId = string.IsNullOrEmpty(folder) || publicId.StartsWith(folder + "/", StringComparison.Ordinal)
+                    ? publicId : $"{folder}/{publicId}";
                 var uploadParams = new ImageUploadParams
                 {
                     File = new FileDescription(publicId, imageContent),

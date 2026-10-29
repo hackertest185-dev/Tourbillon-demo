@@ -88,7 +88,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
             const result = await adminTempFromUrl(cloudinaryUrlInput.trim());
             if (result.success && result.publicId) {
                 setImagePublicId(result.publicId);
-                setUploadedImageUrl('');
+                setUploadedImageUrl(result.imageUrl || '');
                 setCloudinaryUrlInput('');
             }
         } catch (err: unknown) {
