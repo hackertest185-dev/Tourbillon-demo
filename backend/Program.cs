@@ -254,6 +254,10 @@ if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientS
             options.ClaimActions.MapJsonKey("urn:google:email_verified", "email_verified");
             options.Events.OnRemoteFailure = context =>
             {
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("GoogleOAuth")
+                    .LogWarning("Google OAuth remote authentication failed ({FailureType}).",
+                        context.Failure?.GetType().Name ?? "Unknown");
                 context.HandleResponse();
                 var frontend = builder.Configuration["AppSettings:FrontendBaseUrl"] ?? "http://localhost:3000";
                 context.Response.Redirect($"{frontend.TrimEnd('/')}/login?error=google-failed");
@@ -404,13 +408,23 @@ builder.Services.ConfigureApplicationCookie(options =>
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
         return Task.CompletedTask;
     };
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        // API clients must receive a permission error, not follow an internal
+        // host's HTML redirect and fail with a misleading CORS/network error.
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
 });
 
 // A password reset/change rotates the Identity security stamp. Validate it
 // frequently so stolen cookies are revoked promptly without disabling the
 // normal authenticated browser flow.
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
-    options.ValidationInterval = TimeSpan.FromMinutes(1));
+{
+    options.ValidationInterval = TimeSpan.FromMinutes(1);
+    options.OnRefreshingPrincipal = AdminMfaSessionClaims.PreserveOnValidatedRefresh;
+});
 
 // Add CORS services
 var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"]?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -481,6 +495,10 @@ if (!app.Environment.IsDevelopment())
     app.UseForwardedHeaders(forwardedHeadersOptions);
     app.UseHsts(); // Strict-Transport-Security: browsers refuse plain HTTP ever after first visit.
 }
+
+// Apply the same configured public origin before the challenge and callback
+// handlers run. Otherwise Google's code exchange uses the internal API host.
+app.UseMiddleware<PublicOAuthOriginMiddleware>();
 
 // Swagger for development
 if (app.Environment.IsDevelopment())

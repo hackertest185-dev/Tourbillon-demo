@@ -16,7 +16,11 @@ public sealed class AdminMfaMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var requireMfa = _configuration.GetValue<bool>("AdminSecurity:RequireMfaForWrites");
-        var isAdminApi = context.Request.Path.StartsWithSegments("/api/admin");
+        var path = context.Request.Path;
+        var isAdminApi = path.StartsWithSegments("/api/admin")
+            || path.StartsWithSegments("/api/watch")
+            || path.StartsWithSegments("/api/brand")
+            || path.StartsWithSegments("/api/collection");
         var isWrite = HttpMethods.IsPost(context.Request.Method) ||
                       HttpMethods.IsPut(context.Request.Method) ||
                       HttpMethods.IsPatch(context.Request.Method) ||

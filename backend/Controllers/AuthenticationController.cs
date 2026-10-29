@@ -361,15 +361,9 @@ public class AuthenticationController : ControllerBase
         if (scheme == null)
             return StatusCode(503, new { message = "Google login is not configured on this server." });
 
-        // The frontend proxy owns the public OAuth callback. Align the request
-        // URL with the configured public frontend so Google never receives a
-        // localhost or plain-http redirect from a TLS-terminating host.
+        // PublicOAuthOriginMiddleware aligns both the challenge and the code
+        // exchange with this configured origin, before authentication runs.
         var publicFrontend = GetFrontendBaseUrl();
-        if (Uri.TryCreate(publicFrontend, UriKind.Absolute, out var frontendUri))
-        {
-            Request.Scheme = frontendUri.Scheme;
-            Request.Host = new HostString(frontendUri.Authority);
-        }
 
         // Google returns through the frontend's same-origin backend proxy.
         // Generating this from the API request would omit `/api/backend` and
