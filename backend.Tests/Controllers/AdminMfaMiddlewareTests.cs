@@ -30,6 +30,8 @@ public class AdminMfaMiddlewareTests
     [InlineData("GET", "/api/admin/watches", false)]
     [InlineData("POST", "/api/authentication/mfa/setup", false)]
     [InlineData("POST", "/api/profile/change-password", false)]
+    [InlineData("POST", "/api/watch/find", false)]
+    [InlineData("POST", "/api/watch/find/", false)]
     public async Task VerifiedWritesAndNonCatalogueRequestsRemainAvailable(string method, string path, bool verified)
     {
         var reachedController = false;

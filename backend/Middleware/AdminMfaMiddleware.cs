@@ -18,7 +18,7 @@ public sealed class AdminMfaMiddleware
         var requireMfa = _configuration.GetValue<bool>("AdminSecurity:RequireMfaForWrites");
         var path = context.Request.Path;
         var isAdminApi = path.StartsWithSegments("/api/admin")
-            || path.StartsWithSegments("/api/watch")
+            || (path.StartsWithSegments("/api/watch") && !path.StartsWithSegments("/api/watch/find"))
             || path.StartsWithSegments("/api/brand")
             || path.StartsWithSegments("/api/collection");
         var isWrite = HttpMethods.IsPost(context.Request.Method) ||

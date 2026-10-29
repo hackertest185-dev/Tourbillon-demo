@@ -865,7 +865,8 @@ public class AdminController : ControllerBase
             context.Watches.Update(watch);
             await context.SaveChangesAsync();
 
-            return Ok(new { Success = true, Message = "Watch updated successfully", Watch = watch });
+            var storage = HttpContext.RequestServices.GetRequiredService<IStorageService>();
+            return Ok(new { Success = true, Message = "Watch updated successfully", Watch = WatchDto.FromWatch(watch, storage) });
         }
         catch (Exception ex)
         {
@@ -928,7 +929,8 @@ public class AdminController : ControllerBase
             context.Watches.Add(watch);
             await context.SaveChangesAsync();
 
-            return Ok(new { Success = true, Message = "Watch created successfully", Watch = watch });
+            var storage = HttpContext.RequestServices.GetRequiredService<IStorageService>();
+            return Ok(new { Success = true, Message = "Watch created successfully", Watch = WatchDto.FromWatch(watch, storage) });
         }
         catch (Exception ex)
         {
