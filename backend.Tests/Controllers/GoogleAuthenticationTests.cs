@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using backend.Controllers;
+using backend.DTOs;
 using backend.Models;
 using backend.Services;
 using Microsoft.AspNetCore.Authentication;
@@ -7,9 +8,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace backend.Tests.Controllers;
 
@@ -21,6 +24,7 @@ public class GoogleAuthenticationTests
             null!, null!, null!, null!, null!, null!, null!, null!);
         public Mock<SignInManager<User>> SignIn { get; }
         public AuthenticationController Controller { get; }
+        public Mock<IAuthenticationService> Authentication { get; } = new();
 
         public Harness(ExternalLoginInfo? info)
         {
@@ -31,6 +35,9 @@ public class GoogleAuthenticationTests
                 NullLogger<SignInManager<User>>.Instance, schemes, Mock.Of<IUserConfirmation<User>>());
             SignIn.Setup(s => s.GetExternalLoginInfoAsync(It.IsAny<string>())).ReturnsAsync(info);
             SignIn.Setup(s => s.SignInAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            SignIn.Setup(s => s.CheckPasswordSignInAsync(It.IsAny<User>(), It.IsAny<string>(), true)).ReturnsAsync(SignInResult.Success);
+            SignIn.Setup(s => s.SignInWithClaimsAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<IEnumerable<Claim>>())).Returns(Task.CompletedTask);
+            Users.Setup(u => u.HasPasswordAsync(It.IsAny<User>())).ReturnsAsync(true);
             Users.Setup(u => u.FindByLoginAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync((User?)null);
             Users.Setup(u => u.FindByEmailAsync(It.IsAny<string>())).ReturnsAsync((User?)null);
             Users.Setup(u => u.CreateAsync(It.IsAny<User>())).ReturnsAsync(IdentityResult.Success);
@@ -48,6 +55,15 @@ public class GoogleAuthenticationTests
             Controller = new AuthenticationController(SignIn.Object, Users.Object, roles.Object,
                 Mock.Of<IUserRegistrationService>(), Mock.Of<IPasswordResetService>(), Mock.Of<IMagicLoginService>(),
                 roleService.Object, NullLogger<AuthenticationController>.Instance, schemes, config);
+            Authentication.Setup(a => a.SignOutAsync(It.IsAny<HttpContext>(), It.IsAny<string>(), It.IsAny<AuthenticationProperties>()))
+                .Returns(Task.CompletedTask);
+            Controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    RequestServices = new ServiceCollection().AddSingleton(Authentication.Object).BuildServiceProvider()
+                }
+            };
         }
     }
 
@@ -107,7 +123,7 @@ public class GoogleAuthenticationTests
         var existing = new User { Id = 9, Email = "google@example.test" };
         h.Users.Setup(u => u.FindByEmailAsync("google@example.test")).ReturnsAsync(existing);
         var result = Assert.IsType<RedirectResult>(await h.Controller.GoogleCallback());
-        Assert.EndsWith("/login?error=google-link-requires-verification", result.Url);
+        Assert.EndsWith("/auth/link-google", result.Url);
         h.Users.Verify(u => u.CreateAsync(It.IsAny<User>()), Times.Never);
         h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
         h.SignIn.Verify(s => s.SignInAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
@@ -133,5 +149,84 @@ public class GoogleAuthenticationTests
         Assert.EndsWith("/login?error=link-failed", result.Url);
         h.Users.Verify(u => u.DeleteAsync(It.IsAny<User>()), Times.Once);
         h.SignIn.Verify(s => s.SignInAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LinkRequiresAnUnexpiredVerifiedGoogleCookie(bool expired)
+    {
+        var h = new Harness(expired ? null : Info(verified: false));
+        Assert.IsType<BadRequestObjectResult>(await h.Controller.LinkGoogleAccount(new("password")));
+        h.Users.Verify(u => u.FindByEmailAsync(It.IsAny<string>()), Times.Never);
+        h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WrongLocalPasswordCannotLinkVerifiedGoogleIdentity()
+    {
+        var h = ExistingAccount();
+        h.SignIn.Setup(s => s.CheckPasswordSignInAsync(It.IsAny<User>(), It.IsAny<string>(), true)).ReturnsAsync(SignInResult.Failed);
+        Assert.IsType<UnauthorizedObjectResult>(await h.Controller.LinkGoogleAccount(new("wrong-password")));
+        h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CorrectPasswordLinksOnlyTheAccountFromTheVerifiedGoogleEmailAndConsumesExternalCookie()
+    {
+        var h = ExistingAccount();
+        Assert.IsType<OkObjectResult>(await h.Controller.LinkGoogleAccount(new("correct-password")));
+        h.Users.Verify(u => u.AddLoginAsync(It.Is<User>(user => user.Id == 9),
+            It.Is<UserLoginInfo>(login => login.LoginProvider == "Google" && login.ProviderKey == "stable-google-id")), Times.Once);
+        h.SignIn.Verify(s => s.SignInAsync(It.Is<User>(user => user.Id == 9), false, null), Times.Once);
+        h.Authentication.Verify(a => a.SignOutAsync(It.IsAny<HttpContext>(), IdentityConstants.ExternalScheme, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task ALinkedProviderKeyCannotBeReplayedOrMovedToAnotherAccount()
+    {
+        var h = ExistingAccount();
+        h.Users.Setup(u => u.FindByLoginAsync("Google", "stable-google-id")).ReturnsAsync(new User { Id = 12 });
+        Assert.IsType<BadRequestObjectResult>(await h.Controller.LinkGoogleAccount(new("correct-password")));
+        h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
+        h.SignIn.Verify(s => s.SignInAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AnAccountWithMfaCannotLinkUsingPasswordAlone()
+    {
+        var h = ExistingAccount(mfa: true);
+        var response = Assert.IsType<OkObjectResult>(await h.Controller.LinkGoogleAccount(new("correct-password")));
+        Assert.Contains("\"requiresMfa\":true", System.Text.Json.JsonSerializer.Serialize(response.Value));
+        h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
+        h.SignIn.Verify(s => s.SignInAsync(It.IsAny<User>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WrongSecondFactorCannotLinkAnAccount()
+    {
+        var h = ExistingAccount(mfa: true);
+        Assert.IsType<UnauthorizedObjectResult>(await h.Controller.LinkGoogleAccount(new("correct-password", "000000")));
+        h.Users.Verify(u => u.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CorrectSecondFactorRetainsVerifiedProofAfterLinking()
+    {
+        var h = ExistingAccount(mfa: true);
+        h.Users.Setup(u => u.VerifyTwoFactorTokenAsync(It.IsAny<User>(), TokenOptions.DefaultAuthenticatorProvider, "123456"))
+            .ReturnsAsync(true);
+        Assert.IsType<OkObjectResult>(await h.Controller.LinkGoogleAccount(new("correct-password", "123456")));
+        h.SignIn.Verify(s => s.SignInWithClaimsAsync(It.Is<User>(user => user.Id == 9), false,
+            It.Is<IEnumerable<Claim>>(claims => claims.Any(c => c.Type == "mfa" && c.Value == "true"))), Times.Once);
+    }
+
+    private static Harness ExistingAccount(bool mfa = false)
+    {
+        var h = new Harness(Info());
+        h.Users.Setup(u => u.FindByEmailAsync("google@example.test"))
+            .ReturnsAsync(new User { Id = 9, Email = "google@example.test" });
+        h.Users.Setup(u => u.GetTwoFactorEnabledAsync(It.IsAny<User>())).ReturnsAsync(mfa);
+        return h;
     }
 }

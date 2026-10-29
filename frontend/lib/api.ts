@@ -528,6 +528,25 @@ export const verifyCurrentPassword = async (password: string): Promise<{ valid: 
     return response.json();
 };
 
+export const getPendingGoogleLink = async (): Promise<{ email: string; hasPassword: boolean }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/google/link`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Google verification expired');
+    return response.json();
+};
+
+export const linkGoogleAccount = async (password: string, code?: string): Promise<{ linked?: boolean; requiresMfa?: boolean }> => {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/authentication/google/link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ password, code }),
+    });
+    if (!response.ok) throw new Error('Unable to verify Google account link');
+    const result = await response.json();
+    if (result.linked) resetCsrfToken();
+    return result;
+};
+
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     const response = await fetchWithTimeout(`${API_BASE_URL}/profile/change-password`, {
         method: 'POST',

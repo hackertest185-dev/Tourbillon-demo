@@ -5,6 +5,7 @@ using backend.Models;
 using backend.Services;
 using backend.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -422,7 +423,7 @@ public class AuthenticationController : ControllerBase
         // A stolen or misdirected OAuth session must not become an account-linking
         // primitive; linking an existing account needs a separate re-auth flow.
         if (needsLink && !isNewAccount)
-            return Redirect($"{frontendBase}/login?error=google-link-requires-verification");
+            return Redirect($"{frontendBase}/auth/link-google");
 
         if (needsLink)
         {
@@ -454,6 +455,66 @@ public class AuthenticationController : ControllerBase
                 ?? "https://velora-five-umber.vercel.app")
             .TrimEnd('/');
     }
+
+    [HttpGet("google/link")]
+    [AllowAnonymous]
+    public async Task<IActionResult> PendingGoogleLink()
+    {
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        var email = VerifiedGoogleEmail(info);
+        if (email == null) return BadRequest(new { message = "Google verification expired. Start Google sign-in again." });
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null) return BadRequest(new { message = "No pending account link." });
+        return Ok(new { email, hasPassword = await _userManager.HasPasswordAsync(user) });
+    }
+
+    [HttpPost("google/link")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LinkGoogleAccount([FromBody] GoogleAccountLinkDto dto)
+    {
+        // The account and Google identity come only from the short-lived,
+        // protected external cookie. The client cannot choose either identity.
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+        var email = VerifiedGoogleEmail(info);
+        if (email == null) return BadRequest(new { message = "Google verification expired. Start Google sign-in again." });
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null || string.IsNullOrWhiteSpace(dto.Password)) return Unauthorized();
+
+        // A completed link cannot be replayed to create a second session.
+        if (await _userManager.FindByLoginAsync(info!.LoginProvider, info.ProviderKey) != null)
+            return BadRequest(new { message = "This Google sign-in is already linked. Start Google sign-in again." });
+        var password = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, lockoutOnFailure: true);
+        if (!password.Succeeded) return Unauthorized(new { message = "Unable to verify account credentials." });
+
+        var requiresMfa = await _userManager.GetTwoFactorEnabledAsync(user);
+        if (requiresMfa)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Code)) return Ok(new { requiresMfa = true });
+            if (!await _userManager.VerifyTwoFactorTokenAsync(user, TokenOptions.DefaultAuthenticatorProvider,
+                    dto.Code.Replace(" ", string.Empty)))
+            {
+                if (_userManager.SupportsUserLockout) await _userManager.AccessFailedAsync(user);
+                return Unauthorized(new { message = "Unable to verify account credentials." });
+            }
+        }
+
+        var linked = await _userManager.AddLoginAsync(user, info);
+        if (!linked.Succeeded) return BadRequest(new { message = "Unable to link Google sign-in. Start again." });
+        await _roleManagement.AssignAdminIfConfiguredAsync(user);
+        if (requiresMfa)
+            await _signInManager.SignInWithClaimsAsync(user, false, new[] { new Claim("mfa", "true") });
+        else
+            await _signInManager.SignInAsync(user, false);
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        _logger.LogInformation("Google account linking completed for user {UserId}", user.Id);
+        return Ok(new { linked = true });
+    }
+
+    private static string? VerifiedGoogleEmail(ExternalLoginInfo? info) =>
+        info?.LoginProvider == "Google"
+        && string.Equals(info.Principal.FindFirstValue("urn:google:email_verified"), "true", StringComparison.OrdinalIgnoreCase)
+            ? info.Principal.FindFirstValue(ClaimTypes.Email)
+            : null;
 
     // POST: api/authentication/magic-login/request
     // Step 1: Send a 6-char OTP to the given email. Always 200 — never reveals if email exists.
