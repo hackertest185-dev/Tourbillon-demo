@@ -43,7 +43,7 @@ const CompareIndicator = () => {
   };
 
   return (
-    <div className="fixed bottom-24 right-8 z-50 select-none" ref={panelRef}>
+    <div className="fixed bottom-20 left-4 z-50 select-none md:bottom-24 md:left-auto md:right-8" ref={panelRef}>
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -51,8 +51,7 @@ const CompareIndicator = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.92 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute mb-1"
-            style={{ width: '380px', right: '10%', bottom: 'calc(3rem + 4vh)' }}
+            className="absolute bottom-[calc(3rem+4vh)] left-0 mb-1 w-[min(calc(100vw-2rem),380px)] md:left-auto md:right-[10%]"
           >
             {/* Panel */}
             <div className="rounded-2xl overflow-hidden border border-[#bfa68a]/20 shadow-2xl shadow-black/60"
@@ -149,7 +148,7 @@ const CompareIndicator = () => {
         whileHover={{ scale: 1.04 }}
         whileTap={{ scale: 0.97 }}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="relative flex items-center gap-3 px-4 py-3 rounded-xl border border-[#bfa68a]/25 shadow-xl shadow-black/50 cursor-pointer"
+        className="relative flex items-center gap-1.5 rounded-xl border border-[#bfa68a]/25 px-2.5 py-2 shadow-xl shadow-black/50 cursor-pointer md:gap-3 md:px-4 md:py-3"
         style={{ background: 'linear-gradient(135deg, rgba(42,33,28,0.95) 0%, rgba(30,21,18,0.97) 100%)', backdropFilter: 'blur(20px)' }}
       >
         {/* Scales icon */}
@@ -160,18 +159,19 @@ const CompareIndicator = () => {
         </svg>
 
         {/* Label + count */}
-        <div className="flex flex-col items-start leading-none">
+        <div className="hidden flex-col items-start leading-none md:flex">
           <span className="text-[10px] font-inter text-[#bfa68a]/60 uppercase tracking-[0.15em] mb-0.5">قارن</span>
           <span className="text-[15px] font-playfair font-semibold text-[#f0e6d2]">{compareCount} <span className="text-white/30 text-[13px] font-inter font-normal">/ 4</span></span>
         </div>
+        <span className="text-sm font-semibold text-[#f0e6d2] md:hidden">{compareCount}</span>
 
         {/* Thin divider */}
-        <div className="w-px h-5 bg-white/8" />
+        <div className="hidden h-5 w-px bg-white/8 md:block" />
 
         {/* Chevron */}
         <svg
           width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#bfa68a" strokeOpacity="0.6" strokeWidth="1.5" strokeLinecap="round"
-          className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+          className={`hidden transition-transform duration-300 md:block ${isExpanded ? 'rotate-180' : ''}`}
         >
           <path d="M3 5l3 3 3-3" />
         </svg>
