@@ -24,6 +24,7 @@ let idleTimer: ReturnType<typeof setTimeout> | undefined;
 let mobileLow = false;
 let lostHandler: ((event: Event) => void) | undefined;
 let visibilityHandler: (() => void) | undefined;
+let renderWidth = 0, renderHeight = 0;
 
 function stop() { if (animation) cancelAnimationFrame(animation); animation = 0; previous = 0; }
 function fail() {
@@ -39,6 +40,7 @@ function destroy() {
   renderer?.dispose();
   if (context && !context.isContextLost()) context.getExtension('WEBGL_lose_context')?.loseContext();
   renderer = null;
+  renderWidth = renderHeight = 0;
   visibilityHandler = undefined; lostHandler = undefined;
 }
 function ensureRenderer() {
@@ -46,9 +48,9 @@ function ensureRenderer() {
   if (unavailable) return null;
   try {
     const canvas = document.createElement('canvas');
-    const context = canvas.getContext('webgl2', { antialias: true, alpha: true, powerPreference: 'low-power' });
+    const context = canvas.getContext('webgl2', { antialias: true, alpha: true, powerPreference: 'high-performance' });
     if (!context) { unavailable = true; return null; }
-    renderer = new WebGLRenderer({ canvas, context, alpha: true, antialias: true, powerPreference: 'low-power' });
+    renderer = new WebGLRenderer({ canvas, context, alpha: true, antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(1); renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping; renderer.toneMappingExposure = .95;
@@ -74,8 +76,11 @@ function frame(now: number) {
   if (!renderer || document.hidden) { previous = 0; return; }
   const delta = previous ? Math.min(now - previous, 100) : 0;
   previous = now;
-  const active = [...clients].filter(client => client.active);
+  // Spread GPU-to-2D canvas copies over consecutive display frames. Rendering
+  // every visible product in one frame caused a long main-thread stall on scroll.
+  const active = [...clients].filter(client => client.active).sort((a, b) => a.lastDraw - b.lastDraw);
   const fps = Math.min(FPS_CAP, mobileLow || active.length > 4 ? 30 : 60);
+  let drawn = 0;
   try {
     for (const client of active) {
       const state = client.controls;
@@ -95,6 +100,7 @@ function frame(now: number) {
       // Keep the last frame for the crossfade; the three photo seconds require
       // no WebGL drawing. The shared clock still advances to the next turn.
       if (showPhoto && !client.dirty) continue;
+      if (drawn >= 3) continue;
       client.model.rotation.set(-TILT_DEG * Math.PI / 180, state.rotation, 0);
       if (client.seconds) client.seconds.rotation.z = -Math.PI - client.elapsed / 60000 * Math.PI * 2;
       const dpr = Math.min(window.devicePixelRatio || 1, mobileLow ? 1.5 : MAX_DPR);
@@ -104,11 +110,16 @@ function frame(now: number) {
       const aspect = width / height, view = Math.max(6.2, 3.4 / aspect);
       client.camera.left = -view * aspect / 2; client.camera.right = view * aspect / 2;
       client.camera.top = view / 2; client.camera.bottom = -view / 2; client.camera.updateProjectionMatrix();
-      renderer.setSize(width, height, false);
+      // setSize resets the WebGL drawing buffer even when dimensions are
+      // unchanged; cards in the same grid usually share dimensions.
+      if (width !== renderWidth || height !== renderHeight) {
+        renderer.setSize(width, height, false);
+        renderWidth = width; renderHeight = height;
+      }
       renderer.render(client.scene, client.camera);
       client.context.clearRect(0, 0, width, height);
       client.context.drawImage(renderer.domElement, 0, 0, width, height);
-      client.lastDraw = now; client.dirty = false; renders++;
+      client.lastDraw = now; client.dirty = false; renders++; drawn++;
       if (!client.ready) { client.ready = true; client.onReady(); }
     }
   } catch { fail(); return; }

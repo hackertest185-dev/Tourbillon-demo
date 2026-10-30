@@ -388,7 +388,7 @@ const AllWatchesSection = ({
             <div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-8 md:gap-y-20 mb-20">
                 {displayedWatches.map((watch, index) => (
-                  <ScrollFade key={watch.id}>
+                  <ScrollFade key={watch.id} triggerOnce>
                     <WatchCard
                       watch={watch}
                       brands={brands}
@@ -442,7 +442,7 @@ const AllWatchesSection = ({
             <div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4 md:gap-x-8 md:gap-y-20 mb-20">
                 {paginatedWatches.map(watch => (
-                  <ScrollFade key={watch.id}>
+                  <ScrollFade key={watch.id} triggerOnce>
                     <WatchCard
                       watch={watch}
                       brands={brands}

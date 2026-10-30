@@ -54,13 +54,12 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
 
   return (
     <motion.div
-      className="group relative block bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4 transition-colors duration-500 hover:bg-gradient-to-br hover:from-white/10 hover:to-white/15 hover:border-white/30 hover:shadow-2xl hover:shadow-white/10 overflow-hidden"
+      className="group relative block bg-gradient-to-br from-[#322b29] to-[#383130] border border-white/20 rounded-2xl p-3 sm:p-4 transition-colors duration-300 hover:from-[#3b3230] hover:to-[#403734] hover:border-white/30 hover:shadow-2xl hover:shadow-white/10 overflow-hidden"
       style={{
         rotateX,
         rotateY,
         transformPerspective: 800,
         transformStyle: 'preserve-3d',
-        willChange: 'transform',
       }}
       onMouseMove={e => { handleMouseMove(e); setShimmer(true); }}
       onMouseLeave={() => { handleMouseLeave(); setShimmer(false); }}
@@ -77,7 +76,7 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
       />
 
       {/* Watch image */}
-      <div className="relative mb-4" style={{ transform: 'translateZ(20px)' }}>
+      <div className="relative mb-3 sm:mb-4" style={{ transform: 'translateZ(20px)' }}>
         <Link dir="ltr" translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
           <div className="w-full aspect-square bg-gradient-to-br from-black/40 to-black/60 rounded-xl flex items-center justify-center border border-white/10 overflow-hidden cursor-pointer">
             <Watch3D watch={watch} fallbackSrc={watch.image || watch.imageUrl ? baseImageSrc : undefined} alt={watch.name} index={watch.id} priority={isPriority} />
@@ -111,7 +110,7 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
         )}
 
         <Link dir="ltr" translate="no" className="notranslate" href={`/watches/${watch.slug || watch.id}`} onClick={handleWatchClick}>
-          <h3 className="text-sm font-inter font-medium text-white group-hover:text-[#f0e6d2] transition-colors truncate cursor-pointer">
+          <h3 className="text-sm font-inter font-medium text-white group-hover:text-[#f0e6d2] transition-colors line-clamp-2 min-h-10 cursor-pointer">
             <span dir="ltr" translate="no" className="notranslate">{watch.name}</span>
           </h3>
         </Link>

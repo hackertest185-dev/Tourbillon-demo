@@ -555,13 +555,13 @@ const EGYPTIAN_OVERRIDES: Array<[string, string]> = [
 
 const appliedText = new WeakMap<Node, string>();
 const appliedAttributes = new WeakMap<Element, Map<string, string>>();
+const replacementMap = new Map([...EGYPTIAN_OVERRIDES, ...USER_EGYPTIAN_OVERRIDES]);
 let appliedTitle: string | undefined;
 
 function applyEgyptianTone(root: Node = document.body) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   // Apply the chosen copy in one pass. A sequential replace would let an old
   // fallback rule rewrite part of the user's approved Egyptian translation.
-  const replacementMap = new Map([...EGYPTIAN_OVERRIDES, ...USER_EGYPTIAN_OVERRIDES]);
   // Legacy pages may still use the copy inventory. Match only complete labels:
   // replacing fragments such as "or" corrupts editors, form and horology.
   // Storefront copy lives in its React source; this is only a compatibility pass.
@@ -570,16 +570,17 @@ function applyEgyptianTone(root: Node = document.body) {
     const next = replacementMap.get(trimmed.replace(/\s+/g, ' '));
     return next ? value.replace(trimmed, next) : value;
   };
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    if (node.parentElement?.closest('script, style, noscript, [translate="no"], .notranslate')) continue;
+  const applyText = (node: Node) => {
+    if (node.parentElement?.closest('script, style, noscript, [translate="no"], .notranslate')) return;
     const value = node.nodeValue;
-    if (!value?.trim()) continue;
-    if (appliedText.get(node) === value) continue;
+    if (!value?.trim() || appliedText.get(node) === value) return;
     const nextValue = replaceValue(value);
     appliedText.set(node, nextValue);
     if (nextValue !== value) node.nodeValue = nextValue;
-  }
+  };
+  if (root.nodeType === Node.TEXT_NODE) applyText(root);
+  let node: Node | null;
+  while ((node = walker.nextNode())) applyText(node);
 
   // Keep labels and the document title in the same Egyptian voice too, while
   // leaving proper names explicitly marked as notranslate untouched.
@@ -588,8 +589,12 @@ function applyEgyptianTone(root: Node = document.body) {
       appliedTitle = replaceValue(document.title);
       if (document.title !== appliedTitle) document.title = appliedTitle;
     }
+    if (!('querySelectorAll' in root)) return;
     const elementRoot = root as ParentNode;
-    elementRoot.querySelectorAll('[aria-label], [title], [placeholder], [alt]').forEach(element => {
+    const labelled = root instanceof Element && root.matches('[aria-label], [title], [placeholder], [alt]')
+      ? [root, ...elementRoot.querySelectorAll('[aria-label], [title], [placeholder], [alt]')]
+      : elementRoot.querySelectorAll('[aria-label], [title], [placeholder], [alt]');
+    labelled.forEach(element => {
       if (element.closest('script, style, noscript, [translate="no"], .notranslate')) return;
       let previous = appliedAttributes.get(element);
       if (!previous) { previous = new Map(); appliedAttributes.set(element, previous); }
@@ -610,20 +615,33 @@ export default function LanguageSwitcher() {
     document.documentElement.lang = 'ar';
     document.documentElement.dir = 'rtl';
     const options = { childList: true, subtree: true, characterData: true };
+    let scheduled = 0;
+    const pending = new Set<Node>();
     const applyTone = () => {
-      // Own writes must not trigger another translation pass. Some replacements
-      // contain matching source fragments, so observing them can starve the page.
+      scheduled = 0;
+      // Translate only React's changed subtrees. Rewalking the entire page on
+      // every card, menu and loading-state mutation stalled scroll and WebGL.
       toneObserver.disconnect();
-      if (!document.body) return;
-      applyEgyptianTone();
-      toneObserver.observe(document.body, options);
+      for (const node of pending) if (node.isConnected) applyEgyptianTone(node);
+      pending.clear();
+      if (document.body) toneObserver.observe(document.body, options);
     };
-    const toneObserver = new MutationObserver(applyTone);
-    applyTone();
-    const toneTimers = [0, 250, 900].map(delay => window.setTimeout(applyTone, delay));
+    const queue = (node: Node) => {
+      pending.add(node);
+      if (!scheduled) scheduled = window.requestAnimationFrame(applyTone);
+    };
+    const toneObserver = new MutationObserver(records => {
+      for (const record of records) {
+        if (record.type === 'characterData') queue(record.target);
+        else record.addedNodes.forEach(queue);
+      }
+    });
+    if (document.body) applyEgyptianTone(document.body);
+    if (document.body) toneObserver.observe(document.body, options);
     return () => {
       toneObserver.disconnect();
-      toneTimers.forEach(timer => window.clearTimeout(timer));
+      window.cancelAnimationFrame(scheduled);
+      pending.clear();
     };
   }, []);
 

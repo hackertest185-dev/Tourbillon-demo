@@ -285,11 +285,9 @@ const UserMenu = () => {
         {/* Background — opacity driven by scroll position via useTransform, no manual math */}
         {mounted && (
           <motion.div
-            className="absolute inset-0 rounded-[20px] mt-12 mb-12"
+            className="absolute inset-0 rounded-[20px] mt-12 mb-12 backdrop-blur-none md:backdrop-blur-[14px]"
             style={{
               background: 'linear-gradient(90deg, rgba(255,255,255,0.01) 0%, rgba(255,255,255,0.025) 100%)',
-              backdropFilter: 'blur(14px)',
-              WebkitBackdropFilter: 'blur(14px)',
               zIndex: -1,
               opacity: bgOpacity,
               marginLeft: '20px',
@@ -329,11 +327,11 @@ const UserMenu = () => {
   
         {/* Right side icons - user menu, cart, and search */}
         <div className="min-w-0 flex items-center gap-3 md:gap-16 relative pr-0 md:pr-4 justify-end">
-          <UserMenu />
+          <div className="hidden md:block"><UserMenu /></div>
 
           <CartNavLink />
 
-          <HeartNavLink />
+          <div className="hidden md:block"><HeartNavLink /></div>
 
           {/* Search icon - opens overlay */}
           <button

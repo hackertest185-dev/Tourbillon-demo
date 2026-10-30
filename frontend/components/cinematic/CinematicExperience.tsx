@@ -117,6 +117,7 @@ export default function CinematicExperience() {
   useLayoutEffect(() => {
     if (!enhanced || !story.current || !stage.current) return;
     const panels = Array.from(stage.current.querySelectorAll<HTMLElement>('[data-chapter]'));
+    const reveals = panels.map(panel => Array.from(panel.querySelectorAll<HTMLElement>('[data-reveal]')));
     const playhead = { value: 0 };
     const update = () => {
       const value = playhead.value;
@@ -134,7 +135,7 @@ export default function CinematicExperience() {
         const opacity = 1 - smoothstep(.22, .58, distance);
         panel.style.opacity = String(opacity);
         panel.style.visibility = opacity > .001 ? 'visible' : 'hidden';
-        panel.querySelectorAll<HTMLElement>('[data-reveal]').forEach((line, lineIndex) => {
+        reveals[i].forEach((line, lineIndex) => {
           const offset = Math.min(1, Math.max(0, distance - .12 + lineIndex * .035));
           line.style.transform = `translateY(${offset * 95}%)`;
         });
@@ -152,13 +153,13 @@ export default function CinematicExperience() {
       trigger.current = tween.scrollTrigger ?? null;
       // Animate only the exit; the original hero component and resting appearance stay intact.
       const video = hero.current?.querySelector('video');
-      if (video) gsap.to(video, { opacity: .08, ...(mobile ? {} : { filter: 'blur(9px)' }), ease: 'power3.inOut', scrollTrigger: { trigger: hero.current, start: 'bottom bottom', end: 'bottom top', scrub: 1 } });
+      if (video) gsap.to(video, { opacity: .08, ease: 'power3.inOut', scrollTrigger: { trigger: hero.current, start: 'bottom bottom', end: 'bottom top', scrub: 1 } });
       update();
     }, root);
     const refresh = requestAnimationFrame(() => ScrollTrigger.refresh());
     return () => {
       cancelAnimationFrame(refresh); context.revert(); trigger.current = null;
-      panels.forEach(panel => { panel.style.removeProperty('opacity'); panel.style.removeProperty('visibility'); panel.querySelectorAll<HTMLElement>('[data-reveal]').forEach(line => line.style.removeProperty('transform')); });
+      panels.forEach((panel, index) => { panel.style.removeProperty('opacity'); panel.style.removeProperty('visibility'); reveals[index].forEach(line => line.style.removeProperty('transform')); });
     };
   }, [enhanced, mobile]);
 
