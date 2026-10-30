@@ -14,6 +14,7 @@ import { useNavigation } from '@/contexts/NavigationContext';
 import { useTilt } from '@/hooks/useTilt';
 import CompareToggle from '../compare/CompareToggle';
 import FavouriteToggle from '../favourites/FavouriteToggle';
+import AddToCartButton from '../store/AddToCartButton';
 
 interface WatchCardProps {
   watch: Watch;
@@ -118,6 +119,7 @@ export const WatchCard = ({ watch, brands, collections, isPriority = false, curr
         <p className="text-lg text-[#f0e6d2] font-inter font-semibold">
           {watch.currentPrice === 0 ? 'Price on Request' : `$${watch.currentPrice.toLocaleString()}`}
         </p>
+        {watch.currentPrice > 0 && <AddToCartButton watchId={watch.id} className="mt-1 w-full rounded-lg border border-[#bfa68a]/40 bg-[#bfa68a]/10 px-3 py-2 text-sm text-[#f0e6d2] transition hover:bg-[#bfa68a]/20" />}
       </div>
     </motion.div>
   );

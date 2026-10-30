@@ -21,6 +21,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('0');
+    const [stockQuantity, setStockQuantity] = useState('0');
     const [specsJson, setSpecsJson] = useState(DEFAULT_SPECS);
     const [imagePublicId, setImagePublicId] = useState('');
     const [uploadedImageUrl, setUploadedImageUrl] = useState('');
@@ -121,6 +122,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
                 name: name.trim(),
                 description: description.trim(),
                 currentPrice: parseFloat(price) || 0,
+                stockQuantity: Math.max(0, parseInt(stockQuantity, 10) || 0),
                 image: imagePublicId,
                 brandId: brandId as number,
                 collectionId: collectionId ? collectionId as number : null,
@@ -272,6 +274,11 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
                     <div className="mb-4">
                         <label className="block text-sm text-gray-400 mb-1">السعر بالدولار الأسترالي (0 = السعر عند السؤال)</label>
                         <input type="number" step="0.01" min="0" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={price} onChange={e => setPrice(e.target.value)} />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm text-gray-400 mb-1">المخزون المتاح</label>
+                        <input type="number" step="1" min="0" max="100000" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={stockQuantity} onChange={e => setStockQuantity(e.target.value)} />
                     </div>
 
                     <div className="mb-6 flex-grow flex flex-col">

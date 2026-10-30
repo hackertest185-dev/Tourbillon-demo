@@ -22,6 +22,7 @@ import AppointmentPanel from '../../components/appointment/AppointmentPanel';
 import RegisterInterestPanel from '../../components/appointment/RegisterInterestPanel';
 import ScrollFade from '../../scrollMotion/ScrollFade';
 import Watch3D from '@/components/watch3d/Watch3D';
+import AddToCartButton from '@/app/components/store/AddToCartButton';
 
 /** Solid gold CTAs on the watch detail hero — keep in sync with CompareToggle variant="button" (rounded-xl, py-4 px-8). */
 const watchDetailSolidCtaClassName =
@@ -243,6 +244,7 @@ const WatchDetailPage = () => {
 
                     <ScrollFade>
                     <div className="flex flex-col sm:flex-row sm:items-stretch gap-4 mb-10">
+                        {watch.currentPrice > 0 && <AddToCartButton watchId={watch.id} className={`${watchDetailSolidCtaClassName} border border-[#bfa68a]`} />}
                         <motion.button
                             whileTap={{ scale: 0.97 }}
                             onClick={() => setRegisterInterestOpen(true)}

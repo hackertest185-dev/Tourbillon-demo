@@ -151,6 +151,7 @@ export default function AdminWatchesPage() {
                 <th className="px-3 py-2 text-[#555] font-normal">رقم المرجع</th>
                 <th className="px-3 py-2 text-[#555] font-normal">المجموعة</th>
                 <th className="px-3 py-2 text-[#555] font-normal w-32">السعر</th>
+                <th className="px-3 py-2 text-[#555] font-normal w-20">المخزون</th>
                 <th className="px-3 py-2 text-[#555] font-normal w-24">التحكم</th>
               </tr>
             </thead>
@@ -175,6 +176,7 @@ export default function AdminWatchesPage() {
                   <td className="px-3 py-2 text-[#666] text-xs">
                     {w.currentPrice === 0 ? 'Price on request' : `$${w.currentPrice.toLocaleString()}`}
                   </td>
+                  <td className={`px-3 py-2 text-xs ${(w.stockQuantity ?? 0) > 0 ? 'text-emerald-300/70' : 'text-amber-200/60'}`}>{w.stockQuantity ?? 0}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1.5">
                       <button

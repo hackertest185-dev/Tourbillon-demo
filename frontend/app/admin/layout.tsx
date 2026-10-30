@@ -10,6 +10,7 @@ const NAV = [
     group: 'Content',
     items: [
       { href: '/admin/watches', label: "الساعات" },
+      { href: '/admin/orders', label: "الطلبات والمبيعات" },
       { href: '/admin/collections', label: "المجموعات" },
       { href: '/admin/brands', label: "البراندات" },
     ],

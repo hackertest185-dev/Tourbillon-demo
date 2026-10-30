@@ -26,6 +26,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('0');
+    const [stockQuantity, setStockQuantity] = useState('0');
     const [productionStatus, setProductionStatus] = useState('');
     const [specsJson, setSpecsJson] = useState('{}');
     const [imagePublicId, setImagePublicId] = useState('');
@@ -66,6 +67,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                 setName(data.name);
                 setDescription(data.description || '');
                 setPrice(data.currentPrice.toString());
+                setStockQuantity(String(data.stockQuantity ?? 0));
                 const specsStr = data.specs || '{}';
                 setSpecsJson(specsStr);
                 try {
@@ -243,6 +245,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                 name,
                 description,
                 currentPrice: parseFloat(price),
+                stockQuantity: Math.max(0, parseInt(stockQuantity, 10) || 0),
                 image: imagePublicId,
                 collectionId: fullWatch?.collectionId || null,
                 specs: mergedSpecs
@@ -414,6 +417,11 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                     <div className="mb-4">
                         <label className="block text-sm text-gray-400 mb-1">السعر بالدولار الأسترالي (الحالي: {originalPrice === '0' ? 'Price on request' : originalPrice})</label>
                         <input type="number" step="0.01" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={price} onChange={e => setPrice(e.target.value)} />
+                    </div>
+
+                    <div className="mb-4">
+                        <label className="block text-sm text-gray-400 mb-1">المخزون المتاح</label>
+                        <input type="number" step="1" min="0" max="100000" className="w-full bg-black/60 border border-white/20 rounded p-2 text-white" value={stockQuantity} onChange={e => setStockQuantity(e.target.value)} />
                     </div>
 
                     <div className="mb-6 flex-grow flex flex-col">

@@ -13,6 +13,9 @@ namespace backend.DTOs
         [Range(0, double.MaxValue)]
         public decimal CurrentPrice { get; set; }
 
+        [Range(0, 100000)]
+        public int? StockQuantity { get; set; }
+
         public string Image { get; set; } = string.Empty;
 
         public int? CollectionId { get; set; }

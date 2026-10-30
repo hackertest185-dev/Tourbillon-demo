@@ -8,6 +8,7 @@ import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent }
 import { useAuth } from '@/contexts/AuthContext';
 import { usePathname } from 'next/navigation';
 import SearchOverlay from './SearchOverlay';
+import CartNavLink from './CartNavLink';
 import { useFavourites } from '@/stores/favouritesStore';
 import { EASE_ENTER, EASE_EXIT } from '@/lib/motion';
 
@@ -329,6 +330,8 @@ const UserMenu = () => {
         {/* Right side icons - user menu, cart, and search */}
         <div className="min-w-0 flex items-center gap-3 md:gap-16 relative pr-0 md:pr-4 justify-end">
           <UserMenu />
+
+          <CartNavLink />
 
           <HeartNavLink />
 

@@ -777,6 +777,7 @@ public class AdminController : ControllerBase
                     w.Id,
                     w.Name,
                     w.CurrentPrice,
+                    w.StockQuantity,
                     w.Image,
                     ImageUrl = storage.GetPublicUrl(w.Image, w.ImageVersion),
                     w.BrandId,
@@ -809,7 +810,30 @@ public class AdminController : ControllerBase
 
             if (watch == null) return NotFound(new { Message = "Watch not found" });
 
-            var dto = WatchDto.FromWatch(watch, storage, editorial: watch.EditorialLink?.EditorialContent);
+            var dto = new AdminWatchDto
+            {
+                Id = watch.Id,
+                Name = watch.Name,
+                Slug = watch.Slug,
+                Description = watch.Description,
+                Image = watch.Image,
+                ImageUrl = storage.GetPublicUrl(watch.Image, watch.ImageVersion),
+                ImageVersion = watch.ImageVersion,
+                CurrentPrice = watch.CurrentPrice,
+                StockQuantity = watch.StockQuantity,
+                BrandId = watch.BrandId,
+                BrandSlug = watch.Brand?.Slug,
+                CollectionId = watch.CollectionId,
+                CollectionSlug = watch.Collection?.Slug,
+                Specs = watch.Specs,
+                EditorialContent = watch.EditorialLink?.EditorialContent == null ? null : new EditorialContentDto
+                {
+                    WhyItMatters = watch.EditorialLink.EditorialContent.WhyItMatters,
+                    CollectorAppeal = watch.EditorialLink.EditorialContent.CollectorAppeal,
+                    DesignLanguage = watch.EditorialLink.EditorialContent.DesignLanguage,
+                    BestFor = watch.EditorialLink.EditorialContent.BestFor
+                }
+            };
             return Ok(dto);
         }
         catch (Exception ex)
@@ -834,6 +858,8 @@ public class AdminController : ControllerBase
             // Validation logic
             if (updatedWatch.CurrentPrice < 0)
                 return BadRequest(new { Message = "Price cannot be negative" });
+            if (updatedWatch.StockQuantity.HasValue && (updatedWatch.StockQuantity.Value < 0 || updatedWatch.StockQuantity.Value > 100000))
+                return BadRequest(new { Message = "Stock quantity is invalid" });
 
             if (updatedWatch.CollectionId.HasValue)
             {
@@ -856,6 +882,8 @@ public class AdminController : ControllerBase
 
             watch.Name = updatedWatch.Name;
             watch.CurrentPrice = updatedWatch.CurrentPrice;
+            if (updatedWatch.StockQuantity.HasValue)
+                watch.StockQuantity = updatedWatch.StockQuantity.Value;
             watch.Image = updatedWatch.Image;
             watch.CollectionId = updatedWatch.CollectionId;
             watch.Specs = updatedWatch.Specs;
@@ -886,6 +914,8 @@ public class AdminController : ControllerBase
 
             if (dto.CurrentPrice < 0)
                 return BadRequest(new { Message = "Price cannot be negative" });
+            if (dto.StockQuantity < 0 || dto.StockQuantity > 100000)
+                return BadRequest(new { Message = "Stock quantity is invalid" });
 
             var brand = await context.Brands.FindAsync(dto.BrandId);
             if (brand == null)
@@ -920,6 +950,7 @@ public class AdminController : ControllerBase
                 Slug = slug,
                 Description = dto.Description,
                 CurrentPrice = dto.CurrentPrice,
+                StockQuantity = dto.StockQuantity,
                 Image = dto.Image,
                 BrandId = dto.BrandId,
                 CollectionId = dto.CollectionId,

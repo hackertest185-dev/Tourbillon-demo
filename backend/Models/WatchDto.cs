@@ -52,6 +52,11 @@ public class WatchDto
     }
 }
 
+public sealed class AdminWatchDto : WatchDto
+{
+    public int StockQuantity { get; set; }
+}
+
 /// Editorial story sections returned alongside a watch detail response.
 public class EditorialContentDto
 {

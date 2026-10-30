@@ -120,6 +120,7 @@ export interface Watch {
   imageUrl?: string;
   imageVersion?: number | null;
   currentPrice: number;
+  stockQuantity?: number;
   brandId: number;
   brandSlug?: string;
   collectionId: number | null;
@@ -708,6 +709,7 @@ export interface UpdateWatchDto {
   name: string;
   description: string;
   currentPrice: number;
+  stockQuantity?: number;
   image: string;
   collectionId: number | null;
   specs: string;
@@ -744,6 +746,7 @@ export interface CreateWatchDto {
   name: string;
   description: string;
   currentPrice: number;
+  stockQuantity: number;
   image: string;
   brandId: number;
   collectionId: number | null;
@@ -1727,4 +1730,42 @@ export const adminScrapeUrl = async (url: string, brand: string, collection: str
   const data = await res.json();
   return { success: data.Success ?? res.ok, message: data.Message ?? '', watchesAdded: data.WatchesAdded ?? 0 };
 };
+
+export interface CartItem {
+  watchId: number;
+  quantity: number;
+  name: string;
+  brand: string;
+  image: string | null;
+  unitPrice: number;
+  stockQuantity: number;
+  lineTotal: number;
+}
+export interface CartResponse { items: CartItem[]; subtotal: number; currency: string; }
+export interface StoreOrderItem { watchId: number | null; watchName: string; brandName: string | null; watchImage: string | null; unitPrice: number; quantity: number; }
+export interface StoreOrder {
+  id: number; orderNumber: string; status: 'pending_contact' | 'contacted' | 'delivered' | 'cancelled';
+  paymentStatus: 'unpaid' | 'paid'; customerName: string; customerEmail: string; whatsAppNumber: string;
+  subtotal: number; discountAmount: number; totalAmount: number; currency: string; discountCode: string | null;
+  createdAt: string; contactConfirmedAt: string | null; paidAt: string | null; deliveredAt: string | null; items: StoreOrderItem[];
+}
+export interface DiscountCode { id: number; code: string; kind: 'percent' | 'fixed'; value: number; isActive: boolean; maxRedemptions: number | null; redemptionCount: number; expiresAt: string | null; }
+const readStoreResponse = async <T>(response: Response): Promise<T> => {
+  const data = await response.json().catch(() => ({})) as { message?: string; Message?: string };
+  if (!response.ok) throw new Error(data.message || data.Message || 'حصلت مشكلة في الطلب. جرّب تاني.');
+  return data as T;
+};
+export const getCart = async (): Promise<CartResponse> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/cart`, { credentials: 'include' }));
+export const addCartItem = async (watchId: number, quantity = 1): Promise<CartResponse> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/cart/items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ watchId, quantity }), credentials: 'include' }));
+export const updateCartItem = async (watchId: number, quantity: number): Promise<CartResponse> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/cart/items/${watchId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ quantity }), credentials: 'include' }));
+export const removeCartItem = async (watchId: number): Promise<CartResponse> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/cart/items/${watchId}`, { method: 'DELETE', credentials: 'include' }));
+export const createStoreOrder = async (whatsAppNumber: string, discountCode?: string): Promise<StoreOrder> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ whatsAppNumber, discountCode }), credentials: 'include' }));
+export const getMyStoreOrders = async (): Promise<StoreOrder[]> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/orders/mine`, { credentials: 'include' }));
+export const adminGetStoreOrders = async (): Promise<{ orders: StoreOrder[]; salesTotal: number; currency: string }> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/orders`, { credentials: 'include' }));
+export const adminConfirmOrderContact = async (id: number): Promise<void> => { await readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/orders/${id}/contact-confirmed`, { method: 'POST', credentials: 'include' })); };
+export const adminConfirmOrderDelivery = async (id: number): Promise<void> => { await readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/orders/${id}/confirm-delivery`, { method: 'POST', credentials: 'include' })); };
+export const adminCancelOrder = async (id: number): Promise<void> => { await readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/orders/${id}/cancel`, { method: 'POST', credentials: 'include' })); };
+export const adminGetDiscountCodes = async (): Promise<DiscountCode[]> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/discount-codes`, { credentials: 'include' }));
+export const adminCreateDiscountCode = async (data: Omit<DiscountCode, 'id' | 'redemptionCount'>): Promise<DiscountCode> => readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/discount-codes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data), credentials: 'include' }));
+export const adminSetDiscountActive = async (id: number, active: boolean): Promise<void> => { await readStoreResponse(await fetchWithTimeout(`${API_BASE_URL}/admin/discount-codes/${id}/active`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(active), credentials: 'include' })); };
 

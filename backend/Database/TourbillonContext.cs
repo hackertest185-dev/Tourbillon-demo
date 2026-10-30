@@ -72,6 +72,10 @@ public DbSet<WatchEmbedding> WatchEmbeddings { get; set; }
     public DbSet<UserCollectionWatch> UserCollectionWatches { get; set; }
     public DbSet<UserBrowsingEvent> UserBrowsingEvents { get; set; }
     public DbSet<MediaAsset> MediaAssets { get; set; }
+    public DbSet<StoreCartItem> StoreCartItems { get; set; }
+    public DbSet<StoreOrder> StoreOrders { get; set; }
+    public DbSet<StoreOrderItem> StoreOrderItems { get; set; }
+    public DbSet<DiscountCode> DiscountCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -153,6 +157,37 @@ public DbSet<WatchEmbedding> WatchEmbeddings { get; set; }
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.AnonymousId);
             entity.HasIndex(e => e.Timestamp);
+        });
+
+        modelBuilder.Entity<StoreCartItem>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.WatchId }).IsUnique();
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Watch).WithMany().HasForeignKey(e => e.WatchId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StoreOrder>(entity =>
+        {
+            entity.HasIndex(e => e.OrderNumber).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+            entity.Property(e => e.Subtotal).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<StoreOrderItem>(entity =>
+        {
+            entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
+            entity.HasOne(e => e.Order).WithMany(e => e.Items).HasForeignKey(e => e.OrderId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Watch).WithMany().HasForeignKey(e => e.WatchId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<DiscountCode>(entity =>
+        {
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.Property(e => e.Code).HasMaxLength(48);
+            entity.Property(e => e.Value).HasPrecision(18, 2);
         });
     }
 }
