@@ -118,7 +118,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
                 name: name.trim(),
                 description: description.trim(),
                 currentPrice: parseFloat(price) || 0,
-                stockQuantity: 0,
+                stockQuantity: 7,
                 image: imagePublicId,
                 brandId: brandId as number,
                 collectionId: collectionId ? collectionId as number : null,

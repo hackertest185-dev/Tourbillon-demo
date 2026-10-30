@@ -14,7 +14,7 @@ namespace backend.DTOs
         public decimal CurrentPrice { get; set; }
 
         [Range(0, 100000)]
-        public int StockQuantity { get; set; } = 0;
+        public int StockQuantity { get; set; } = 7;
 
         public string Image { get; set; } = string.Empty;
 

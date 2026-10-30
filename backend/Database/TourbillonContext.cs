@@ -87,6 +87,7 @@ public DbSet<WatchEmbedding> WatchEmbeddings { get; set; }
         // Unique slug indexes on Brands/Collections/Watches are created at
         // startup by DbInitializer.EnsureSlugsPopulated (raw SQL, idempotent)
         // because indexes must come after empty default slugs are filled.
+        modelBuilder.Entity<Watch>().Property(w => w.StockQuantity).HasDefaultValue(7);
 
         modelBuilder.Entity<WatchEmbedding>(entity =>
         {

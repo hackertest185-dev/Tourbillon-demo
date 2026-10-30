@@ -1006,7 +1006,9 @@ namespace backend.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("StockQuantity")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(7);
 
                     b.HasKey("Id");
 

@@ -26,7 +26,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('0');
-    const [stockQuantity, setStockQuantity] = useState('0');
+    const [stockQuantity, setStockQuantity] = useState('7');
     const [productionStatus, setProductionStatus] = useState('');
     const [specsJson, setSpecsJson] = useState('{}');
     const [imagePublicId, setImagePublicId] = useState('');
@@ -67,7 +67,7 @@ export default function WatchEditorModal({ watch, onClose, onSave }: WatchEditor
                 setName(data.name);
                 setDescription(data.description || '');
                 setPrice(data.currentPrice.toString());
-                setStockQuantity(String(data.stockQuantity ?? 0));
+                setStockQuantity(String(data.stockQuantity ?? 7));
                 const specsStr = data.specs || '{}';
                 setSpecsJson(specsStr);
                 try {

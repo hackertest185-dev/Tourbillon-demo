@@ -8,7 +8,7 @@ public class Watch
     public string? Description { get; set; }
     public string? Image { get; set; }
     public decimal CurrentPrice { get; set; }
-    public int StockQuantity { get; set; } = 0;
+    public int StockQuantity { get; set; } = 7;
 
     public int BrandId { get; set; }
     public Brand Brand { get; set; } = null!; //null! because it will alway be filled

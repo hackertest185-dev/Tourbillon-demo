@@ -21,7 +21,7 @@ export default function AddWatchModal({ brands, collections, onClose, onSave }: 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('0');
-    const [stockQuantity, setStockQuantity] = useState('0');
+    const [stockQuantity, setStockQuantity] = useState('7');
     const [specsJson, setSpecsJson] = useState(DEFAULT_SPECS);
     const [imagePublicId, setImagePublicId] = useState('');
     const [uploadedImageUrl, setUploadedImageUrl] = useState('');
