@@ -133,7 +133,7 @@ const WatchesPage = () => {
   const activeFilterCount = selectedBrandIds.length + selectedCollectionIds.length;
 
   return (
-    <div className="flex items-start py-24 pt-30">
+    <div className="flex items-start py-16 pt-24 md:py-24 md:pt-30">
 
       {/* Left: brand/collection tree — desktop only */}
       <div className="hidden lg:block pl-6 lg:pl-10 shrink-0">
@@ -155,13 +155,13 @@ const WatchesPage = () => {
         <div className="lg:hidden flex items-center justify-between mb-6">
           <button
             onClick={() => setMobileFilterOpen(true)}
-            aria-label="افتح الفلاتر"
+            aria-label="افتح البراندات"
             className="flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase text-white/50 hover:text-white/80 transition-colors duration-200 border border-white/15 px-3 py-2"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4h18M7 12h10M11 20h2" />
             </svg>
-            <span>فلتر</span>
+            <span>البراندات</span>
             {activeFilterCount > 0 && (
               <span className="bg-[#bfa68a] text-black text-[9px] font-semibold rounded-full w-4 h-4 flex items-center justify-center leading-none">
                 {activeFilterCount}

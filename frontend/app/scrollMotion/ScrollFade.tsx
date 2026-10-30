@@ -42,7 +42,6 @@ export default function ScrollFade({
         y: { duration: duration }
       }}
       style={{ 
-        willChange: "opacity, transform",
         backfaceVisibility: "hidden" // Improves performance
       }}
     >

@@ -130,6 +130,7 @@ const AllWatchesSection = ({
     complications: [],
   });
   const [wristFit, setWristFit] = useState('');
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { data: filterOptions } = useQuery({
     queryKey: ['watch-filter-options'],
@@ -319,8 +320,8 @@ const AllWatchesSection = ({
   return (
     <section>
       <ScrollFade>
-        <div className="text-center mb-10">
-          <h2 className="text-5xl font-playfair font-bold text-[#f0e6d2]">
+        <div className="text-center mb-6 md:mb-10">
+          <h2 className="text-4xl md:text-5xl font-playfair font-bold text-[#f0e6d2]">
             {currentPage === 1 ? headingLabel : `${headingLabel} - صفحة ${currentPage}`}
           </h2>
         </div>
@@ -328,19 +329,30 @@ const AllWatchesSection = ({
 
       {/* Filter bar first — wide, wraps to multiple rows on narrow columns. */}
       {!watchesLoading && (
-        <ScrollFade>
-          <WatchFilterBar
-            filters={filters}
-            brands={brands}
-            collections={collections}
-            diameterOptions={diameterOptions}
-            wristFit={wristFit}
-            hasActiveFilters={hasActiveFilters}
-            onChange={setFilter}
-            onWristFitChange={setWristFit}
-            onClear={clearFilters}
-          />
-        </ScrollFade>
+        <>
+          <button
+            type="button"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => setMobileFiltersOpen(value => !value)}
+            className="mb-4 flex w-full items-center justify-between rounded-xl border border-[#bfa68a]/35 bg-[#bfa68a]/10 px-4 py-3 text-sm text-[#f0e6d2] md:hidden"
+          >
+            <span>فلاتر تانية {hasActiveFilters ? '• مفعّلة' : ''}</span>
+            <span aria-hidden="true">{mobileFiltersOpen ? '−' : '+'}</span>
+          </button>
+          <div className={mobileFiltersOpen ? 'block' : 'hidden md:block'}>
+            <WatchFilterBar
+              filters={filters}
+              brands={brands}
+              collections={collections}
+              diameterOptions={diameterOptions}
+              wristFit={wristFit}
+              hasActiveFilters={hasActiveFilters}
+              onChange={setFilter}
+              onWristFitChange={setWristFit}
+              onClear={clearFilters}
+            />
+          </div>
+        </>
       )}
 
       {/* Sort row sits directly above the grid so its dropdown opens into the
