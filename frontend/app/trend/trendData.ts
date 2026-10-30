@@ -1,14 +1,12 @@
 // Hardcoded editorial data for the Trend page.
-import { videoUrl } from '@/lib/cloudinary';
-
 export interface StaffPick {
   slug: string;
   video?: string;
 }
 
-// Each entry renders as a full-width video + watch card pair.
+// Use featured watches that exist in the currently deployed catalogue.
 export const STAFF_PICKS: StaffPick[] = [
-  { slug: 'jaeger-lecoultre-reverso-q389257j-chronograph', video: videoUrl('JLC') },
-  { slug: 'audemars-piguet-royal-oak-26735sg-oo-1320sg-01-selfwinding-flying-tourbillon-openworked', video: videoUrl('AP') },
-  { slug: 'vacheron-constantin-metiers-d-art-6007a-000g-h049-tribute-to-the-celestial-scorpio', video: videoUrl('VC') },
+  { slug: 'grand-seiko-snowflake-sbga211-sbga211' },
+  { slug: 'grand-seiko-elegance-gmt-sbgm221-sbgm221' },
+  { slug: 'grand-seiko-shunbun-sbga413-sbga413' },
 ];

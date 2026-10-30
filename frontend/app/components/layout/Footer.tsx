@@ -21,7 +21,6 @@ const navigationColumns = [
       { label: "ذوقك في الساعات", href: '/tourbillon#watch-dna', description: "شوف إزاي اختياراتك بتساعدنا نرشحلك ساعات على ذوقك." },
       { label: "المفضلة", href: '/favourites', description: "خلي الساعات اللي عجبتك متسجلة عندك عشان ترجع لها بسهولة." },
       { label: "سجّل دخول", href: ROUTES.LOGIN, description: "ادخل على حسابك وشوف الساعات والحاجات اللي حفظتها." },
-      { label: "لينكد إن", href: 'https://www.linkedin.com/in/hoanganhchu/', description: "تابع المشروع واللي اشتغل عليه." },
     ],
   },
 ];
@@ -65,34 +64,6 @@ function FooterNavLink({
   );
 }
 
-function FooterCta({
-  href,
-  label,
-  variant = 'gold',
-}: {
-  href: string;
-  label: string;
-  variant?: 'gold' | 'muted';
-}) {
-  const baseClassName =
-    'relative inline-flex w-fit items-center justify-center overflow-hidden border px-10 py-4 text-[10px] uppercase tracking-[0.3em] transition-all duration-500 group whitespace-nowrap';
-  const variantClassName =
-    variant === 'gold'
-      ? 'border-[#bfa68a]/25 text-[#bfa68a] hover:bg-[#bfa68a]/8 hover:border-[#bfa68a]/40'
-      : 'border-white/12 text-white/42 hover:border-[#bfa68a]/28 hover:bg-[#bfa68a]/[0.03] hover:text-[#f0e6d2]/82';
-
-  return (
-    <Link href={href} className={`${baseClassName} ${variantClassName}`}>
-      <span className="transform transition-transform duration-500 group-hover:-translate-x-3">
-        {label}
-      </span>
-      <span className="absolute right-6 opacity-0 -translate-x-4 text-[14px] transition-all duration-500 group-hover:translate-x-0 group-hover:opacity-100">
-        →
-      </span>
-    </Link>
-  );
-}
-
 export default function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(255,255,255,0.012)_0%,rgba(255,255,255,0.004)_100%)]">
@@ -128,9 +99,6 @@ export default function Footer() {
               </p>
             </div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <FooterCta href={ROUTES.CONTACT} label="احجز مع خبير ساعات" />
-            </div>
           </div>
 
           <div className="border-t border-white/[0.06] py-11 sm:py-12 lg:border-l lg:border-t-0 lg:pl-14 xl:pl-16">

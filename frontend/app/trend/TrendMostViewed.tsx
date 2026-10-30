@@ -9,6 +9,7 @@ import { fetchBrands, fetchCollections, fetchWatches, Watch } from '@/lib/api';
 import { WatchCard } from '@/app/components/cards/WatchCard';
 import ScrollFade from '@/app/scrollMotion/ScrollFade';
 import { DUR, EASE_ENTER } from '@/lib/motion';
+import { STAFF_PICKS } from './trendData';
 
 type TimeRange = 'today' | '7d' | '30d';
 
@@ -18,7 +19,7 @@ const RANGE_LABELS: Record<TimeRange, string> = {
   '30d': 'آخر 30 يوم',
 };
 
-const CARD_COUNT = 20;
+const CARD_COUNT = 8;
 
 function shuffleWatches<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -32,7 +33,10 @@ function shuffleWatches<T>(items: T[]): T[] {
 }
 
 function pickWatchesForRange(watches: Watch[]): Watch[] {
-  return shuffleWatches(watches).slice(0, Math.min(CARD_COUNT, watches.length));
+  const staffPickSlugs = new Set(STAFF_PICKS.map(pick => pick.slug));
+  const uniqueWatches = [...new Map(watches.map(watch => [watch.id, watch])).values()]
+    .filter(watch => !staffPickSlugs.has(watch.slug));
+  return shuffleWatches(uniqueWatches).slice(0, Math.min(CARD_COUNT, uniqueWatches.length));
 }
 
 function RangeButton({
@@ -155,7 +159,7 @@ export default function TrendMostViewed() {
         className="mt-12"
       >
         {isLoading ? (
-          <div role="status" aria-label="بنحمّل الساعات..." className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div role="status" aria-label="بنحمّل الساعات..." className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 md:gap-x-8 md:gap-y-12 lg:grid-cols-3 xl:grid-cols-5">
             {Array.from({ length: CARD_COUNT }).map((_, index) => (
               <CardSkeleton key={index} />
             ))}
@@ -165,7 +169,7 @@ export default function TrendMostViewed() {
             معرفناش نحمّل الساعات دلوقتي. حدّث الصفحة وجرّب تاني.
           </p>
         ) : activeWatches.length > 0 ? (
-          <div className="grid grid-cols-1 gap-x-8 gap-y-12 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 md:gap-x-8 md:gap-y-12 lg:grid-cols-3 xl:grid-cols-5">
             {activeWatches.map((watch, index) => (
               <ScrollFade key={`${activeRange}-${watch.id}`}>
                 <WatchCard
@@ -173,7 +177,7 @@ export default function TrendMostViewed() {
                   brands={brands}
                   collections={collections}
                   currentPage={1}
-                  isPriority={index < 5}
+                  isPriority={index < 2}
                 />
               </ScrollFade>
             ))}

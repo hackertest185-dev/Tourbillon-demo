@@ -97,7 +97,7 @@ function StaffPickPair({
       <div className="w-full lg:w-2/5 border border-[#bfa68a]/10 lg:border-l-0 flex flex-col">
         {isLoading ? <FeaturedCardSkeleton /> : watch ? <FeaturedWatchCard watch={watch} /> : (
           <p role={isError ? 'alert' : 'status'} className="p-6 text-sm leading-relaxed text-white/55">
-            {isError ? 'معرفناش نحمّل الساعة دي دلوقتي. جرّب تاني بعد شوية.' : 'الساعة دي مش متاحة دلوقتي. اتفرج على باقي الساعات اللي عندنا.'}
+            الساعة دي مش متاحة دلوقتي. اتفرج على باقي الساعات اللي عندنا.
           </p>
         )}
       </div>

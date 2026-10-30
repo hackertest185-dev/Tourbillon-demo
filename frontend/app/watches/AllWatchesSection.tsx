@@ -308,8 +308,8 @@ const AllWatchesSection = ({
   }, [isReady, watchesLoading, lenis]);
 
 
-  const initialWatches = sortedWatches.slice(0, 12);
-  const additionalWatches = sortedWatches.slice(12, 20);
+  const initialWatches = sortedWatches.slice(0, 8);
+  const additionalWatches = sortedWatches.slice(8, 20);
   const displayedWatches = showAllWatches ? [...initialWatches, ...additionalWatches] : initialWatches;
 
   const totalPages = Math.ceil(sortedWatches.length / watchesPerPage);
@@ -400,7 +400,7 @@ const AllWatchesSection = ({
                 ))}
               </div>
 
-              {sortedWatches.length > 16 && (
+              {sortedWatches.length > 8 && (
                 <div className="text-center mt-8">
                   <button
                     onClick={(event) => {

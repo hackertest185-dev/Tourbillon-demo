@@ -31,7 +31,8 @@ export default function Watch3D({ watch, fallbackSrc, alt, index, priority = fal
   useEffect(() => {
     const node = root.current;
     if (!node) return;
-    const preload = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), { rootMargin: PRELOAD_MARGIN });
+    const mobile = window.matchMedia('(max-width: 767px)').matches;
+    const preload = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), { rootMargin: mobile ? '64px' : PRELOAD_MARGIN });
     const visibility = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     preload.observe(node); visibility.observe(node);
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
