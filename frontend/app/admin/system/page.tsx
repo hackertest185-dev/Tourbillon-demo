@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   adminGetEmbeddingStatus, adminGenerateEmbeddings, adminRegenerateEmbeddings,
@@ -161,8 +162,20 @@ export default function AdminSystemPage() {
             <ActionBtn label={W['mfa-setup'] ? "بنجهّز..." : "ابدأ الإعداد"} onClick={handleMfaSetup} disabled={W['mfa-setup']} />
             {mfaSetup && (
               <div className="space-y-2">
-                <p className="text-[#555] text-[11px] break-all">المفتاح: <span className="text-[#aaa] font-mono">{mfaSetup.sharedKey}</span></p>
-                <p className="text-[#555] text-[11px] break-all">لينك الإعداد: <span className="text-[#aaa] font-mono">{mfaSetup.authenticatorUri}</span></p>
+                <p className="text-[#aaa] text-xs">افتح Duo Mobile، دوس Add ثم Use QR code، وامسح الرمز ده:</p>
+                <div className="inline-block rounded-lg bg-white p-3">
+                  <QRCodeSVG
+                    value={mfaSetup.authenticatorUri}
+                    size={220}
+                    level="M"
+                    includeMargin
+                    aria-label="رمز QR لإعداد تطبيق المصادقة"
+                  />
+                </div>
+                <details className="text-xs text-[#777]">
+                  <summary className="cursor-pointer">مش قادر تمسح الرمز؟ اعرض المفتاح للإدخال اليدوي</summary>
+                  <p className="mt-2 break-all font-mono text-[#aaa]">{mfaSetup.sharedKey}</p>
+                </details>
                 <div className="flex gap-2 items-center">
                   <input
                     value={mfaCode}
