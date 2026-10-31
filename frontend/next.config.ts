@@ -7,6 +7,9 @@ const nextConfig = (phase: string): NextConfig => ({
   output: 'standalone',
   transpilePackages: ['framer-motion'],
   allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok-free.dev', '*.ngrok.io'],
+  async redirects() {
+    return [{ source: '/', destination: '/tourbillon', permanent: true }];
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
