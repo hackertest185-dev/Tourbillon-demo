@@ -120,7 +120,7 @@ function SceneContents({ motion, mobile, onFailure, onReady, low, onDecline }: S
 export default function WatchScene(props: SceneProps) {
   const [low, setLow] = useState(false);
   return <Canvas dpr={[1, low ? 1 : props.mobile ? CINEMA.mobileDpr : CINEMA.desktopDpr]}
-    frameloop={props.active ? 'always' : 'never'} camera={{ position: [0, .2, 9], fov: 36, near: .1, far: 60 }}
+    frameloop={props.active ? 'always' : 'demand'} camera={{ position: [0, .2, 9], fov: 36, near: .1, far: 60 }}
     gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }} fallback={null}
     aria-hidden="true" style={{ pointerEvents: 'none' }}>
     <Suspense fallback={null}><SceneContents {...props} low={low} onDecline={() => setLow(true)} /></Suspense>

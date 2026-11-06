@@ -11,6 +11,7 @@ import SearchOverlay from './SearchOverlay';
 import CartNavLink from './CartNavLink';
 import { useFavourites } from '@/stores/favouritesStore';
 import { EASE_ENTER, EASE_EXIT } from '@/lib/motion';
+import styles from './NavBar.module.css';
 
 // Custom SVG icon components for consistent styling and easy maintenance
 
@@ -280,7 +281,7 @@ const UserMenu = () => {
           opacity: scrollDirection === 'down' ? 0 : 1,
         }}
         transition={{ duration: 0.8, ease: scrollDirection === 'down' ? EASE_EXIT : EASE_ENTER }}
-        className="fixed top-0 left-0 w-full z-50 px-4 py-6 md:px-16 md:py-12 grid grid-cols-[1fr_auto_1fr] items-center"
+        className={`fixed top-0 left-0 w-full z-50 px-4 py-6 md:px-16 md:py-12 grid grid-cols-[1fr_auto_1fr] items-center ${pathname === '/tourbillon' ? styles.heroNav : ''}`}
       >
         {/* Background — opacity driven by scroll position via useTransform, no manual math */}
         {mounted && (

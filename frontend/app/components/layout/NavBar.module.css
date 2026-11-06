@@ -1,0 +1,9 @@
+.heroNav svg[stroke="black"],
+.heroNav path[stroke="black"] {
+  stroke: #f0e6d2;
+}
+
+.heroNav path[fill="black"],
+.heroNav svg[fill="black"] {
+  fill: #f0e6d2;
+}

@@ -147,7 +147,7 @@ export default function CinematicExperience() {
         value: 6, ease: 'none', onUpdate: update,
         scrollTrigger: {
           trigger: story.current, start: 'top top', end: () => `+=${window.innerHeight * CINEMA.scrollScreens}`,
-          pin: stage.current, pinType: 'transform', scrub: CINEMA.scrub, anticipatePin: 1, invalidateOnRefresh: true,
+          pin: stage.current, scrub: CINEMA.scrub, anticipatePin: 1, invalidateOnRefresh: true,
         },
       });
       trigger.current = tween.scrollTrigger ?? null;
@@ -163,15 +163,30 @@ export default function CinematicExperience() {
     };
   }, [enhanced, mobile]);
 
-  const goTo = useCallback((index: number, focus = false) => {
+  const goTo = useCallback((index: number, focus = false, duration = 2.1) => {
     const heading = document.getElementById(`cinema-heading-${index}`);
     const focusTarget = () => { if (focus) heading?.focus({ preventScroll: true }); };
     if (enhanced && trigger.current) {
       const position = trigger.current.start + index / 6 * (trigger.current.end - trigger.current.start);
-      if (lenis) lenis.scrollTo(position, { duration: 2.1, easing: t => 1 - Math.pow(1 - t, 4), onComplete: focusTarget });
+      if (lenis) lenis.scrollTo(position, { duration, easing: t => 1 - Math.pow(1 - t, 4), onComplete: focusTarget });
       else { window.scrollTo({ top: position, behavior: 'instant' }); focusTarget(); }
     } else { heading?.scrollIntoView({ behavior: 'instant', block: 'center' }); focusTarget(); }
   }, [enhanced, lenis]);
+
+  useEffect(() => {
+    const nextChapter = (event: Event) => {
+      if (!enhanced || !trigger.current) return;
+      event.preventDefault();
+      const { start, end } = trigger.current;
+      const chapterLength = (end - start) / 6;
+      const next = window.scrollY < start - 20
+        ? 0
+        : Math.min(6, Math.floor((window.scrollY - start) / chapterLength + 0.1) + 1);
+      goTo(next, false, 0.8);
+    };
+    window.addEventListener('tourbillon-scroll-next', nextChapter);
+    return () => window.removeEventListener('tourbillon-scroll-next', nextChapter);
+  }, [enhanced, goTo]);
 
   useEffect(() => {
     if (mode === 'pending') return;
@@ -189,7 +204,7 @@ export default function CinematicExperience() {
       <span className={styles.loadTrack}><span style={{ transform: `scaleX(${loadProgress / 100})` }} /></span>
     </div>}
     <noscript><style>{`.${styles.loader}{display:none}`}</style></noscript>
-    <div ref={hero}><VideoSection /></div>
+    <div ref={hero}><VideoSection allowPlayback={!inView} /></div>
     <div ref={story} className={`${styles.story} ${enhanced ? styles.enhanced : styles.still}`}>
       <div ref={stage} className={styles.stage}>
         <div className={styles.artwork} aria-hidden="true">

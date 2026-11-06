@@ -32,6 +32,8 @@ export default function ScrollArrow() {
   }, [evaluate, lenis]);
 
   const scrollDown = useCallback(() => {
+    if (window.location.pathname === '/tourbillon' &&
+      !window.dispatchEvent(new Event('tourbillon-scroll-next', { cancelable: true }))) return;
     const el = document.scrollingElement ?? document.documentElement;
     const step = window.innerHeight * 0.9;
     const target = Math.min(el.scrollTop + step, el.scrollHeight - el.clientHeight);
