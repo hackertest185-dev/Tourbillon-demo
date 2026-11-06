@@ -261,7 +261,7 @@
   (function(){
     const stem=add(new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.8,20),rose)); stem.rotation.z=Math.PI/2; stem.position.set(6.2,0,0);
     const crown=add(new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.85,28),rose)); crown.rotation.z=Math.PI/2; crown.position.set(6.75,0,0);
-    crown.material=rose.clone(); crown.material.flatShading=true; 
+    crown.material=rose.clone(); crown.material.flatShading=true;
     const cap=add(new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.06,28),steel)); cap.rotation.z=Math.PI/2; cap.position.set(7.2,0,0);
     jewel(7.24,0,0,.1).rotation.y=Math.PI/2;
   })();
