@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tourbillon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root{--deep:#0a0907;--deep-2:#241914;--brass:#b08d57;--ivory:#ede4d3;--mute:#a99b8d}
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{background:var(--deep);color:var(--ivory);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;overflow:hidden}
+
+  .hero{
+    position:relative;min-height:100svh;overflow:hidden;
+    display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);align-items:center;
+    gap:2rem;padding:clamp(1.5rem,5vw,5rem);
+    background:
+      radial-gradient(50% 60% at 68% 48%, rgba(74,48,35,.82) 0%, transparent 72%),
+      linear-gradient(135deg,#0a0907 0%,#16100d 54%,#0a0907 100%);
+  }
+  .copy{max-width:30rem;position:relative;z-index:2}
+  .brand{display:flex;align-items:center;gap:.75rem;font-size:.88rem;color:var(--brass);letter-spacing:.02em;margin-bottom:1.2rem}
+  .brand::after{content:"";width:3rem;height:1px;background:linear-gradient(90deg,var(--brass),transparent)}
+  h1{font-family:Amiri,serif;font-weight:700;font-size:clamp(2.8rem,7vw,6rem);line-height:1.15}
+  h1 span{display:block;color:var(--brass)}
+  .sub{margin-top:1.4rem;color:var(--mute);font-weight:300;line-height:1.9;font-size:1.05rem;max-width:26rem}
+  .actions{margin-top:2rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  .cta{appearance:none;border:1px solid rgba(176,141,87,.9);background:var(--brass);color:#15100d;padding:.95rem 1.35rem;font:700 .95rem "IBM Plex Sans Arabic",system-ui,sans-serif;cursor:pointer;transition:transform .25s ease,background .25s ease,box-shadow .25s ease}
+  .cta:hover,.cta:focus-visible{transform:translateY(-2px);background:#c39e64;box-shadow:0 12px 32px rgba(176,141,87,.2);outline:none}
+  .cta span{display:inline-block;margin-inline-start:1.1rem;transition:transform .25s ease}
+  .cta:hover span{transform:translateX(-.25rem)}
+  .hint{display:inline-flex;align-items:center;gap:.7rem;font-size:.9rem;color:rgba(237,228,211,.78)}
+  .hint i{width:2.2rem;height:2.2rem;border-radius:50%;border:1px solid var(--brass);display:grid;place-items:center}
+  .hint i::after{content:"";width:.5rem;height:.5rem;border-radius:50%;background:var(--brass);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{50%{transform:scale(1.7);opacity:.4}}
+
+  .stage{
+    position:relative;justify-self:center;width:min(100%,calc(86vh*.8));aspect-ratio:4/5;
+    cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;
+    -webkit-mask-image:linear-gradient(transparent 0,#000 14%,#000 86%,transparent 100%);
+            mask-image:linear-gradient(transparent 0,#000 14%,#000 86%,transparent 100%);
+  }
+  .stage:active{cursor:grabbing}
+  canvas{width:100%;height:100%;display:block}
+  .scroll{position:absolute;bottom:1.4rem;left:50%;translate:-50% 0;width:1px;height:3rem;background:linear-gradient(var(--brass),transparent);animation:scrollGlow 2.2s ease-in-out infinite}
+  @keyframes scrollGlow{50%{opacity:.35;transform:scaleY(.7)}}
+
+  @media (max-width:820px){
+    .hero{grid-template-columns:1fr;align-content:center;gap:0;padding:4.5rem 1.25rem 3.5rem}
+    .stage{order:-1;width:min(100%,54vw);max-height:32svh}
+    .copy{margin-inline:auto;text-align:center}
+    .brand{justify-content:center;margin-bottom:.35rem}
+    h1{font-size:clamp(2.15rem,9.5vw,3.25rem);line-height:1.05}
+    .sub{margin-top:.5rem;font-size:.84rem;line-height:1.55;max-width:22rem}
+    .actions{margin-top:.7rem;justify-content:center;gap:.55rem}
+    .cta{padding:.78rem 1.1rem;font-size:.86rem}
+    .hint{display:none}
+    .scroll{display:none}
+  }
+</style>
+</head>
+<body>
+
+<section class="hero" id="hero">
+  <div class="copy">
+    <div class="brand">ورا كل تفصيلة حكاية</div>
+    <h1>الوقت ليه <span>فن وحكاية.</span></h1>
+    <p class="sub">الساعة دي شغالة دلوقتي بوقتك إنت، وفي قلبها التوربيون بيلف لفة كاملة كل دقيقة.</p>
+    <div class="actions">
+      <button class="cta" id="discover" type="button">اكتشف عالم الساعات <span aria-hidden="true">←</span></button>
+      <div class="hint"><i></i>امسك الساعة وشوف الوقت بيجري</div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage" aria-label="مجسم ثلاثي الأبعاد لساعة توربيون بتعرض الوقت الحالي">
+    <canvas id="c"></canvas>
+  </div>
+  <div class="scroll" aria-hidden="true"></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const stage=document.getElementById("stage"), canvas=document.getElementById("c"), hero=document.getElementById("hero");
+  document.getElementById("discover").addEventListener("click",()=>parent.postMessage({type:"tourbillon:scroll-next"},location.origin));
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.1;
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(28,.8,1,300);
+  camera.position.set(0,0,50);
+
+  /* ---------- studio reflection map ---------- */
+  (function(){
+    const c=document.createElement("canvas"); c.width=1024; c.height=512;
+    const g=c.getContext("2d");
+    const bg=g.createLinearGradient(0,0,0,512);
+    bg.addColorStop(0,"#2b4854"); bg.addColorStop(.55,"#0c161a"); bg.addColorStop(1,"#020506");
+    g.fillStyle=bg; g.fillRect(0,0,1024,512);
+    const box=(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h)};
+    box(100,50,240,120,"#fff3dc"); box(560,30,300,60,"#ffffff");
+    box(860,140,80,230,"#a6d6f5"); box(380,290,170,40,"#ffd9a0"); box(20,200,60,160,"#ffffff");
+    const t=new THREE.CanvasTexture(c);
+    t.mapping=THREE.EquirectangularReflectionMapping; t.encoding=THREE.sRGBEncoding;
+    const pm=new THREE.PMREMGenerator(renderer);
+    scene.environment=pm.fromEquirectangular(t).texture;
+    t.dispose(); pm.dispose();
+  })();
+
+  scene.add(new THREE.HemisphereLight(0x9fc4d6,0x0a1216,.3));
+  const key=new THREE.DirectionalLight(0xfff1d6,2.4);
+  key.position.set(-7,11,18);
+  key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048);
+  const sc=key.shadow.camera; sc.left=-10;sc.right=10;sc.top=10;sc.bottom=-10;sc.near=1;sc.far=60;
+  key.shadow.bias=-0.0004; key.shadow.radius=2.5;
+  scene.add(key);
+
+  /* ---------- materials ---------- */
+  const rose =new THREE.MeshStandardMaterial({color:0xd8a07c,metalness:1,roughness:.2});
+  const gold =new THREE.MeshStandardMaterial({color:0xd9ab52,metalness:1,roughness:.26});
+  const steel=new THREE.MeshStandardMaterial({color:0xdde3e8,metalness:1,roughness:.13});
+  const blued=new THREE.MeshStandardMaterial({color:0x27479e,metalness:.9,roughness:.2});
+  const redHand=new THREE.MeshStandardMaterial({color:0xc9432b,metalness:.8,roughness:.25});
+  const dark =new THREE.MeshStandardMaterial({color:0x05090b,metalness:.4,roughness:.6,side:THREE.DoubleSide});
+  const ruby =new THREE.MeshPhysicalMaterial({color:0xb3122a,emissive:0x3a0008,metalness:0,roughness:.06,clearcoat:1});
+
+  /* ---------- procedural textures ---------- */
+  function mk(c,enc){const t=new THREE.CanvasTexture(c); if(enc) t.encoding=THREE.sRGBEncoding; t.anisotropy=8; return t}
+
+  // Côtes de Genève plate
+  const stripes=(function(){
+    const c=document.createElement("canvas"); c.width=c.height=1024; const g=c.getContext("2d"), w=30;
+    for(let x=0;x<1024;x+=w){
+      const gr=g.createLinearGradient(x,0,x+w,0);
+      gr.addColorStop(0,"#17262c"); gr.addColorStop(.5,"#7a98a3"); gr.addColorStop(1,"#17262c");
+      g.fillStyle=gr; g.fillRect(x,0,w,1024);
+    }
+    const t=mk(c,true); t.center.set(.5,.5); t.rotation=Math.PI/5; return t;
+  })();
+  const plateMat=new THREE.MeshStandardMaterial({map:stripes,metalness:.85,roughness:.42});
+
+  // Sunburst blue dial (1024px = 10 units, centre = watch centre)
+  const dialTex=(function(){
+    const S=1024,c=document.createElement("canvas"); c.width=c.height=S; const g=c.getContext("2d"), n=720;
+    for(let i=0;i<n;i++){
+      const a=i/n*Math.PI*2, l=13+10*(.5+.5*Math.sin(a*3+.6))+4*Math.sin(a*9);
+      g.fillStyle="hsl(212,58%,"+l+"%)";
+      g.beginPath(); g.moveTo(S/2,S/2); g.arc(S/2,S/2,S,a,a+Math.PI*2/n+.012); g.fill();
+    }
+    const v=g.createRadialGradient(S/2,S/2,S*.25,S/2,S/2,S*.5);
+    v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(0,0,0,.55)");
+    g.fillStyle=v; g.fillRect(0,0,S,S);
+    g.strokeStyle="rgba(240,233,218,.75)"; g.lineWidth=2;
+    for(let i=0;i<60;i++){
+      const a=i*Math.PI/30, r1=i%5?468:452, r2=486;
+      g.beginPath(); g.moveTo(S/2+Math.cos(a)*r1,S/2+Math.sin(a)*r1); g.lineTo(S/2+Math.cos(a)*r2,S/2+Math.sin(a)*r2); g.stroke();
+    }
+    g.fillStyle="#e9d5bf"; g.textAlign="center";
+    g.font="600 54px Georgia, serif"; if(g.letterSpacing!==undefined) g.letterSpacing="14px";
+    g.fillText("VELORA",S/2+7,S/2-205);
+    g.font="400 24px Georgia, serif"; if(g.letterSpacing!==undefined) g.letterSpacing="10px";
+    g.fillStyle="rgba(233,213,191,.8)"; g.fillText("TOURBILLON",S/2+5,S/2-160);
+    const t=mk(c,true); t.repeat.set(.1,.1); t.offset.set(.5,.5); return t;
+  })();
+  const dialMat=new THREE.MeshStandardMaterial({map:dialTex,metalness:.55,roughness:.38});
+
+  // Leather strap with stitching
+  const leatherTex=(function(){
+    const W=256,H=1024,c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
+    g.fillStyle="#2b1b12"; g.fillRect(0,0,W,H);
+    for(let i=0;i<9000;i++){ g.fillStyle="rgba("+(i%2?"255,230,200":"0,0,0")+",.045)"; g.fillRect(Math.random()*W,Math.random()*H,2,2); }
+    g.strokeStyle="#d9c4a1"; g.lineWidth=3; g.setLineDash([14,9]);
+    [22,W-22].forEach(x=>{g.beginPath();g.moveTo(x,0);g.lineTo(x,H);g.stroke()});
+    return mk(c,true);
+  })();
+  const leather=new THREE.MeshStandardMaterial({map:leatherTex,metalness:0,roughness:.55});
+
+  // Sapphire glare streak
+  const glareTex=(function(){
+    const c=document.createElement("canvas"); c.width=c.height=512; const g=c.getContext("2d");
+    const gr=g.createLinearGradient(0,0,512,512);
+    gr.addColorStop(.30,"rgba(255,255,255,0)"); gr.addColorStop(.42,"rgba(255,255,255,.55)");
+    gr.addColorStop(.50,"rgba(255,255,255,.08)"); gr.addColorStop(.58,"rgba(255,255,255,.28)"); gr.addColorStop(.70,"rgba(255,255,255,0)");
+    g.fillStyle=gr; g.fillRect(0,0,512,512);
+    return new THREE.CanvasTexture(c);
+  })();
+
+  /* ---------- helpers ---------- */
+  const add=(m,parent)=>{m.castShadow=true;m.receiveShadow=true;(parent||watch).add(m);return m};
+
+  function gearShape(r,n,h,hubR,spokes){
+    const s=new THREE.Shape(), step=2*Math.PI/n, k=[[-.32,r],[-.18,r+h],[.18,r+h],[.32,r]];
+    for(let i=0;i<n;i++) k.forEach(([o,rad],j)=>{
+      const a=i*step+o*step*2, x=Math.cos(a)*rad, y=Math.sin(a)*rad;
+      (i===0&&j===0)?s.moveTo(x,y):s.lineTo(x,y);
+    });
+    s.closePath();
+    const hole=new THREE.Path(); hole.absarc(0,0,hubR*.38,0,Math.PI*2,true); s.holes.push(hole);
+    for(let i=0;i<spokes;i++){
+      const a0=i*2*Math.PI/spokes+.1, a1=(i+1)*2*Math.PI/spokes-.1, p=new THREE.Path();
+      p.absarc(0,0,r*.8,a0,a1,false); p.absarc(0,0,hubR,a1,a0,true); s.holes.push(p);
+    }
+    return s;
+  }
+  function makeGear(r,n,depth,spokes,mat,parent){
+    const geo=new THREE.ExtrudeGeometry(gearShape(r,n,r*.16,r*.3,spokes),
+      {depth,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2,curveSegments:10});
+    return add(new THREE.Mesh(geo,mat),parent);
+  }
+  function jewel(x,y,z,size,parent){
+    const g=new THREE.Group(); g.position.set(x,y,z);
+    const st=new THREE.Mesh(new THREE.SphereGeometry(size,24,16),ruby); st.scale.z=.6; st.castShadow=true; g.add(st);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(size*1.35,size*.28,12,32),gold); ring.castShadow=true; g.add(ring);
+    (parent||watch).add(g); return g;
+  }
+  function screw(x,y,z,r){
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.06,20),blued);
+    m.rotation.x=Math.PI/2; m.position.set(x,y,z); m.castShadow=true; watch.add(m);
+    const sl=new THREE.Mesh(new THREE.BoxGeometry(r*1.7,r*.22,.03),dark);
+    sl.position.set(x,y,z+.035); sl.rotation.z=x*3; watch.add(sl);
+  }
+  function roundRect(w,h,r){
+    const s=new THREE.Shape(), x=-w/2,y=-h/2;
+    s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.quadraticCurveTo(x+w,y,x+w,y+r); s.lineTo(x+w,y+h-r);
+    s.quadraticCurveTo(x+w,y+h,x+w-r,y+h); s.lineTo(x+r,y+h); s.quadraticCurveTo(x,y+h,x,y+h-r);
+    s.lineTo(x,y+r); s.quadraticCurveTo(x,y,x+r,y); return s;
+  }
+
+  /* ================= THE WATCH ================= */
+  const watch=new THREE.Group(); scene.add(watch);
+
+  /* case: lathe profile (radius, height) */
+  (function(){
+    const prof=[[0,-.9],[5.5,-.9],[5.95,-.6],[6.05,-.2],[6.05,.45],[5.85,.72],[5.3,.9],[5.05,.82],[5.0,.55],[4.95,.3]]
+      .map(([r,y])=>new THREE.Vector2(r,y));
+    const geo=new THREE.LatheGeometry(prof,128); geo.rotateX(Math.PI/2);
+    const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:0xd8a07c,metalness:1,roughness:.18,side:THREE.DoubleSide}));
+    m.castShadow=true; m.receiveShadow=true; watch.add(m);
+    // fluted bezel highlight ring
+    add(new THREE.Mesh(new THREE.TorusGeometry(5.35,.06,10,128),steel)).position.z=.88;
+  })();
+
+  /* lugs */
+  [[-2.7,1],[2.7,1],[-2.7,-1],[2.7,-1]].forEach(([x,s])=>{
+    const geo=new THREE.ExtrudeGeometry(roundRect(.9,3.2,.35),{depth:1.1,bevelEnabled:true,bevelThickness:.12,bevelSize:.12,bevelSegments:3});
+    const m=add(new THREE.Mesh(geo,rose)); m.position.set(x,s*6.1,-.65); m.rotation.x=s*-.06;
+  });
+
+  /* crown at 3 o'clock */
+  (function(){
+    const stem=add(new THREE.Mesh(new THREE.CylinderGeometry(.28,.28,.8,20),rose)); stem.rotation.z=Math.PI/2; stem.position.set(6.2,0,0);
+    const crown=add(new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.85,28),rose)); crown.rotation.z=Math.PI/2; crown.position.set(6.75,0,0);
+    crown.material=rose.clone(); crown.material.flatShading=true; 
+    const cap=add(new THREE.Mesh(new THREE.CylinderGeometry(.46,.46,.06,28),steel)); cap.rotation.z=Math.PI/2; cap.position.set(7.2,0,0);
+    jewel(7.24,0,0,.1).rotation.y=Math.PI/2;
+  })();
+
+  /* strap */
+  [1,-1].forEach(s=>{
+    const L=11, geo=new THREE.BoxGeometry(4.4,L,.42,1,48,1); geo.translate(0,L/2,0);
+    const p=geo.attributes.position;
+    for(let i=0;i<p.count;i++){
+      const d=p.getY(i);
+      p.setX(i,p.getX(i)*(1-.14*d/L));
+      p.setZ(i,p.getZ(i)-.045*d*d);
+    }
+    geo.computeVertexNormals();
+    const m=add(new THREE.Mesh(geo,leather)); m.position.set(0,s*6.6,-.2); if(s<0) m.rotation.z=Math.PI;
+  });
+
+  /* movement plate visible through the dial opening */
+  const plate=new THREE.Mesh(new THREE.CylinderGeometry(5,5,.2,96),plateMat);
+  plate.rotation.x=Math.PI/2; plate.position.z=-.4; plate.receiveShadow=true; watch.add(plate);
+
+  const trains=[];
+  [[-1.9,-3.3,1.15,17,.3,gold,5,.7],[1.9,-1.8,.95,14,.3,steel,4,-.9],[1.5,-3.9,.8,12,.3,rose,3,1.2],[-1.6,-1.2,.7,11,.3,gold,3,-1.3]]
+  .forEach(([x,y,r,n,d,mat,sp,speed])=>{
+    const g=new THREE.Group(); g.position.set(x,y,-.25); watch.add(g);
+    makeGear(r,n,d,sp,mat,g); g.userData.speed=speed;
+    jewel(x,y,.1,r*.13);
+    trains.push(g);
+  });
+
+  /* dial with skeleton window at 6 o'clock */
+  (function(){
+    const s=new THREE.Shape(); s.absarc(0,0,5,0,Math.PI*2,false);
+    const h=new THREE.Path(); h.absarc(0,-2.3,1.95,0,Math.PI*2,true); s.holes.push(h);
+    const geo=new THREE.ExtrudeGeometry(s,{depth:.1,bevelEnabled:true,bevelThickness:.03,bevelSize:.03,bevelSegments:2,curveSegments:96});
+    const d=add(new THREE.Mesh(geo,dialMat)); d.position.z=.2;
+    const fl=add(new THREE.Mesh(new THREE.TorusGeometry(1.97,.07,12,96),rose)); fl.position.set(0,-2.3,.35);
+  })();
+
+  /* applied indices */
+  for(let i=0;i<12;i++){
+    const a=Math.PI/2-i*Math.PI/6, long=i%3===0;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(.16,long?.8:.55,.12),rose);
+    m.position.set(Math.cos(a)*4.3,Math.sin(a)*4.3,.4); m.rotation.z=a-Math.PI/2; m.castShadow=true; watch.add(m);
+  }
+
+  /* tourbillon (sits in the window) */
+  const cage=new THREE.Group(); cage.position.set(0,-2.3,.08); cage.scale.setScalar(.42); watch.add(cage);
+  add(new THREE.Mesh(new THREE.TorusGeometry(3.2,.14,16,96),gold),cage);
+  [Math.PI/6,Math.PI*5/6,Math.PI*3/2].forEach(a=>{
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(3.2,.24,.16),gold);
+    arm.position.set(Math.cos(a)*1.6,Math.sin(a)*1.6,0); arm.rotation.z=a; add(arm,cage);
+  });
+  const esc=new THREE.Group(); esc.position.z=-.25; cage.add(esc); makeGear(1.05,15,.14,5,steel,esc);
+  jewel(0,0,.2,.2,cage);
+  const balance=new THREE.Group(); balance.position.set(0,2.0,.1); cage.add(balance);
+  add(new THREE.Mesh(new THREE.TorusGeometry(.95,.07,12,64),gold),balance);
+  [0,Math.PI/2].forEach(a=>{const b=new THREE.Mesh(new THREE.BoxGeometry(1.9,.07,.07),gold); b.rotation.z=a; add(b,balance)});
+  for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4, w=new THREE.Mesh(new THREE.SphereGeometry(.1,12,8),rose);
+    w.position.set(Math.cos(a)*.95,Math.sin(a)*.95,0); add(w,balance);}
+  (function(){
+    const pts=[]; for(let t=0;t<=1;t+=.004){const a=t*Math.PI*2*7, r=.08+t*.72; pts.push(new THREE.Vector3(Math.cos(a)*r,Math.sin(a)*r,-.08));}
+    add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),500,.014,4),blued),balance);
+  })();
+
+  /* hands: real local time */
+  function hand(pts,w,mat,z){
+    const sh=new THREE.Shape(); pts.forEach(([x,y],i)=>i?sh.lineTo(x,y):sh.moveTo(x,y)); sh.closePath();
+    const m=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.04,bevelEnabled:true,bevelThickness:.015,bevelSize:.015,bevelSegments:1}),mat);
+    m.castShadow=true; m.receiveShadow=true;
+    const g=new THREE.Group(); g.position.z=z; g.add(m); watch.add(g); return g;
+  }
+  const hourH=hand([[-.07,-.9],[.07,-.9],[.24,.4],[0,3.0],[-.24,.4]],0,steel,.52);
+  const minH =hand([[-.05,-.9],[.05,-.9],[.16,.5],[0,4.2],[-.16,.5]],0,steel,.6);
+  const secH =hand([[-.018,-1.3],[.018,-1.3],[.018,4.6],[-.018,4.6]],0,redHand,.68);
+  const tail=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.05,20),redHand); tail.rotation.x=Math.PI/2; tail.position.set(0,-1.0,.0); tail.castShadow=true; secH.add(tail);
+  const capM=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.22,28),rose); capM.rotation.x=Math.PI/2; capM.position.z=.7; capM.castShadow=true; watch.add(capM);
+
+  /* sapphire crystal dome + moving glare */
+  (function(){
+    const R=36, th=Math.asin(5/R);
+    const geo=new THREE.SphereGeometry(R,64,12,0,Math.PI*2,0,th); geo.rotateX(Math.PI/2);
+    const m=new THREE.Mesh(geo,new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:0,transparent:true,opacity:.1,clearcoat:1,envMapIntensity:3,depthWrite:false}));
+    m.position.z=.82-R*Math.cos(th); // rim sits on the bezel, dome rises above it
+    watch.add(m);
+  })();
+  const glareMat=new THREE.MeshBasicMaterial({map:glareTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.7});
+  const glare=new THREE.Mesh(new THREE.CircleGeometry(4.95,64),glareMat); glare.position.z=1.18; watch.add(glare);
+
+  /* start with a 3/4 view */
+  watch.rotation.set(.12,-.42,.0);
+
+  /* ---------- sizing ---------- */
+  function resize(){
+    const w=stage.clientWidth||400, h=stage.clientHeight||500;
+    renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage); resize();
+
+  /* ---------- interaction ---------- */
+  let fast=0,fastT=0,px=0,py=0,sx=0,sy=0;
+  stage.addEventListener("pointerdown",()=>{fastT=1});
+  addEventListener("pointerup",()=>{fastT=0});
+  addEventListener("pointercancel",()=>{fastT=0});
+  stage.addEventListener("pointermove",e=>{
+    const b=stage.getBoundingClientRect();
+    px=((e.clientX-b.left)/b.width-.5); py=((e.clientY-b.top)/b.height-.5);
+  });
+  stage.addEventListener("pointerleave",()=>{px=0;py=0});
+
+  /* ---------- clock + loop ---------- */
+  const d0=new Date(); let simMs=d0.getTime()-d0.getTimezoneOffset()*60000, mech=0, tAll=0;
+  let last=performance.now(),visible=true,running=false;
+  let hostActive=true;
+  const TAU=Math.PI*2;
+
+  function frame(now){
+    if(!visible||!hostActive||document.hidden){running=false;return}
+    const dt=Math.min((now-last)/1000,.05); last=now;
+    fast+=(fastT-fast)*Math.min(1,dt*4);
+    simMs+=dt*1000*(1+239*fast);
+    mech+=dt*(1+5*fast); tAll+=dt;
+
+    const sec=(simMs/1000)%60, min=(simMs/60000)%60, hr=(simMs/3600000)%12;
+    secH.rotation.z=-(sec/60)*TAU;
+    minH.rotation.z=-(min/60)*TAU;
+    hourH.rotation.z=-(hr/12)*TAU;
+    cage.rotation.z=-(sec/60)*TAU;
+    balance.rotation.z=Math.sin(mech*5.4)*2.4;
+    esc.rotation.z=mech*1.8;
+    trains.forEach(g=>g.rotation.z=mech*g.userData.speed*.35);
+
+    sx+=(px-sx)*.06; sy+=(py-sy)*.06;
+    const sway=reduce?0:Math.sin(tAll*.5)*.05;
+    watch.rotation.y=-.42+sx*.7+sway;
+    watch.rotation.x=.12+sy*.5+(reduce?0:Math.cos(tAll*.4)*.03);
+    glareTex.offset.x=-sx*.6+Math.sin(tAll*.35)*.18;
+    glareTex.offset.y= sy*.6;
+
+    renderer.render(scene,camera);
+    requestAnimationFrame(frame);
+  }
+  function start(){ if(running) return; running=true; last=performance.now(); requestAnimationFrame(frame); }
+  new IntersectionObserver(([e])=>{visible=e.isIntersecting; if(visible) start();},{threshold:0}).observe(hero);
+  addEventListener("message",event=>{
+    if(event.origin!==location.origin||event.data?.type!=="tourbillon:set-active") return;
+    hostActive=Boolean(event.data.active);
+    if(hostActive) start();
+  });
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden) start()});
+  start();
+})();
+</script>
+</body>
+</html>
