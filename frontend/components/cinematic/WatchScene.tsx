@@ -73,8 +73,8 @@ function CameraRig({ motion, mobile, focus }: { motion: RefObject<CinemaMotion>;
     const { from, to, t } = samplePose(motion.current.progress);
     const interpolate = (a: number, b: number) => THREE.MathUtils.lerp(a, b, t);
     desiredCamera.set(interpolate(from.camera[0], to.camera[0]), interpolate(from.camera[1], to.camera[1]), interpolate(from.camera[2], to.camera[2]));
-    // Portrait screens crop the landscape-composed poses badly; pull back further on mobile.
-    if (mobile) { desiredCamera.x *= .35; desiredCamera.z *= 2.0; }
+    // Keep the complete watch in portrait without pushing it so far back that the dial loses detail.
+    if (mobile) { desiredCamera.x *= .35; desiredCamera.z *= 1.62; }
     camera.position.lerp(desiredCamera, 1 - Math.exp(-CINEMA.cameraDamping * delta));
     target.set(interpolate(from.target[0], to.target[0]), interpolate(from.target[1], to.target[1]), interpolate(from.target[2], to.target[2]));
     camera.lookAt(target);
@@ -90,7 +90,7 @@ function CameraRig({ motion, mobile, focus }: { motion: RefObject<CinemaMotion>;
       watch.current.rotation.x = THREE.MathUtils.damp(watch.current.rotation.x, interpolate(from.rotation[0], to.rotation[0]) + py, 3, delta);
       watch.current.rotation.y = THREE.MathUtils.damp(watch.current.rotation.y, interpolate(from.rotation[1], to.rotation[1]) + px + Math.sin(elapsed.current * .17) * .06, 3, delta);
       watch.current.rotation.z = THREE.MathUtils.damp(watch.current.rotation.z, interpolate(from.rotation[2], to.rotation[2]), 5, delta);
-      watch.current.scale.setScalar(interpolate(from.scale, to.scale) * (mobile ? .85 : 1));
+      watch.current.scale.setScalar(interpolate(from.scale, to.scale) * (mobile ? .94 : 1));
     }
   });
   return <group ref={watch}><WatchModel motion={motion} mobile={mobile} /></group>;
@@ -100,9 +100,9 @@ function SceneContents({ motion, mobile, onFailure, onReady, low, onDecline }: S
   const focus = useMemo(() => new THREE.Vector3(), []);
   return <>
     <color attach="background" args={[CINEMA.colors.black]} />
-    <ambientLight intensity={.25} />
-    <spotLight position={[1, 6, 4]} color="#efd7a7" intensity={95} angle={.5} penumbra={1} distance={25} />
-    <pointLight position={[-4, 1, 4]} color="#c1ceda" intensity={14} />
+    <ambientLight intensity={mobile ? .4 : .25} />
+    <spotLight position={[1, 6, 4]} color="#efd7a7" intensity={mobile ? 108 : 95} angle={.5} penumbra={1} distance={25} />
+    <pointLight position={[-4, 1, 4]} color="#c1ceda" intensity={mobile ? 20 : 14} />
     <Studio />
     <CameraRig motion={motion} mobile={mobile} focus={focus} />
     <Dust mobile={mobile || low} />
@@ -110,9 +110,9 @@ function SceneContents({ motion, mobile, onFailure, onReady, low, onDecline }: S
     <ContextLifecycle onFailure={onFailure} onReady={onReady} />
     <PerformanceMonitor onDecline={onDecline} flipflops={1} onFallback={onDecline} bounds={() => [35, 58]} />
     {!low && <EffectComposer multisampling={0} enableNormalPass={false}>
-      <Bloom intensity={CINEMA.bloom} luminanceThreshold={1.2} mipmapBlur />
-      <Noise opacity={CINEMA.grain} />
-      <Vignette eskil={false} offset={.3} darkness={CINEMA.vignette} />
+      <Bloom intensity={mobile ? .1 : CINEMA.bloom} luminanceThreshold={1.2} mipmapBlur />
+      <Noise opacity={mobile ? .004 : CINEMA.grain} />
+      <Vignette eskil={false} offset={mobile ? .2 : .3} darkness={mobile ? .2 : CINEMA.vignette} />
     </EffectComposer>}
   </>;
 }

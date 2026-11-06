@@ -196,7 +196,7 @@ export function ProceduralWatch({ motion, mobile }: WatchProps) {
     <GearTrain explosion={explosion} />
     <TourbillonCage explosion={explosion} />
     <group ref={dial}>
-      <mesh><shapeGeometry args={[dialShape, mobile ? 24 : 48]} /><meshPhysicalMaterial color="#242421" metalness={.82} roughness={.34} side={THREE.DoubleSide} /></mesh>
+      <mesh><shapeGeometry args={[dialShape, mobile ? 32 : 48]} /><meshPhysicalMaterial color={mobile ? '#34312b' : '#242421'} metalness={mobile ? .72 : .82} roughness={mobile ? .28 : .34} side={THREE.DoubleSide} /></mesh>
       <Markers />
       <mesh><torusGeometry args={[1.23, .006, 4, segments]} /><meshStandardMaterial color="#b08d57" metalness={.8} roughness={.4} /></mesh>
     </group>
@@ -204,7 +204,7 @@ export function ProceduralWatch({ motion, mobile }: WatchProps) {
     <group ref={bezel}><mesh><torusGeometry args={[1.51, .055, 12, segments]} /><meshStandardMaterial color="#d3bb8d" metalness={1} roughness={.16} /></mesh></group>
     <mesh ref={crystal} rotation={[Math.PI / 2, 0, 0]}>
       <cylinderGeometry args={[1.47, 1.47, .025, segments]} />
-      <meshPhysicalMaterial color="#dce8ee" metalness={.08} roughness={.04} transparent opacity={.08} depthWrite={false} clearcoat={1} clearcoatRoughness={.025} envMapIntensity={1.35} side={THREE.FrontSide} />
+      <meshPhysicalMaterial color="#dce8ee" metalness={mobile ? .02 : .08} roughness={mobile ? .015 : .04} transparent opacity={mobile ? .025 : .08} depthWrite={false} clearcoat={1} clearcoatRoughness={.025} envMapIntensity={mobile ? .55 : 1.35} side={THREE.FrontSide} />
     </mesh>
   </group>;
 }

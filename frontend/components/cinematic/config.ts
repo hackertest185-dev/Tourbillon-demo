@@ -1,7 +1,7 @@
 export const CINEMA = {
   colors: { black: '#0A0907', charcoal: '#14110E', gold: '#B08D57', cream: '#EDE4D3', burgundy: '#7A1F2B' },
   scrollScreens: 7, scrub: 0.35, cameraDamping: 5, parallax: 0.055,
-  desktopDpr: 1.5, mobileDpr: 1.25, bloom: 0.16, grain: 0.012, vignette: 0.5,
+  desktopDpr: 1.5, mobileDpr: 1.5, bloom: 0.16, grain: 0.012, vignette: 0.5,
   desktopParticles: 90, mobileParticles: 24, gearSpeed: 0.12,
   // One-line asset swaps. Null keeps the self-contained procedural edition.
   watchModel: null as string | null,

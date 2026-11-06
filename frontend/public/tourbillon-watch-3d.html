@@ -50,7 +50,7 @@
 
   @media (max-width:820px){
     .hero{grid-template-columns:1fr;align-content:center;gap:0;padding:4.5rem 1.25rem 3.5rem}
-    .stage{order:-1;width:min(100%,54vw);max-height:32svh}
+    .stage{order:-1;width:min(100%,58vw);max-height:34svh}
     .copy{margin-inline:auto;text-align:center}
     .brand{justify-content:center;margin-bottom:.35rem}
     h1{font-size:clamp(2.15rem,9.5vw,3.25rem);line-height:1.05}
@@ -88,8 +88,9 @@
   document.getElementById("discover").addEventListener("click",()=>parent.postMessage({type:"tourbillon:scroll-next"},location.origin));
   const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  const compact=matchMedia("(max-width: 820px)").matches;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:"high-performance"});
-  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,compact?2:1.75));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=1.1;
@@ -98,7 +99,7 @@
 
   const scene=new THREE.Scene();
   const camera=new THREE.PerspectiveCamera(28,.8,1,300);
-  camera.position.set(0,0,50);
+  camera.position.set(0,0,compact?32:50);
 
   /* ---------- studio reflection map ---------- */
   (function(){
@@ -348,7 +349,7 @@
     m.position.z=.82-R*Math.cos(th); // rim sits on the bezel, dome rises above it
     watch.add(m);
   })();
-  const glareMat=new THREE.MeshBasicMaterial({map:glareTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:.7});
+  const glareMat=new THREE.MeshBasicMaterial({map:glareTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,opacity:compact?.38:.7});
   const glare=new THREE.Mesh(new THREE.CircleGeometry(4.95,64),glareMat); glare.position.z=1.18; watch.add(glare);
 
   /* start with a 3/4 view */
