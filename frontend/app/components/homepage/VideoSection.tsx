@@ -15,13 +15,23 @@ export default function VideoSection({ allowPlayback = true }: { allowPlayback?:
 
   useEffect(() => {
     const frame = frameRef.current;
-    const sync = () => frame?.contentWindow?.postMessage({ type: 'tourbillon:set-active', active: allowPlayback && !document.hidden }, window.location.origin);
+    const send = (active: boolean) => frame?.contentWindow?.postMessage({ type: 'tourbillon:set-active', active }, window.location.origin);
+    const sync = () => requestAnimationFrame(() => send(allowPlayback && !document.hidden));
+    const suspend = () => send(false);
     sync();
     frame?.addEventListener('load', sync);
     document.addEventListener('visibilitychange', sync);
+    window.addEventListener('pageshow', sync);
+    window.addEventListener('focus', sync);
+    window.addEventListener('popstate', sync);
+    window.addEventListener('pagehide', suspend);
     return () => {
       frame?.removeEventListener('load', sync);
       document.removeEventListener('visibilitychange', sync);
+      window.removeEventListener('pageshow', sync);
+      window.removeEventListener('focus', sync);
+      window.removeEventListener('popstate', sync);
+      window.removeEventListener('pagehide', suspend);
     };
   }, [allowPlayback]);
 

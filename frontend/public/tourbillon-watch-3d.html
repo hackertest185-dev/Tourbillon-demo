@@ -412,7 +412,10 @@
     hostActive=Boolean(event.data.active);
     if(hostActive) start();
   });
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden) start()});
+  const resume=()=>{if(!document.hidden) start()};
+  document.addEventListener("visibilitychange",resume);
+  addEventListener("pageshow",resume);
+  addEventListener("focus",resume);
   start();
 })();
 </script>
